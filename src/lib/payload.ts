@@ -94,8 +94,30 @@ export async function fetchPage<T = unknown>(
 }
 
 /**
+ * Conditions de filtre pour Payload, format `where[field][operator]=value`.
+ * Cf. https://payloadcms.com/docs/queries/overview#operators
+ */
+export type WhereCondition = {
+  field: string;
+  operator?:
+    | 'equals'
+    | 'not_equals'
+    | 'in'
+    | 'not_in'
+    | 'greater_than'
+    | 'less_than'
+    | 'like'
+    | 'contains'
+    | 'exists';
+  value: string | number | boolean;
+};
+
+/**
  * Récupère tous les documents d'une collection (sans pagination,
  * en supposant que les collections du carnet restent < 500 entrées).
+ *
+ * `where` accepte un tableau de conditions qui sont serialisées au format
+ * `where[<field>][<operator>]=<value>` attendu par l'API REST Payload.
  */
 export async function fetchCollection<T = unknown>(
   collection: string,
@@ -103,17 +125,24 @@ export async function fetchCollection<T = unknown>(
     depth?: number;
     limit?: number;
     sort?: string;
-    where?: string;
+    where?: WhereCondition[];
   } = {},
 ): Promise<T[]> {
   const { depth = 2, limit = 500, sort, where } = options;
-  const params = new URLSearchParams();
-  params.set('depth', String(depth));
-  params.set('limit', String(limit));
-  if (sort) params.set('sort', sort);
-  if (where) params.set('where', where);
+  const parts: string[] = [];
+  parts.push(`depth=${depth}`);
+  parts.push(`limit=${limit}`);
+  if (sort) parts.push(`sort=${encodeURIComponent(sort)}`);
+  if (where && where.length > 0) {
+    for (const c of where) {
+      const op = c.operator ?? 'equals';
+      parts.push(
+        `where[${encodeURIComponent(c.field)}][${op}]=${encodeURIComponent(String(c.value))}`,
+      );
+    }
+  }
   const data = await fetchPayload<FindResult<T>>(
-    `/${collection}?${params.toString()}`,
+    `/${collection}?${parts.join('&')}`,
   );
   return data.docs;
 }
