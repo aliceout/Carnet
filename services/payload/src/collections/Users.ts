@@ -45,6 +45,13 @@ export const Users: CollectionConfig = {
       const role = (user as { role?: string } | null | undefined)?.role;
       return role !== 'admin' && role !== 'root';
     },
+    components: {
+      views: {
+        list: {
+          Component: '@/components/admin/UsersListView#default',
+        },
+      },
+    },
   },
   auth: {
     // Sliding 48h : Payload prolonge le cookie à chaque requête authentifiée

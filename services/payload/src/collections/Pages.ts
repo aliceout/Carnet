@@ -26,6 +26,13 @@ export const Pages: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'slug', 'updatedAt'],
     listSearchableFields: ['title', 'slug'],
+    components: {
+      views: {
+        list: {
+          Component: '@/components/admin/PagesListView#default',
+        },
+      },
+    },
   },
   fields: [
     {
