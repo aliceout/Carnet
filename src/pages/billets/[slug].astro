@@ -20,7 +20,7 @@
  */
 import Layout from '../../layouts/Layout.astro';
 import { fetchBySlug, fetchCollection } from '../../lib/payload';
-import { renderLexical, extractToc } from '../../lib/lexical';
+import { renderLexicalWithFootnotes, extractToc } from '../../lib/lexical';
 import { formatDateFr, formatNumero, formatIdCarnet } from '../../lib/site';
 
 type Theme = { id: number | string; slug: string; name: string };
@@ -86,8 +86,9 @@ const readingLabel = post.readingTime
     : `≈ ${post.readingTime} min`
   : null;
 
-// Body HTML rendu côté serveur depuis Lexical
-const bodyHtml = renderLexical(post.body);
+// Body HTML rendu côté serveur depuis Lexical, plus la liste des
+// footnotes collectées (vide si pas de blocks Footnote dans le body).
+const { bodyHtml, footnotesHtml } = renderLexicalWithFootnotes(post.body);
 const tocEntries = extractToc(post.body);
 
 // Bibliographie
@@ -147,6 +148,7 @@ const citationText = `Aussel Delamaide, Alice. « ${post.title} », Carnet, ${nu
           {entry.text}
         </a>
       ))}
+      {footnotesHtml && <a href="#notes" data-toc="notes">Notes</a>}
       {biblio.length > 0 && <a href="#biblio" data-toc="biblio">Bibliographie</a>}
       <a href="#cite" data-toc="cite">Pour citer</a>
     </aside>
@@ -205,6 +207,12 @@ const citationText = `Aussel Delamaide, Alice. « ${post.title} », Carnet, ${nu
         <Fragment set:html={bodyHtml} />
       </div>
     </div>
+
+    {footnotesHtml && (
+      <div class="footnotes-wrap" id="notes">
+        <Fragment set:html={footnotesHtml} />
+      </div>
+    )}
 
     <div class="tail">
       {biblio.length > 0 && (
@@ -426,6 +434,127 @@ const citationText = `Aussel Delamaide, Alice. « ${post.title} », Carnet, ${nu
   }
   .body-grid .col :global(sup a) {
     color: var(--color-accent);
+  }
+
+  /* ── Blocks Lexical custom (rendus par renderLexicalWithFootnotes) ── */
+
+  /* Footnote inline : <sup><a> qui pointe vers #fn-N */
+  .body-grid .col :global(.fn-mark) {
+    line-height: 0;
+    font-size: 0.78em;
+    margin-left: 1px;
+  }
+  .body-grid .col :global(.fn-mark a) {
+    color: var(--color-accent);
+    text-decoration: none;
+    font-family: var(--font-sans);
+    font-weight: 500;
+  }
+  .body-grid .col :global(.fn-mark a:hover) {
+    text-decoration: underline;
+  }
+
+  /* BiblioInline : (Auteur, année) → #bib-<slug> */
+  .body-grid .col :global(.biblio-inline) {
+    color: var(--color-accent);
+    border-bottom: 1px dotted var(--color-accent);
+    text-decoration: none;
+    transition: color 0.12s;
+  }
+  .body-grid .col :global(.biblio-inline:hover) {
+    color: var(--color-ink);
+    border-bottom-style: solid;
+  }
+  .body-grid .col :global(.biblio-inline-empty) {
+    color: var(--color-muted);
+    font-style: italic;
+  }
+
+  /* CitationBloc — citation longue avec source (ré-utilise le style
+     blockquote existant + cite). */
+  .body-grid .col :global(.block-citation) {
+    /* hérite du style blockquote */
+  }
+  .body-grid .col :global(.citation-source) {
+    display: block;
+    margin-top: 12px;
+    font-style: normal;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--color-muted);
+    text-align: left;
+  }
+
+  /* Figure (image + légende + crédit) */
+  .body-grid .col :global(.block-figure) {
+    margin: 32px 0;
+  }
+  .body-grid .col :global(.block-figure.align-center) {
+    text-align: center;
+  }
+  .body-grid .col :global(.block-figure.align-wide) {
+    /* Ne déborde pas du body-grid en mode classic, juste plus large */
+    margin-left: -40px;
+    margin-right: -40px;
+  }
+  .body-grid .col :global(.block-figure img) {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+  .body-grid .col :global(.block-figure figcaption) {
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--color-muted);
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: left;
+  }
+  .body-grid .col :global(.block-figure .credit) {
+    font-size: 11px;
+  }
+
+  /* Notes en pied d'article (style classique) */
+  .footnotes-wrap {
+    max-width: 720px;
+    margin: 48px auto 0;
+  }
+  .footnotes-wrap :global(.footnotes-classic) {
+    border-top: 1px solid var(--color-rule);
+    padding-top: 24px;
+  }
+  .footnotes-wrap :global(.footnotes-classic h3) {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-ink);
+    margin: 0 0 14px;
+  }
+  .footnotes-wrap :global(.footnotes-classic ol) {
+    font-family: var(--font-serif);
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--color-body-soft);
+    padding-left: 22px;
+    margin: 0;
+  }
+  .footnotes-wrap :global(.footnotes-classic li) {
+    margin-bottom: 8px;
+  }
+  .footnotes-wrap :global(.fn-back) {
+    color: var(--color-accent);
+    margin-left: 4px;
+    text-decoration: none;
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+  }
+  .footnotes-wrap :global(.fn-back:hover) {
+    text-decoration: underline;
   }
 
   /* Tail (biblio, citation, related) */

@@ -93,8 +93,19 @@ type SeedPost = {
   draft?: boolean;
 };
 
+/**
+ * Node de body : on supporte un mode "rich paragraph" qui contient une
+ * liste de fragments inline — texte simple, footnote, ou biblio inline
+ * (référence vers une entrée Bibliography par slug).
+ */
+type InlineFragment =
+  | { kind: 'text'; text: string }
+  | { kind: 'footnote'; content: string }
+  | { kind: 'biblio'; biblioSlug: string; prefix?: string; suffix?: string };
+
 type BodyNode =
   | { kind: 'p'; text: string }
+  | { kind: 'pr'; fragments: InlineFragment[] }
   | { kind: 'h2'; text: string }
   | { kind: 'blockquote'; text: string };
 
@@ -110,12 +121,34 @@ const POSTS: SeedPost[] = [
     biblioSlugs: ['farris-2017', 'massad-2007', 'puar-2007', 'saiz-2014'],
     bodyParagraphs: [
       {
-        kind: 'p',
-        text: "Lorsque le Conseil des droits de l'homme des Nations unies adopte, en juin 2011, sa résolution 17/19 sur l'orientation sexuelle et l'identité de genre, le geste paraît modeste : un texte court, voté à une majorité étroite (23 voix contre 19), demandant un rapport au Haut-Commissariat. Ce vote constitue pourtant le précédent ; tout ce que je veux examiner ici en découle ou s'y oppose.",
+        kind: 'pr',
+        fragments: [
+          {
+            kind: 'text',
+            text: "Lorsque le Conseil des droits de l'homme des Nations unies adopte, en juin 2011, sa résolution 17/19 sur l'orientation sexuelle et l'identité de genre, le geste paraît modeste : un texte court, voté à une majorité étroite (23 voix contre 19), demandant un rapport au Haut-Commissariat. Ce vote constitue pourtant le précédent ; tout ce que je veux examiner ici en découle ou s'y oppose",
+          },
+          {
+            kind: 'footnote',
+            content:
+              "Sur le contexte du vote, voir Saiz (2014), p. 47 sq. — référence essentielle pour comprendre la stratégie sud-africaine.",
+          },
+          { kind: 'text', text: '.' },
+        ],
       },
       {
-        kind: 'p',
-        text: "Quinze ans plus tard, le paysage diplomatique a basculé. La défense des droits LGBTQI+ est devenue, tour à tour, un marqueur d'identité occidentale, une monnaie dans les rapports Nord-Sud, un enjeu de polarisation interne dans les démocraties libérales, et un vecteur d'instrumentalisation tant par certains États « progressistes » que par leurs adversaires déclarés.",
+        kind: 'pr',
+        fragments: [
+          {
+            kind: 'text',
+            text: "Quinze ans plus tard, le paysage diplomatique a basculé. La défense des droits LGBTQI+ est devenue, tour à tour, un marqueur d'identité occidentale, une monnaie dans les rapports Nord-Sud, un enjeu de polarisation interne dans les démocraties libérales, et un vecteur d'instrumentalisation tant par certains États « progressistes » que par leurs adversaires déclarés",
+          },
+          {
+            kind: 'footnote',
+            content:
+              "Je reprends, en la déplaçant, la formule de Puar (2007) sur l'« assemblage » homonationaliste.",
+          },
+          { kind: 'text', text: '.' },
+        ],
       },
       { kind: 'h2', text: 'I — La résolution comme acte fondateur' },
       {
@@ -123,8 +156,27 @@ const POSTS: SeedPost[] = [
         text: "Il faut revenir à la séquence elle-même. Le projet sud-africain, soutenu par le Brésil, prend forme dans un contexte où l'Afrique du Sud post-apartheid se rêve médiatrice morale du Sud global. La résolution n'aurait pas la même portée si elle avait été portée par la France ou les Pays-Bas : c'est précisément l'origine non occidentale du texte qui rend son adoption politiquement coûteuse pour les opposants.",
       },
       {
-        kind: 'p',
-        text: "On peut objecter que cette généalogie a été rapidement effacée. Dès 2013, le Free and Equal campaign du Haut-Commissariat est porté par des voix essentiellement anglo-saxonnes. La diplomatie américaine, sous Obama puis Biden, fait des droits LGBTQI+ un axe explicite de sa politique étrangère. La France, plus tardivement et plus discrètement, lui emboîte le pas.",
+        kind: 'pr',
+        fragments: [
+          {
+            kind: 'text',
+            text: "On peut objecter que cette généalogie a été rapidement effacée. Dès 2013, le Free and Equal campaign du Haut-Commissariat est porté par des voix essentiellement anglo-saxonnes ",
+          },
+          { kind: 'biblio', biblioSlug: 'massad-2007', prefix: 'cf.' },
+          {
+            kind: 'text',
+            text: ". La diplomatie américaine, sous Obama puis Biden, fait des droits LGBTQI+ un axe explicite de sa politique étrangère",
+          },
+          {
+            kind: 'footnote',
+            content:
+              "Voir le Presidential Memorandum on International Initiatives to Advance the Human Rights of LGBT Persons, 6 décembre 2011.",
+          },
+          {
+            kind: 'text',
+            text: ". La France, plus tardivement et plus discrètement, lui emboîte le pas.",
+          },
+        ],
       },
       {
         kind: 'blockquote',
@@ -132,12 +184,33 @@ const POSTS: SeedPost[] = [
       },
       { kind: 'h2', text: 'II — Trois discours, trois États' },
       {
-        kind: 'p',
-        text: "Pour rendre tangible cette mécanique, il faut comparer trois cas. Le premier est celui d'Israël, qui a fait des droits LGBTQI+ un argument central de sa brand identity internationale dès le milieu des années 2000. Le deuxième est celui des Pays-Bas, dont la diplomatie gay-friendly est plus ancienne et plus institutionnalisée mais infléchie depuis 2024. Le troisième est celui de la Fédération de Russie, qui mobilise depuis 2013 le rejet des « valeurs LGBTQ » comme étendard d'une diplomatie « anti-impérialiste » à destination du Sud global.",
+        kind: 'pr',
+        fragments: [
+          {
+            kind: 'text',
+            text: "Pour rendre tangible cette mécanique, il faut comparer trois cas. Le premier est celui d'Israël, qui a fait des droits LGBTQI+ un argument central de sa brand identity internationale dès le milieu des années 2000. Le deuxième est celui des Pays-Bas, dont la diplomatie gay-friendly est plus ancienne et plus institutionnalisée mais infléchie depuis 2024. Le troisième est celui de la Fédération de Russie, qui mobilise depuis 2013 le rejet des « valeurs LGBTQ » comme étendard d'une diplomatie « anti-impérialiste » à destination du Sud global",
+          },
+          {
+            kind: 'footnote',
+            content:
+              "Sur la séquence russe, voir l'analyse en cours dans le billet « Quand les marges remontent au centre ».",
+          },
+          { kind: 'text', text: '.' },
+        ],
       },
       {
-        kind: 'p',
-        text: "Ce dernier point mérite qu'on s'y arrête. Le récit russe est efficace précisément parce qu'il s'appuie sur l'asymétrie hégémonique du discours pro-LGBTQI+ : si ce discours apparaît comme un produit d'exportation occidental, son rejet apparaît comme un acte de souveraineté. C'est cette ambiguïté que mes terrains en Centrafrique et en RDC m'ont forcée à prendre au sérieux.",
+        kind: 'pr',
+        fragments: [
+          {
+            kind: 'text',
+            text: "Ce dernier point mérite qu'on s'y arrête. Le récit russe est efficace précisément parce qu'il s'appuie sur l'asymétrie hégémonique du discours pro-LGBTQI+ — comme l'a montré ",
+          },
+          { kind: 'biblio', biblioSlug: 'puar-2007' },
+          {
+            kind: 'text',
+            text: " : si ce discours apparaît comme un produit d'exportation occidental, son rejet apparaît comme un acte de souveraineté. C'est cette ambiguïté que mes terrains en Centrafrique et en RDC m'ont forcée à prendre au sérieux.",
+          },
+        ],
       },
       { kind: 'h2', text: 'III — La fracture sud-américaine' },
       {
@@ -375,71 +448,125 @@ const SITE_GLOBAL = {
 // ─── Lexical body builder ────────────────────────────────────────
 
 /**
- * Construit un objet Lexical minimal depuis une liste de nœuds simples
- * (paragraphes, h2, blockquotes). Le format suit la convention Payload
- * Lexical : root.children[].type avec text/heading/quote.
+ * Construit un objet Lexical depuis une liste de nœuds simples.
+ * Format Payload Lexical : root.children[].type ∈
+ * { paragraph, heading, quote, inlineBlock, block, text }.
+ *
+ * Le type 'pr' (rich paragraph) supporte des fragments inline mixés
+ * (text + footnote + biblio_inline) — utile pour insérer des notes
+ * et références dans le flux d'écriture du seed.
+ *
+ * `biblioIdBySlug` est requis si le body contient des fragments
+ * 'biblio' (sinon ils seront skippés silencieusement).
  */
-function buildLexicalBody(nodes: BodyNode[]) {
-  const children = nodes.map((node) => {
+function randomId() {
+  return Math.random().toString(36).slice(2, 12);
+}
+
+function textNode(text: string) {
+  return {
+    type: 'text',
+    text,
+    version: 1,
+    detail: 0,
+    format: 0,
+    mode: 'normal',
+    style: '',
+  };
+}
+
+function buildLexicalBody(
+  nodes: BodyNode[],
+  biblioIdBySlug?: Map<string, number | string>,
+) {
+  const children = nodes.flatMap((node) => {
     if (node.kind === 'h2') {
-      return {
-        type: 'heading',
-        tag: 'h2',
-        version: 1,
-        direction: 'ltr',
-        format: '',
-        indent: 0,
-        children: [
-          {
-            type: 'text',
-            text: node.text,
-            version: 1,
-            detail: 0,
-            format: 0,
-            mode: 'normal',
-            style: '',
-          },
-        ],
-      };
+      return [
+        {
+          type: 'heading',
+          tag: 'h2',
+          version: 1,
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          children: [textNode(node.text)],
+        },
+      ];
     }
     if (node.kind === 'blockquote') {
-      return {
-        type: 'quote',
+      return [
+        {
+          type: 'quote',
+          version: 1,
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          children: [textNode(node.text)],
+        },
+      ];
+    }
+    if (node.kind === 'p') {
+      return [
+        {
+          type: 'paragraph',
+          version: 1,
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          children: [textNode(node.text)],
+        },
+      ];
+    }
+    // node.kind === 'pr' : rich paragraph avec fragments inline
+    const inlineChildren = node.fragments
+      .map((f) => {
+        if (f.kind === 'text') return textNode(f.text);
+        if (f.kind === 'footnote') {
+          return {
+            type: 'inlineBlock',
+            version: 1,
+            fields: {
+              id: randomId(),
+              blockName: '',
+              blockType: 'footnote',
+              content: f.content,
+            },
+          };
+        }
+        if (f.kind === 'biblio') {
+          const entryId = biblioIdBySlug?.get(f.biblioSlug);
+          if (entryId === undefined) {
+            console.warn(
+              `[seed-dev] biblio_inline skipped : slug ${f.biblioSlug} introuvable`,
+            );
+            return null;
+          }
+          return {
+            type: 'inlineBlock',
+            version: 1,
+            fields: {
+              id: randomId(),
+              blockName: '',
+              blockType: 'biblio_inline',
+              entry: entryId,
+              prefix: f.prefix ?? null,
+              suffix: f.suffix ?? null,
+            },
+          };
+        }
+        return null;
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null);
+    return [
+      {
+        type: 'paragraph',
         version: 1,
         direction: 'ltr',
         format: '',
         indent: 0,
-        children: [
-          {
-            type: 'text',
-            text: node.text,
-            version: 1,
-            detail: 0,
-            format: 0,
-            mode: 'normal',
-            style: '',
-          },
-        ],
-      };
-    }
-    return {
-      type: 'paragraph',
-      version: 1,
-      direction: 'ltr',
-      format: '',
-      indent: 0,
-      children: [
-        {
-          type: 'text',
-          text: node.text,
-          version: 1,
-          detail: 0,
-          format: 0,
-          mode: 'normal',
-          style: '',
-        },
-      ],
-    };
+        children: inlineChildren,
+      },
+    ];
   });
 
   return {
@@ -555,7 +682,7 @@ async function main() {
         themes: themeIds as number[],
         publishedAt: post.publishedAt,
         lede: post.lede,
-        body: buildLexicalBody(post.bodyParagraphs),
+        body: buildLexicalBody(post.bodyParagraphs, biblioIdBySlug),
         bibliography: biblioIds as number[],
         draft: post.draft ?? false,
       },

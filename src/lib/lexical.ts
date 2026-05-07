@@ -6,21 +6,54 @@
  * texte avec format (bold=1, italic=2, strikethrough=4, underline=8, code=16).
  *
  * Les blocks Lexical custom (Footnote, CitationBloc, BiblioInline, Figure)
- * ne sont pas rendus à ce stade — leur format dépendra de la BlocksFeature
- * branchée dans la config Lexical Payload (issue #12 step ultérieure).
+ * sont rendus via renderLexicalWithFootnotes — qui retourne en plus la
+ * liste des notes de bas de page, à afficher en pied d'article.
  *
  * Helpers :
- *  - renderLexical : node → HTML string
+ *  - renderLexical : node → HTML string (sans collect des footnotes —
+ *    convient pour le contenu Pages.sections.prose qui n'a pas de notes)
+ *  - renderLexicalWithFootnotes : node → { bodyHtml, footnotesHtml }
  *  - extractToc : node → liste { id, text, level } pour le sommaire
  *  - slugify : chaîne → identifiant URL-safe (utilisé pour les ids de h2)
  */
+
+import { mediaUrl } from './payload';
 
 type LexicalNode = {
   type?: string;
   tag?: string;
   text?: string;
   format?: number;
-  fields?: { url?: string; newTab?: boolean };
+  fields?: {
+    url?: string;
+    newTab?: boolean;
+    blockType?: string;
+    blockName?: string;
+    id?: string;
+    // Footnote
+    content?: string;
+    // CitationBloc
+    text?: string;
+    source?: string;
+    // BiblioInline
+    entry?:
+      | {
+          id?: number | string;
+          slug?: string;
+          author?: string;
+          year?: number;
+        }
+      | number
+      | string
+      | null;
+    prefix?: string;
+    suffix?: string;
+    // Figure
+    image?: { filename?: string; alt?: string } | number | string | null;
+    legende?: string;
+    credit?: string;
+    align?: 'left' | 'center' | 'wide';
+  };
   listType?: 'number' | 'bullet';
   children?: LexicalNode[];
 };
@@ -51,6 +84,15 @@ export function slugify(s: string): string {
     .slice(0, 80);
 }
 
+type RenderContext = {
+  /** Notes de bas de page collectées pendant le walk, dans l'ordre d'apparition. */
+  footnotes: Array<{ n: number; html: string }>;
+};
+
+function newContext(): RenderContext {
+  return { footnotes: [] };
+}
+
 function renderText(node: LexicalNode): string {
   if (typeof node.text !== 'string') return '';
   let html = escapeHtml(node.text);
@@ -63,19 +105,86 @@ function renderText(node: LexicalNode): string {
   return html;
 }
 
-function renderChildren(children: LexicalNode[] | undefined): string {
+function renderChildren(children: LexicalNode[] | undefined, ctx: RenderContext): string {
   if (!children) return '';
-  return children.map(renderLexical).join('');
+  return children.map((c) => renderNode(c, ctx)).join('');
 }
 
-export function renderLexical(node: LexicalNode | unknown): string {
+function renderBlock(node: LexicalNode, ctx: RenderContext): string {
+  const fields = node.fields;
+  if (!fields) return '';
+  const blockType = fields.blockType;
+
+  switch (blockType) {
+    case 'footnote': {
+      const n = ctx.footnotes.length + 1;
+      const noteHtml = escapeHtml(fields.content ?? '');
+      ctx.footnotes.push({ n, html: noteHtml });
+      return `<sup id="fnref-${n}" class="fn-mark"><a href="#fn-${n}">${n}</a></sup>`;
+    }
+
+    case 'citation_bloc': {
+      const text = escapeHtml(fields.text ?? '');
+      const source = fields.source
+        ? `<cite class="citation-source">— ${escapeHtml(fields.source)}</cite>`
+        : '';
+      return `<blockquote class="block-citation"><p>${text}</p>${source}</blockquote>`;
+    }
+
+    case 'biblio_inline': {
+      const entry = fields.entry;
+      const prefix = fields.prefix ? escapeHtml(fields.prefix) + ' ' : '';
+      const suffix = fields.suffix ? escapeHtml(fields.suffix) : '';
+      if (!entry || typeof entry !== 'object' || !entry.slug) {
+        // Référence non populated — fallback minimal.
+        return `<span class="biblio-inline-empty">(réf.)</span>`;
+      }
+      // Format Chicago author-date court : "(Auteur, année)" — le nom est
+      // pris jusqu'à la première virgule du champ author (ex. "Farris, Sara R."
+      // → "Farris").
+      const lastName = (entry.author ?? '').split(',')[0].trim();
+      const yearPart = entry.year ? `, ${entry.year}` : '';
+      const inner = `${prefix}${escapeHtml(lastName)}${yearPart}${suffix}`;
+      return `<a class="biblio-inline" href="#bib-${escapeHtml(entry.slug)}">(${inner})</a>`;
+    }
+
+    case 'figure': {
+      const image = fields.image;
+      const url =
+        image && typeof image === 'object' && image.filename
+          ? mediaUrl(image.filename) ?? ''
+          : '';
+      if (!url) return '';
+      const alt = (image && typeof image === 'object' && image.alt) || '';
+      const legende = fields.legende
+        ? `<span class="legende">${escapeHtml(fields.legende)}</span>`
+        : '';
+      const credit = fields.credit
+        ? `<span class="credit">${escapeHtml(fields.credit)}</span>`
+        : '';
+      const align = fields.align ?? 'left';
+      const caption =
+        legende || credit
+          ? `<figcaption>${legende}${credit}</figcaption>`
+          : '';
+      return `<figure class="block-figure align-${align}"><img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" loading="lazy" />${caption}</figure>`;
+    }
+
+    default:
+      return '';
+  }
+}
+
+function renderNode(node: LexicalNode | unknown, ctx: RenderContext): string {
   if (!node || typeof node !== 'object') return '';
   const n = node as LexicalNode & { root?: LexicalNode };
   // Wrapper { root: {...} } : descend dans root
-  if ('root' in n && n.root) return renderChildren(n.root.children);
+  if ('root' in n && n.root) return renderChildren(n.root.children, ctx);
   if (typeof n.text === 'string') return renderText(n);
 
-  const inner = renderChildren(n.children);
+  if (n.type === 'block' || n.type === 'inlineBlock') return renderBlock(n, ctx);
+
+  const inner = renderChildren(n.children, ctx);
 
   switch (n.type) {
     case 'root':
@@ -111,6 +220,40 @@ export function renderLexical(node: LexicalNode | unknown): string {
     default:
       return inner;
   }
+}
+
+/**
+ * Rend un body Lexical en HTML, sans collecter les footnotes (les blocks
+ * Footnote rencontrés sont quand même rendus avec leur ancre `<sup>`,
+ * mais la liste en pied n'est pas générée). Convient pour les contenus
+ * Pages.sections.prose qui n'ont pas de notes.
+ */
+export function renderLexical(node: LexicalNode | unknown): string {
+  return renderNode(node, newContext());
+}
+
+/**
+ * Rend un body Lexical en HTML et retourne aussi la liste HTML des
+ * footnotes collectées dans l'ordre d'apparition. Le caller insère
+ * `footnotesHtml` après `bodyHtml` dans la page article.
+ *
+ * Format des notes : `<ol class="footnotes-classic"><li id="fn-N">…
+ * <a href="#fnref-N" class="fn-back">↩</a></li></ol>`.
+ */
+export function renderLexicalWithFootnotes(
+  node: LexicalNode | unknown,
+): { bodyHtml: string; footnotesHtml: string } {
+  const ctx = newContext();
+  const bodyHtml = renderNode(node, ctx);
+  if (ctx.footnotes.length === 0) return { bodyHtml, footnotesHtml: '' };
+  const items = ctx.footnotes
+    .map(
+      ({ n, html }) =>
+        `<li id="fn-${n}">${html} <a href="#fnref-${n}" class="fn-back" aria-label="Retour au texte">↩</a></li>`,
+    )
+    .join('');
+  const footnotesHtml = `<section class="footnotes-classic" aria-labelledby="footnotes-heading"><h3 id="footnotes-heading">Notes</h3><ol>${items}</ol></section>`;
+  return { bodyHtml, footnotesHtml };
 }
 
 export type TocEntry = { id: string; text: string; level: 2 | 3 };
