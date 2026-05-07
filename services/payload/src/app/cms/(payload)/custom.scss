@@ -1,0 +1,10 @@
+// Overrides CSS de l'admin Payload.
+
+// Le wrapper des pages publiques (login, invitation, forgot, reset)
+// utilise `background-color: var(--theme-bg-color)` côté Payload, mais
+// cette var n'est pas définie dans le CSS généré → en theme dark, le
+// fond reste blanc. On force la bonne var. !important pour passer
+// au-dessus du @layer payload-default.
+.template-minimal {
+  background-color: var(--theme-bg) !important;
+}
