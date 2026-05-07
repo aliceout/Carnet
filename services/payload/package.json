@@ -13,6 +13,8 @@
     "generate:types": "dotenv -e ../../.env -- cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "lint": "cross-env NODE_OPTIONS=--no-deprecation eslint .",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
+    "seed:dev": "dotenv -e ../../.env -- cross-env NODE_OPTIONS=--no-deprecation tsx scripts/seed-dev.ts",
+    "seed:dev:reset": "dotenv -e ../../.env -- cross-env NODE_OPTIONS=--no-deprecation tsx scripts/seed-dev.ts --reset",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start -p 3001",
     "test:auth": "cross-env NODE_OPTIONS=--no-deprecation tsx --test src/auth/auth.test.ts"
   },

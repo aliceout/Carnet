@@ -22,7 +22,7 @@ secrets:
   loader: dotenv
   # TODO: remplacer par le slug exact du projet sur env.backlice.dev
   # (visible dans l'URL de l'admin Infisical quand tu ouvres le projet).
-  project: carnet
+  project: carnet-ayz-p
   batches:
     # Env Infisical "dev" — valeurs locales (Postgres docker, Mailpit, etc.).
     # En prod, ce fichier est ignoré : deploy.sh fetche directement l'env

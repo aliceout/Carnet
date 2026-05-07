@@ -107,6 +107,23 @@ pnpm --dir services/payload generate:importmap
 `payload-types.ts` est consommé par le client Astro
 (`src/lib/payload.ts`) pour le typage strict.
 
+### Étape 7 — (optionnel) Charger les données de démo
+
+Pour avoir un site déjà rempli en local — 8 thèmes, 4 entrées de
+bibliographie, 13 billets fictifs (dont l'article démo
+*L'homonationalisme a-t-il une diplomatie ?*), une page À propos,
+et le global Site :
+
+```bash
+pnpm --dir services/payload seed:dev          # idempotent (skip si existe)
+pnpm --dir services/payload seed:dev:reset    # wipe puis remplit
+```
+
+Refuse de tourner si `NODE_ENV=production`. Source des données :
+`Design/design_handoff_carnet/carnet-b-app.jsx`. Le script ne charge
+**pas** les blocks Lexical custom (Footnote, BiblioInline) — leur
+intégration est livrée avec le port du frontend (issue #12).
+
 ---
 
 ## 3. Workflow d'écriture d'un billet
