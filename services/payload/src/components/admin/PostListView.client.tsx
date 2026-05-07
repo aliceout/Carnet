@@ -179,7 +179,6 @@ export default function PostListViewClient(): React.ReactElement {
             className="carnet-btn carnet-btn--accent"
           >
             Nouveau billet
-            <span className="kbd">⌘ N</span>
           </Link>
         </div>
       </header>
