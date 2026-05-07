@@ -57,6 +57,10 @@ export default buildConfig({
       ),
     },
     components: {
+      // Nav latérale custom — remplace la nav native (collections à plat)
+      // par la structure éditoriale Contenu / Pages / Réglages avec
+      // counts à droite. Cf Design/design_handoff_admin/README.md § 5.
+      Nav: '@/components/admin/Nav#default',
       // Login overridé pour gérer le 2FA en deux étapes.
       views: {
         login: {

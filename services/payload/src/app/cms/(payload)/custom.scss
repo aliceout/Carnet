@@ -260,6 +260,109 @@ textarea.field-type__input {
   font-weight: 500;
 }
 
+// ─── Nav latérale custom ─────────────────────────────────────────
+// Composant React custom branché via admin.components.Nav.
+// Remplace la nav native Payload par la structure éditoriale
+// Contenu / Pages / Réglages avec counts mono à droite.
+
+.carnet-nav {
+  display: flex;
+  flex-direction: column;
+  width: 220px;
+  min-height: 100vh;
+  padding: 0;
+  background: var(--b-bg);
+  border-right: 1px solid var(--b-rule);
+  font-family: var(--font-sans);
+  font-size: 13px;
+
+  &__brand {
+    display: block;
+    padding: 20px 24px 24px;
+    font-family: var(--font-serif);
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--b-ink);
+    text-decoration: none;
+    border-bottom: 1px solid var(--b-rule);
+
+    .dot {
+      color: var(--b-accent);
+    }
+  }
+
+  &__section {
+    padding: 16px 0 8px;
+  }
+
+  &__section-label {
+    padding: 6px 24px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--b-muted);
+  }
+
+  &__link {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 7px 24px;
+    color: var(--b-muted);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    margin-left: 0;
+    transition: background 0.12s, color 0.12s, border-left-color 0.12s;
+
+    &:hover {
+      background: var(--b-accent-tint);
+      color: var(--b-ink);
+    }
+
+    &--active {
+      background: var(--b-accent-tint);
+      color: var(--b-ink);
+      font-weight: 600;
+      border-left-color: var(--b-accent);
+    }
+
+    &--logout {
+      margin-top: auto;
+      color: var(--b-muted);
+      font-size: 12px;
+    }
+  }
+
+  &__link-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__link-count {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--b-muted);
+    flex-shrink: 0;
+  }
+
+  &__spacer {
+    flex: 1;
+  }
+}
+
+// Quand la Nav custom est utilisée, masquer/écarter les fragments natifs
+// que Payload pourrait encore injecter (bouton hamburger mobile, brand
+// natif). Sélecteurs défensifs.
+.payload-logo,
+.nav-mobile {
+  display: none;
+}
+
 // ─── Dashboard custom ────────────────────────────────────────────
 // Composant React custom branché via admin.components.views.dashboard.
 // Remplace le rendu CollectionCards natif par un hero éditorial.
