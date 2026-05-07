@@ -522,12 +522,22 @@ header svg.icon--logo {
 // Boutons "Create New" / "Save" / "Publish" natifs Payload :
 // forcer la palette accent Carnet (au lieu du gris-béton par défaut).
 // !important nécessaire pour passer le @layer payload-default.
+//
+// Cibles MASSIVES car Payload v3 utilise plein de variantes de classes
+// pour ses boutons : btn--style-primary, btn--style-pill,
+// btn--icon-style-without-border, pill, etc. On cible tous les btn
+// qui ne sont pas explicitement secondaires/ghost.
 .btn--style-primary,
 .btn.btn--style-primary,
 button.btn--style-primary,
 [class*='btn--style-primary'],
 .collection-list__sub-header .btn,
-.edit-document__header .btn--primary {
+.collection-list__sub-header .pill,
+.edit-document__header .btn--primary,
+.list-header .pill,
+.list-header .btn,
+.doc-controls .btn--style-primary,
+.doc-header .btn--style-primary {
   background: var(--b-accent) !important;
   color: var(--b-bg) !important;
   border: 1px solid var(--b-accent) !important;
@@ -540,6 +550,27 @@ button.btn--style-primary,
   &:hover {
     background: #000 !important;
     border-color: #000 !important;
+  }
+}
+
+// Pills natives Payload (utilisées pour "Create New" et "Bulk Upload")
+// Souvent rendues avec .pill ou .btn-pill. Style accent pour la pill
+// principale, ghost pour les variants.
+.pill,
+.btn--style-pill,
+[class*='btn--style-pill'],
+[class*='pill_pill'] {
+  border-radius: 0 !important;
+  font-family: var(--font-sans) !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  padding: 5px 14px !important;
+  background: var(--b-paper) !important;
+  color: var(--b-ink) !important;
+  border: 1px solid var(--b-rule) !important;
+
+  &:hover {
+    border-color: var(--b-ink) !important;
   }
 }
 
