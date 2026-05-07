@@ -308,12 +308,57 @@ const POSTS: SeedPost[] = [
   },
 ];
 
+const ABOUT_SECTIONS_PARAGRAPHS: Record<string, BodyNode[]> = {
+  bio: [
+    {
+      kind: 'p',
+      text: "J'ai passé dix ans en zones de conflit et de crise — Ukraine, Centrafrique, République démocratique du Congo, Madagascar — comme coordinatrice humanitaire. Je termine cette année un master 1 en études de genre à l'EHESS, j'entame un M2 en septembre 2026, et un projet doctoral prend forme autour de l'instrumentalisation politique des droits LGBTQI+ dans les rapports internationaux.",
+    },
+    {
+      kind: 'p',
+      text: "J'écris pour Le Cavalier Bleu, dans la collection Convergences, un livre sur le sujet. Le carnet en est l'atelier visible : notes datées, citables, ouvertes. Il prend la suite, d'une certaine manière, du modèle Hypothèses, qui a suspendu les nouvelles ouvertures fin 2024.",
+    },
+  ],
+  terrains: [
+    {
+      kind: 'p',
+      text: "Cinq terrains successifs entre 2014 et 2025 : France (plaidoyer humanitaire à Médecins du Monde et Action contre la Faim, 2014-2016), Madagascar (coordination régionale ONG de développement, 2016-2018), République démocratique du Congo (Nord-Kivu et Ituri, prévention des violences basées sur le genre, 2018-2020), République centrafricaine (coordination de mission, supervision de cinq bases, 2020-2023), Ukraine (coordination terrain à Mykolaïv et Kherson, programmes d'urgence et de protection, 2023-2025).",
+    },
+  ],
+  recherche: [
+    {
+      kind: 'p',
+      text: "M1 Études de genre à l'EHESS, soutenu en juin 2026 (mention TB). M2 prévu pour la rentrée 2026, avec un mémoire intitulé « Géopolitique des droits LGBTQI+ : entre instrumentalisation et émancipation ». Un projet doctoral est en construction, avec direction pressentie à l'EHESS et inscription envisagée à la rentrée 2027.",
+    },
+  ],
+  publications: [
+    {
+      kind: 'p',
+      text: "L'instrumentalisation politique des droits LGBTQI+, à paraître en 2027 chez Le Cavalier Bleu, collection Convergences. Manuscrit en cours.",
+    },
+  ],
+  colophon: [
+    {
+      kind: 'p',
+      text: "Site auto-hébergé via Payload CMS dockerisé, frontend Astro SSR. Polices Source Serif 4, Inter et JetBrains Mono, servies depuis @fontsource (équivalent Bunny Fonts privacy-first, sans tracking). Aucun pisteur. Aucune dépendance JavaScript externe pour la lecture. Code source ouvert sous AGPLv3. Contenu sous licence CC BY-NC-SA 4.0.",
+    },
+  ],
+};
+
 const ABOUT_PAGE = {
   slug: 'about',
   title: 'Alice Aussel Delamaide',
-  description: "Coordinatrice humanitaire en reconversion vers la recherche en études de genre — Carnet de notes de travail.",
+  description:
+    "Coordinatrice humanitaire en reconversion vers la recherche en études de genre — Carnet de notes de travail.",
   eyebrow: 'À propos',
   lede: 'Coordinatrice humanitaire en reconversion vers la recherche en études de genre. Ce carnet rassemble mes notes de travail.',
+  sections: [
+    { kind: 'prose', titre: '', paragraphs: ABOUT_SECTIONS_PARAGRAPHS.bio },
+    { kind: 'prose', titre: 'Terrains', paragraphs: ABOUT_SECTIONS_PARAGRAPHS.terrains },
+    { kind: 'prose', titre: 'Recherche', paragraphs: ABOUT_SECTIONS_PARAGRAPHS.recherche },
+    { kind: 'prose', titre: 'Publications', paragraphs: ABOUT_SECTIONS_PARAGRAPHS.publications },
+    { kind: 'prose', titre: 'Colophon', paragraphs: ABOUT_SECTIONS_PARAGRAPHS.colophon },
+  ] as Array<{ kind: 'prose'; titre: string; paragraphs: BodyNode[] }>,
 };
 
 const SITE_GLOBAL = {
@@ -519,17 +564,29 @@ async function main() {
     console.log(`[seed-dev] +post n°${post.numero} ${post.slug}`);
   }
 
-  // 4. Page À propos
+  // 4. Page À propos — avec sections Prose
   const existingAbout = await findBySlug(payload, 'pages', ABOUT_PAGE.slug);
   if (existingAbout) {
     console.log(`[seed-dev] SKIP page ${ABOUT_PAGE.slug} (existe)`);
   } else {
+    const proseSections = ABOUT_PAGE.sections.map((s) => ({
+      blockType: 'prose',
+      titre: s.titre || undefined,
+      content: buildLexicalBody(s.paragraphs),
+    }));
     await payload.create({
       collection: 'pages',
-      data: ABOUT_PAGE,
+      data: {
+        slug: ABOUT_PAGE.slug,
+        title: ABOUT_PAGE.title,
+        description: ABOUT_PAGE.description,
+        eyebrow: ABOUT_PAGE.eyebrow,
+        lede: ABOUT_PAGE.lede,
+        sections: proseSections,
+      },
       overrideAccess: true,
     });
-    console.log(`[seed-dev] +page ${ABOUT_PAGE.slug}`);
+    console.log(`[seed-dev] +page ${ABOUT_PAGE.slug} (${proseSections.length} sections)`);
   }
 
   // 5. Global Site
