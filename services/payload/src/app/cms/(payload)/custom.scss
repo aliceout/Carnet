@@ -758,7 +758,7 @@ header svg.icon--logo {
 // Remplace la liste native Payload par le tableau éditorial du handoff.
 
 .carnet-listview {
-  padding: 20px 0 64px;
+  padding: 20px 24px 64px 0;
   font-family: var(--font-sans);
   background: var(--b-bg);
   min-height: 100vh;
