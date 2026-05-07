@@ -473,26 +473,34 @@ header svg.icon--logo {
 
 .template-default,
 .payload__main,
-.app-content,
-[class*='Template_default'],
-[class*='template_default'],
-[class*='template-default'],
-[class*='AppContent'],
-[class*='appContent'] {
+.app-content {
   padding: 0 !important;
   margin: 0 !important;
 }
 
-// Le wrapper interne des views (list, edit) peut aussi avoir un
-// padding qui décale le content de l'extrême gauche.
+// Wrapper interne du content à droite de la sidebar (DOM Payload v3
+// confirmé : `.template-default__wrap`). C'est lui qui ajoutait un
+// padding-left qui créait le gap avec la nav custom.
+.template-default__wrap,
+.template-default__content {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+// Wrappers internes des views (list, edit) — préservation du padding
+// vertical qui peut être utile, on neutralise juste les latéraux.
 .collection-list,
 .list-view,
 [class*='ListView'],
 [class*='listView'],
 [class*='CollectionList'],
 [class*='collectionList'] {
-  padding: 0 !important;
-  margin: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 // ─── Dashboard custom ────────────────────────────────────────────
