@@ -566,6 +566,216 @@ textarea.field-type__input {
   }
 }
 
+// ─── Document edit view (Posts, etc.) ───────────────────────────
+// Pass 1 : overrides CSS sur la vue native Payload pour appliquer la
+// palette + typographie + structure éditoriale du handoff carnet-admin.
+// La mécanique reste celle de Payload (form, validation, autosave).
+//
+// Pass 2 (à faire si besoin) : composant React custom complet avec
+// breadcrumb header + chip statut + bouton "Publier les modifications"
+// custom + slash menu Lexical avec icônes mono. Cf issue #16 commentaires.
+
+.collection-edit,
+.document-page,
+.edit-document {
+  background: var(--b-bg);
+  font-family: var(--font-sans);
+}
+
+// Le wrapper du form principal — on le passe en grid 2 colonnes
+// (éditeur / sidebar méta 300px) à partir de 1180px.
+.collection-edit__form,
+.document-fields {
+  background: var(--b-bg);
+}
+
+// Cadre crème autour du contenu principal (titre + lede + body Lexical)
+.document-fields__edit,
+.collection-edit__main {
+  background: var(--b-paper);
+  border: 1px solid var(--b-rule);
+  border-radius: 4px;
+  padding: 32px 40px 28px;
+}
+
+// Sidebar méta : largeur fixe 300px à partir de 1180px.
+.document-fields__sidebar,
+.collection-edit__sidebar {
+  background: transparent;
+  border-left: 1px solid var(--b-rule);
+  padding: 0 0 0 24px;
+
+  @media (min-width: 1180px) {
+    width: 300px;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 1179px) {
+    border-left: 0;
+    border-top: 1px solid var(--b-rule);
+    padding: 24px 0 0;
+    margin-top: 32px;
+  }
+}
+
+// Titre du billet : Source Serif 4 600 36px, fond transparent, pas de
+// bordure visible. On cible par BEM payload `.field-type--name-title`
+// (la convention v3 : `.field-type--name-<fieldName>`).
+.field-type--name-title input,
+.field-type--name-titre input {
+  font-family: var(--font-serif);
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px dashed transparent;
+  padding: 4px 0;
+  color: var(--b-ink);
+
+  &:focus {
+    border-bottom-color: var(--b-rule);
+    outline: none;
+  }
+}
+
+// Chapô (lede) : Source Serif 4 italique 18px muted
+.field-type--name-lede textarea {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--b-muted);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px dashed transparent;
+  padding: 4px 0;
+  resize: vertical;
+
+  &:focus {
+    border-bottom-color: var(--b-rule);
+    outline: none;
+  }
+}
+
+// Body Lexical : agrandir la zone d'édition pour le confort de lecture
+.field-type--name-body .rich-text-lexical,
+.field-type--name-body [contenteditable='true'] {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--b-ink);
+  background: transparent;
+  border: 0;
+  padding: 16px 0;
+
+  // Headings dans le Lexical
+  h2,
+  h3 {
+    font-family: var(--font-serif);
+    color: var(--b-ink);
+  }
+
+  h2 {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 32px 0 12px;
+  }
+
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 24px 0 8px;
+  }
+
+  blockquote {
+    border-left: 2px solid var(--b-accent);
+    padding-left: 16px;
+    margin: 24px 0;
+    font-style: italic;
+    color: var(--b-muted);
+  }
+}
+
+// Header de la doc-page (titre de page Payload + actions à droite)
+.doc-header,
+.collection-edit__header {
+  background: var(--b-bg);
+  border-bottom: 1px solid var(--b-rule);
+  padding: 16px 24px;
+  font-family: var(--font-sans);
+}
+
+.doc-controls,
+.collection-edit__controls {
+  font-family: var(--font-sans);
+  font-size: 13px;
+
+  // Bouton "Save" / "Publish" en accent (noir admin)
+  .btn--style-primary {
+    background: var(--b-accent);
+    color: var(--b-bg);
+    border-color: var(--b-accent);
+
+    &:hover {
+      background: #000;
+      border-color: #000;
+    }
+  }
+}
+
+// Sidebar méta : labels mono uppercase
+.collection-edit__sidebar .field-label,
+.document-fields__sidebar .field-label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--b-muted);
+  margin-bottom: 4px;
+}
+
+// Champs auto-calculés (readingTime, idCarnet) : encadré dashed bg
+.field-type--name-readingTime input,
+.field-type--name-idCarnet input,
+.field-type[data-readonly='true'] input {
+  background: var(--b-bg);
+  border: 1px dashed var(--b-rule);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--b-muted);
+}
+
+// Misc helpers pour les chips de statut (Brouillon / Publié / Planifié) —
+// cibles BEM : Payload v3 affiche `.status` ou `.status-pill` selon version.
+.status-pill,
+.doc-status {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  border: 1px solid var(--b-rule);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  &--draft,
+  &[data-status='draft'] {
+    color: var(--theme-warning-500, #b8842a);
+    border-color: var(--theme-warning-500, #b8842a);
+  }
+
+  &--published,
+  &[data-status='published'] {
+    color: var(--b-accent);
+    border-color: var(--b-accent);
+  }
+}
+
 // ─── Misc cleanup ────────────────────────────────────────────────
 
 // Désactive les rayons sur les blocs natifs Payload pour rester dans
