@@ -1,0 +1,174 @@
+---
+/**
+ * Footer 3 colonnes — signature + baseline + copyright (col 1),
+ * "Naviguer" (col 2), "Suivre" (col 3, social + colophon).
+ *
+ * Lit le global Site (baseline, copyrightLine, social, navFooter).
+ * Si Payload n'est pas joignable au SSR, on retombe sur des defaults
+ * (le footer reste affichable sans dépendre de la DB).
+ *
+ * Réf : design_handoff_carnet/Carnet B.html → footer.site.
+ */
+import { fetchSite } from '../lib/payload';
+
+type SocialLinks = {
+  mastodon?: string;
+  bluesky?: string;
+  orcid?: string;
+  hal?: string;
+};
+
+type NavFooterLink = {
+  label: string;
+  href: string;
+  external?: boolean;
+};
+
+type SiteGlobal = {
+  baseline?: string;
+  copyrightLine?: string;
+  social?: SocialLinks;
+  navFooter?: NavFooterLink[];
+};
+
+const DEFAULT_BASELINE =
+  "Carnet de recherche d'Alice Aussel Delamaide. Genre, géopolitique, droits LGBTQI+, humanitaire, migrations. Auto-hébergé. Sans pisteur.";
+const DEFAULT_COPYRIGHT = 'carnet.aliceosdel.org · CC BY-NC-SA 4.0';
+const DEFAULT_NAV: NavFooterLink[] = [
+  { label: 'Tous les billets', href: '/' },
+  { label: 'Thèmes', href: '/themes/' },
+  { label: 'Archives', href: '/archives/' },
+];
+
+let site: SiteGlobal = {};
+try {
+  site = await fetchSite<SiteGlobal>();
+} catch (err) {
+  console.warn('[footer] fetchSite failed, using defaults:', (err as Error).message);
+}
+
+const baseline = site.baseline || DEFAULT_BASELINE;
+const copyrightLine = site.copyrightLine || DEFAULT_COPYRIGHT;
+const navFooter = site.navFooter && site.navFooter.length > 0 ? site.navFooter : DEFAULT_NAV;
+const social = site.social ?? {};
+
+const socialLinks = [
+  { label: 'Flux RSS', href: '/rss.xml' },
+  social.mastodon ? { label: 'Mastodon', href: social.mastodon, external: true } : null,
+  social.bluesky ? { label: 'Bluesky', href: social.bluesky, external: true } : null,
+  social.orcid ? { label: 'ORCID', href: social.orcid, external: true } : null,
+  social.hal ? { label: 'HAL', href: social.hal, external: true } : null,
+  { label: 'Colophon', href: '/about/#colophon' },
+].filter((x): x is { label: string; href: string; external?: boolean } => x !== null);
+---
+
+<footer class="site">
+  <div class="container">
+    <div class="grid">
+      <div>
+        <div class="brand-foot">Carnet<span class="dot">.</span></div>
+        <p>{baseline}</p>
+        <div class="mono copyright">{copyrightLine}</div>
+      </div>
+      <div>
+        <h4>Naviguer</h4>
+        <div class="links">
+          {navFooter.map((link) => (
+            <a
+              href={link.href}
+              rel={link.external ? 'noopener' : undefined}
+            >
+              {link.label}
+            </a>
+          ))}
+        </div>
+      </div>
+      <div>
+        <h4>Suivre</h4>
+        <div class="links">
+          {socialLinks.map((link) => (
+            <a
+              href={link.href}
+              rel={link.external ? 'noopener' : undefined}
+            >
+              {link.label}
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<style>
+  footer.site {
+    background: var(--color-bg);
+    border-top: 1px solid var(--color-rule);
+    margin-top: 80px;
+    padding: 64px 0 56px;
+  }
+  footer.site .container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 80px;
+  }
+  footer.site .grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 56px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--color-ink);
+  }
+  footer.site h4 {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+  footer.site .links {
+    display: grid;
+    gap: 6px;
+  }
+  footer.site .links a {
+    color: var(--color-ink);
+    transition: color 0.12s;
+  }
+  footer.site .links a:hover {
+    color: var(--color-accent);
+  }
+  footer.site .brand-foot {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  footer.site .brand-foot .dot {
+    color: var(--color-accent);
+  }
+  footer.site p {
+    font-family: var(--font-serif);
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--color-muted);
+    margin: 0;
+    max-width: 460px;
+  }
+  footer.site .copyright {
+    font-size: 11px;
+    color: var(--color-muted);
+    margin-top: 24px;
+  }
+
+  @media (max-width: 900px) {
+    footer.site .container {
+      padding: 0 24px;
+    }
+    footer.site .grid {
+      grid-template-columns: 1fr;
+      gap: 32px;
+    }
+  }
+</style>

@@ -1,0 +1,108 @@
+---
+/**
+ * Header non sticky — brand "Carnet." à gauche (point en accent),
+ * nav à droite (Inter 13px, muted → ink + filet --b-accent 1.5px sur
+ * l'item actif).
+ *
+ * Détection page active via Astro.url.pathname avec match préfixe.
+ *
+ * Réf : design_handoff_carnet/Carnet B.html → header.site.
+ */
+
+const pathname = Astro.url.pathname;
+
+type NavItem = { href: string; label: string; matchPaths: string[]; mono?: boolean };
+
+const items: NavItem[] = [
+  { href: '/', label: 'Billets', matchPaths: ['/', '/billets'] },
+  { href: '/archives/', label: 'Archives', matchPaths: ['/archives'] },
+  { href: '/themes/', label: 'Thèmes', matchPaths: ['/themes', '/theme'] },
+  { href: '/about/', label: 'À propos', matchPaths: ['/about'] },
+  { href: '/rss.xml', label: 'RSS', matchPaths: ['/rss'], mono: true },
+];
+
+function isActive(item: NavItem): boolean {
+  // Path exact "/" ne doit pas matcher tout
+  if (item.href === '/') return pathname === '/' || pathname.startsWith('/billets');
+  return item.matchPaths.some((p) => pathname === p || pathname.startsWith(p + '/'));
+}
+---
+
+<header class="site">
+  <div class="row">
+    <a class="brand" href="/">Carnet<span class="dot">.</span></a>
+    <nav>
+      {items.map((item) => (
+        <a
+          href={item.href}
+          class:list={[
+            { active: isActive(item) },
+            { mono: item.mono },
+          ]}
+          aria-current={isActive(item) ? 'page' : undefined}
+        >
+          {item.label}
+        </a>
+      ))}
+    </nav>
+  </div>
+</header>
+
+<style>
+  header.site {
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-rule);
+  }
+  header.site .row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 24px 80px 18px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  header.site .brand {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+  header.site .brand .dot {
+    color: var(--color-accent);
+  }
+  header.site nav {
+    display: flex;
+    gap: 28px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+  }
+  header.site nav a {
+    color: var(--color-muted);
+    padding-bottom: 4px;
+    transition: color 0.12s;
+  }
+  header.site nav a:hover {
+    color: var(--color-ink);
+  }
+  header.site nav a.active {
+    color: var(--color-ink);
+    font-weight: 600;
+    border-bottom: 1.5px solid var(--color-accent);
+  }
+  header.site nav a.mono {
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  @media (max-width: 720px) {
+    header.site .row {
+      padding: 18px 24px 14px;
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    header.site nav {
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+  }
+</style>
