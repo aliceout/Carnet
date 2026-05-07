@@ -992,6 +992,71 @@ textarea.field-type__input {
   }
 }
 
+// ─── Bibliography edit view : sections + preview (issue #17) ────
+// Composants UI fantômes (BiblioSection, BiblioPreview) insérés
+// entre les fields existants pour grouper visuellement la vue
+// d'édition d'une référence biblio. Cf handoff § 6.
+
+.carnet-biblio-section {
+  margin: 32px 0 8px;
+
+  &__label {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--b-muted);
+    margin: 0;
+    padding: 0 0 8px;
+    border-bottom: 1px solid var(--b-rule);
+  }
+}
+
+.carnet-biblio-preview-wrap {
+  margin: 32px 0 0;
+}
+
+.carnet-biblio-preview {
+  background: var(--b-bg);
+  border-left: 2px solid var(--b-accent);
+  padding: 14px 18px;
+
+  &__lbl {
+    font-family: var(--font-sans);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--b-muted);
+    margin-bottom: 6px;
+  }
+
+  &__body {
+    font-family: var(--font-serif);
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--b-ink);
+  }
+}
+
+.carnet-biblio-usedin {
+  margin-top: 14px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--b-muted);
+
+  a {
+    color: var(--b-accent);
+    text-decoration: none;
+    font-family: var(--font-mono);
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
 // ─── Header custom Posts edit (breadcrumb + chip statut) ────────
 // Composant React custom branché via Posts.admin.components.edit.
 // beforeDocumentControls. Affiche la fil d'ariane et le chip statut
