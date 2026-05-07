@@ -783,7 +783,7 @@ header svg.icon--logo {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 0 14px;
+    padding: 0 0 14px 24px;
     margin-bottom: 0;
     font-size: 12px;
     color: var(--b-muted);
@@ -832,7 +832,7 @@ header svg.icon--logo {
     flex-wrap: wrap;
     align-items: center;
     gap: 10px;
-    padding: 12px 0;
+    padding: 12px 0 12px 24px;
     border-top: 1px solid var(--b-rule);
     border-bottom: 1px solid var(--b-rule);
     margin-bottom: 0;
@@ -911,7 +911,7 @@ header svg.icon--logo {
   }
 
   &__table {
-    margin-top: 16px;
+    margin: 16px 0 0 24px;
     background: var(--b-paper);
     border: 1px solid var(--b-rule);
     border-radius: 4px;
@@ -1001,7 +1001,7 @@ header svg.icon--logo {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 14px;
+    margin: 14px 0 0 24px;
     font-size: 12px;
     color: var(--b-muted);
   }
