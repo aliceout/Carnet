@@ -277,12 +277,21 @@ textarea.field-type__input {
   display: flex;
   flex-direction: column;
   width: 220px;
-  min-height: 100vh;
+  height: 100vh;
   padding: 0;
   background: var(--b-bg);
   border-right: 1px solid var(--b-rule);
   font-family: var(--font-sans);
   font-size: 13px;
+  // Sticky : la nav reste affichée à gauche quand on scroll le content.
+  // align-self: start nécessaire dans le grid layout Payload pour que
+  // le sticky fonctionne (sinon la nav s'étire sur toute la hauteur du
+  // grid item et le sticky devient inopérant).
+  position: sticky;
+  top: 0;
+  align-self: start;
+  overflow-y: auto;
+  z-index: 10;
 
   &__brand {
     display: block;
@@ -783,10 +792,17 @@ header svg.icon--logo {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 0 14px 24px;
+    padding: 14px 0 14px 24px;
     margin-bottom: 0;
     font-size: 12px;
     color: var(--b-muted);
+    // Sticky : la topbar (crumbs + actions) reste visible quand on
+    // scroll la liste. Background opaque pour masquer le tableau
+    // qui défile dessous.
+    position: sticky;
+    top: 0;
+    background: var(--b-bg);
+    z-index: 5;
   }
 
   &__crumbs {
@@ -983,7 +999,7 @@ header svg.icon--logo {
     }
 
     .status {
-      text-align: right;
+      text-align: left;
     }
   }
 
@@ -1254,40 +1270,43 @@ header svg.icon--logo {
   }
 }
 
+// Chips statut : reproduction fidèle du style de la maquette
+// (carnet-admin.html § "Statut chip"). Border discrète --b-rule par
+// défaut (sauf published qui prend la border accent), point coloré
+// par variante.
 .carnet-status {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
+  padding: 3px 9px;
   font-family: var(--font-sans);
   font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   border: 1px solid var(--b-rule);
-  border-radius: 999px;
   background: var(--b-paper);
+  color: var(--b-muted);
 
   &__dot {
     width: 6px;
     height: 6px;
-    border-radius: 50%;
-    background: currentColor;
+    background: var(--b-muted);
   }
 
-  &--draft {
-    color: #b8842a;
-    border-color: #b8842a;
+  &--draft .carnet-status__dot {
+    background: #b8842a;
   }
 
-  &--scheduled {
-    color: #3a6a8a;
-    border-color: #3a6a8a;
+  &--scheduled .carnet-status__dot {
+    background: #3a6a8a;
   }
 
   &--published {
     color: var(--b-accent);
     border-color: var(--b-accent);
+
+    .carnet-status__dot {
+      background: var(--b-accent);
+    }
   }
 }
 
