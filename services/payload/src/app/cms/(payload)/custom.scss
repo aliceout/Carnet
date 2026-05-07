@@ -403,9 +403,28 @@ textarea.field-type__input {
   }
 }
 
-// Quand la Nav custom est utilisée, masquer agressivement les fragments
-// natifs Payload pour éviter le double affichage (logo Payload natif
-// dans le header de la liste, hamburger mobile, brand redondant).
+// ─── Masquage agressif des chromes natifs Payload ────────────────
+// Notre Nav custom + nos custom views (PostListView, BiblioListView,
+// etc.) remplacent l'expérience Payload native. Mais Payload continue
+// d'injecter par-dessus :
+//   - une top bar avec icône logo + breadcrumb + avatar/menu user
+//   - un titre h1 de collection au-dessus du contenu de la list view
+// On masque tout ça pour avoir UNE SEULE topbar (la nôtre) sans
+// double affichage.
+
+// Top bar Payload (header global avec logo + breadcrumb + avatar user)
+header[class*='AppHeader'],
+[class*='AppHeader_appHeader'],
+[class*='AppHeader__appHeader'],
+[class*='appHeader_appHeader'],
+.app-header,
+header.app-header,
+.payload__app-header,
+.payload-app-header {
+  display: none !important;
+}
+
+// Logo Payload (icône cube) sous tous ses noms BEM possibles
 .payload-logo,
 .payload-logo--svg,
 .payload-logo-icon,
@@ -413,17 +432,35 @@ textarea.field-type__input {
 .nav__brand,
 .nav__brand-link,
 .app-header__logo,
-.collection-list__header-controls .payload-logo,
 [class*='PayloadLogo'],
-[class*='AppHeader__logo'] {
+[class*='AppHeader__logo'],
+[class*='Logo_logo'] {
   display: none !important;
 }
 
-// Le top header natif Payload sur les pages de liste/document peut
-// montrer un breadcrumb avec icône. On masque l'icône défensivement.
+// Avatar / menu utilisateur natif Payload (cercle en haut à droite)
+[class*='AccountMenu'],
+[class*='UserAvatar'],
+[class*='accountMenu'],
+[class*='userAvatar'] {
+  display: none !important;
+}
+
+// Titre h1 natif des list views (Payload affiche le label pluriel de
+// la collection au-dessus du contenu — chez nous notre custom view
+// rend déjà son propre h1, donc on cache le natif).
+.collection-list__heading,
+[class*='collection-list__heading'],
+[class*='ListHeader__heading'],
+[class*='listHeader_heading'],
+.list-header__heading {
+  display: none !important;
+}
+
+// Headers natifs sur edit/list views (contiennent souvent le breadcrumb
+// + logo). Masque défensif — notre PostEditHeader rend déjà breadcrumb.
 .collection-edit__header svg[class*='Logo'],
 .list-view__header svg[class*='Logo'],
-.app-header svg[class*='Logo'],
 header svg.icon--logo {
   display: none !important;
 }
@@ -829,20 +866,27 @@ header svg.icon--logo {
   }
 
   &__table {
-    margin-top: 0;
-    background: transparent;
+    margin-top: 16px;
+    background: var(--b-paper);
+    border: 1px solid var(--b-rule);
+    border-radius: 4px;
+    overflow: hidden;
   }
 
   &__row {
     display: grid;
     grid-template-columns: 70px 110px 130px 180px 1fr 110px;
     gap: 24px;
-    padding: 14px 0;
+    padding: 14px 20px;
     align-items: baseline;
     border-bottom: 1px solid var(--b-rule);
     color: var(--b-ink);
     text-decoration: none;
     transition: background 0.12s, color 0.12s;
+
+    &:last-child {
+      border-bottom: 0;
+    }
 
     &:not(.carnet-listview__row--head):hover {
       background: var(--b-accent-tint);
@@ -859,11 +903,12 @@ header svg.icon--logo {
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--b-muted);
-      padding: 12px 0;
+      padding: 12px 20px;
+      background: var(--b-bg);
       border-bottom: 1px solid var(--b-rule);
 
       &:hover {
-        background: transparent;
+        background: var(--b-bg);
       }
     }
 
