@@ -2,7 +2,6 @@ import type { CollectionConfig } from 'payload';
 import {
   lexicalEditor,
   BlocksFeature,
-  InlineBlocksFeature,
 } from '@payloadcms/richtext-lexical';
 
 import { authenticated } from '../access/authenticated';
@@ -132,16 +131,17 @@ export const Posts: CollectionConfig = {
           'Lexical — slash menu pour insérer des notes, citations longues, références biblio, figures.',
       },
       // Override l'éditeur par défaut (lexicalEditor() global) pour
-      // brancher les features de blocks académiques du carnet.
+      // brancher les blocks académiques du carnet via une seule
+      // BlocksFeature, qui accepte deux listes :
       //
-      // BlocksFeature (niveau bloc, entre paragraphes) :
-      //   - Figure : image + légende, prend toute la largeur
-      //   - CitationBloc : citation longue avec attribution
+      //   blocks (niveau bloc, entre paragraphes) :
+      //     - Figure : image + légende, prend toute la largeur
+      //     - CitationBloc : citation longue avec attribution
       //
-      // InlineBlocksFeature (inline dans un paragraphe) :
-      //   - Footnote : note de bas de page numérotée auto au render
-      //   - BiblioInline : référence (Auteur, année) cliquable vers
-      //     l'entrée Bibliography correspondante en pied d'article
+      //   inlineBlocks (insérés dans un paragraphe, entre du texte) :
+      //     - Footnote : note de bas de page numérotée auto au render
+      //     - BiblioInline : référence (Auteur, année) cliquable vers
+      //       l'entrée Bibliography correspondante en pied d'article
       //
       // Côté admin : tous apparaissent dans le slash menu Lexical.
       // Côté frontend Astro : sérialisés comme nodes type='block' ou
@@ -153,8 +153,6 @@ export const Posts: CollectionConfig = {
           ...defaultFeatures,
           BlocksFeature({
             blocks: [Figure, CitationBloc],
-          }),
-          InlineBlocksFeature({
             inlineBlocks: [Footnote, BiblioInline],
           }),
         ],
