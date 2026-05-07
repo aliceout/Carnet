@@ -1,0 +1,63 @@
+/* Tokens du design Carnet — repris depuis design_handoff_carnet/.
+   Valeurs figées par le client : accent violet #5a3a7a, fond #fdfcf8,
+   notes classiques, lettrine activée, justify+hyphens. */
+
+@import 'tailwindcss';
+
+/* Polices self-hostées via @fontsource (importées dans Layout.astro). */
+
+@theme {
+  /* Couleurs */
+  --color-ink: #1a1d28;
+  --color-bg: #fdfcf8;
+  --color-paper: #ffffff;
+  --color-rule: #d6d3c8;
+  --color-muted: #5e6373;
+  --color-accent: #5a3a7a;
+
+  /* Couleurs corps (texte courant article + items d'accueil/biblio) */
+  --color-body: #22242e;
+  --color-body-soft: #3b3f4d;
+
+  /* Familles */
+  --font-serif: 'Source Serif 4', Georgia, serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Densité du flux d'accueil — multiplicateur sur paddings d'item.
+     Valeur figée par le client : 0.7 (serré). */
+  --density-feed: 0.7;
+}
+
+/* Reset minimal */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-serif);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Helpers utilitaires repris du prototype */
+.sans {
+  font-family: var(--font-sans);
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.accent {
+  color: var(--color-accent);
+}

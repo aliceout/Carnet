@@ -1,0 +1,196 @@
+---
+/**
+ * Layout de base — chrome partagé : <head>, header non sticky, footer 3 colonnes.
+ * Réf design : design_handoff_carnet/Carnet B.html (header.site, footer.site).
+ *
+ * Les composants Header/Footer dédiés viendront dans une étape ultérieure ;
+ * ici on a un squelette minimal qui rend les pages buildables.
+ */
+import '../styles/global.css';
+
+// Polices self-hostées via @fontsource — Vite résout les fichiers WOFF2
+// depuis node_modules au build, pas de fetch externe à l'exécution.
+import '@fontsource/source-serif-4/400.css';
+import '@fontsource/source-serif-4/400-italic.css';
+import '@fontsource/source-serif-4/500.css';
+import '@fontsource/source-serif-4/600.css';
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/500.css';
+import '@fontsource/inter/600.css';
+import '@fontsource/jetbrains-mono/400.css';
+import '@fontsource/jetbrains-mono/500.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  noindex?: boolean;
+}
+
+const {
+  title = 'Carnet — notes de recherche en études de genre et relations internationales',
+  description = "Carnet de recherche d'Alice Aussel Delamaide. Genre, géopolitique, droits LGBTQI+, humanitaire, migrations. Auto-hébergé. Sans pisteur.",
+  noindex = false,
+} = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, Astro.site).toString();
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    <link rel="canonical" href={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content="fr_FR" />
+    <link rel="alternate" type="application/rss+xml" title="Carnet — flux RSS" href="/rss.xml" />
+  </head>
+  <body>
+    <header class="site">
+      <div class="row">
+        <a class="brand" href="/">Carnet<span class="dot">.</span></a>
+        <nav>
+          <a href="/">Billets</a>
+          <a href="/archives/">Archives</a>
+          <a href="/themes/">Thèmes</a>
+          <a href="/about/">À propos</a>
+          <a href="/rss.xml" class="mono">RSS</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="site">
+      <div class="container">
+        <div class="grid">
+          <div>
+            <div class="brand-foot">Carnet<span class="dot">.</span></div>
+            <p>
+              Carnet de recherche d'Alice Aussel Delamaide. Genre, géopolitique, droits
+              LGBTQI+, humanitaire, migrations. Auto-hébergé. Sans pisteur.
+            </p>
+            <div class="mono copyright">
+              carnet.aliceosdel.org · CC&nbsp;BY-NC-SA&nbsp;4.0
+            </div>
+          </div>
+          <div>
+            <h4>Naviguer</h4>
+            <div class="links">
+              <a href="/">Tous les billets</a>
+              <a href="/themes/">Thèmes</a>
+              <a href="/archives/">Archives</a>
+            </div>
+          </div>
+          <div>
+            <h4>Suivre</h4>
+            <div class="links">
+              <a href="/rss.xml">Flux RSS</a>
+              <a href="/about/#colophon">Colophon</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <style>
+      header.site {
+        background: var(--color-bg);
+        border-bottom: 1px solid var(--color-rule);
+      }
+      header.site .row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        padding: 24px 80px 18px;
+        max-width: 1280px;
+        margin: 0 auto;
+      }
+      header.site .brand {
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: -0.3px;
+      }
+      header.site .brand .dot {
+        color: var(--color-accent);
+      }
+      header.site nav {
+        display: flex;
+        gap: 28px;
+        font-family: var(--font-sans);
+        font-size: 13px;
+      }
+      header.site nav a {
+        color: var(--color-muted);
+        padding-bottom: 4px;
+      }
+      header.site nav a:hover,
+      header.site nav a[aria-current='page'] {
+        color: var(--color-ink);
+        font-weight: 600;
+        border-bottom: 1.5px solid var(--color-accent);
+      }
+
+      footer.site {
+        background: var(--color-bg);
+        border-top: 1px solid var(--color-rule);
+        margin-top: 80px;
+        padding: 64px 0 56px;
+      }
+      footer.site .container {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 0 80px;
+      }
+      footer.site .grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr;
+        gap: 56px;
+        font-family: var(--font-sans);
+        font-size: 13px;
+      }
+      footer.site h4 {
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--color-muted);
+        margin: 0 0 12px;
+        font-weight: 600;
+      }
+      footer.site .links {
+        display: grid;
+        gap: 6px;
+      }
+      footer.site .brand-foot {
+        font-family: var(--font-serif);
+        font-size: 22px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      footer.site .brand-foot .dot {
+        color: var(--color-accent);
+      }
+      footer.site p {
+        font-family: var(--font-serif);
+        font-size: 15px;
+        line-height: 1.55;
+        color: var(--color-muted);
+        margin: 0;
+        max-width: 460px;
+      }
+      footer.site .copyright {
+        font-size: 11px;
+        color: var(--color-muted);
+        margin-top: 24px;
+      }
+    </style>
+  </body>
+</html>
