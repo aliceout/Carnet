@@ -353,14 +353,79 @@ textarea.field-type__input {
   &__spacer {
     flex: 1;
   }
+
+  // Footer : avatar carré 26px (initiale Source Serif sur fond accent)
+  // + nom + rôle muted. Cf maquette handoff sidebar footer.
+  &__footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px 8px;
+    border-top: 1px solid var(--b-rule);
+    margin-top: 8px;
+  }
+
+  &__avatar {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    background: var(--b-accent);
+    color: var(--b-bg);
+    font-family: var(--font-serif);
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  &__user {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.2;
+  }
+
+  &__user-name {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--b-ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__user-role {
+    font-size: 11px;
+    color: var(--b-muted);
+    text-transform: lowercase;
+    margin-top: 2px;
+  }
 }
 
-// Quand la Nav custom est utilisée, masquer/écarter les fragments natifs
-// que Payload pourrait encore injecter (bouton hamburger mobile, brand
-// natif). Sélecteurs défensifs.
+// Quand la Nav custom est utilisée, masquer agressivement les fragments
+// natifs Payload pour éviter le double affichage (logo Payload natif
+// dans le header de la liste, hamburger mobile, brand redondant).
 .payload-logo,
-.nav-mobile {
-  display: none;
+.payload-logo--svg,
+.payload-logo-icon,
+.nav-mobile,
+.nav__brand,
+.nav__brand-link,
+.app-header__logo,
+.collection-list__header-controls .payload-logo,
+[class*='PayloadLogo'],
+[class*='AppHeader__logo'] {
+  display: none !important;
+}
+
+// Le top header natif Payload sur les pages de liste/document peut
+// montrer un breadcrumb avec icône. On masque l'icône défensivement.
+.collection-edit__header svg[class*='Logo'],
+.list-view__header svg[class*='Logo'],
+.app-header svg[class*='Logo'],
+header svg.icon--logo {
+  display: none !important;
 }
 
 // ─── Dashboard custom ────────────────────────────────────────────

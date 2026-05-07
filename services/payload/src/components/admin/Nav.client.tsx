@@ -3,10 +3,23 @@
 // Nav.client.tsx — partie client de la nav latérale custom. Reçoit les
 // counts pré-calculés du composant server et utilise usePathname()
 // pour l'active state qui change quand on navigue (sans full reload).
+//
+// Fetch /cms/api/users/me au mount pour afficher le footer user
+// (avatar carré avec initiale + displayName + rôle muted) cf maquette
+// Design/design_handoff_admin/carnet-admin.html → footer sidebar.
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+
+type Me = {
+  user?: {
+    id?: number | string;
+    email?: string;
+    displayName?: string | null;
+    role?: string;
+  };
+};
 
 const ADMIN = '/cms/admin';
 
@@ -41,6 +54,20 @@ export default function NavClient({ activePath: serverActive, counts }: Props): 
   // hydraté ; sinon on retombe sur la valeur serveur (header).
   const clientPath = usePathname();
   const activePath = clientPath || serverActive;
+
+  // User courant pour le footer (avatar + nom + rôle).
+  const [me, setMe] = useState<Me['user'] | null>(null);
+  useEffect(() => {
+    fetch('/cms/api/users/me', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: Me | null) => setMe(data?.user ?? null))
+      .catch(() => setMe(null));
+  }, []);
+
+  const userInitial =
+    (me?.displayName ?? me?.email ?? '?').trim().charAt(0).toUpperCase() || '?';
+  const userName = me?.displayName?.trim() || me?.email?.split('@')[0] || '—';
+  const userRole = me?.role ?? '';
 
   const sections: NavSection[] = [
     {
@@ -103,6 +130,18 @@ export default function NavClient({ activePath: serverActive, counts }: Props): 
       ))}
 
       <div className="carnet-nav__spacer" />
+
+      {me && (
+        <div className="carnet-nav__footer">
+          <div className="carnet-nav__avatar" aria-hidden="true">
+            {userInitial}
+          </div>
+          <div className="carnet-nav__user">
+            <div className="carnet-nav__user-name">{userName}</div>
+            {userRole && <div className="carnet-nav__user-role">{userRole}</div>}
+          </div>
+        </div>
+      )}
 
       <a
         className="carnet-nav__link carnet-nav__link--logout"
