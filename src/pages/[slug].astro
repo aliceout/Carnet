@@ -1,0 +1,104 @@
+---
+/**
+ * Catch-all des pages éditoriales libres — /<slug>/
+ *
+ * Matche tout ce qui n'est pas géré par les routes plus spécifiques
+ * (/, /archives/, /themes/, /theme/<slug>/, /billets/<slug>/,
+ * /rss.xml). Lit la collection `pages` Payload par slug.
+ *
+ * Réf : design_handoff_carnet/Carnet B.html → About + autres pages
+ * structurées (terrains, recherche, publications, colophon).
+ */
+import Layout from '../layouts/Layout.astro';
+import PageRenderer from '../components/PageRenderer.astro';
+import { fetchBySlug } from '../lib/payload';
+
+type PageDoc = {
+  id: number | string;
+  slug: string;
+  title: string;
+  description?: string | null;
+  noindex?: boolean;
+  eyebrow?: string | null;
+  lede?: string | null;
+  sections?: Array<Record<string, unknown>> | null;
+};
+
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect('/');
+
+const page = await fetchBySlug<PageDoc>('pages', slug);
+if (!page) {
+  return new Response('Page introuvable', { status: 404 });
+}
+---
+
+<Layout
+  title={page.title + ' — Carnet'}
+  description={page.description ?? page.lede ?? undefined}
+  noindex={page.noindex ?? false}
+>
+  <article class="page-article">
+    <header class="header narrow">
+      {page.eyebrow && <div class="eyebrow">{page.eyebrow}</div>}
+      <h1>{page.title}</h1>
+      {page.lede && <p class="lede">{page.lede}</p>}
+    </header>
+
+    <div class="sections narrow">
+      <PageRenderer sections={page.sections as never} />
+    </div>
+  </article>
+</Layout>
+
+<style>
+  .narrow {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 80px;
+  }
+
+  .page-article {
+    padding-top: 80px;
+  }
+
+  .header .eyebrow {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    margin-bottom: 14px;
+  }
+  .header h1 {
+    font-size: 56px;
+    line-height: 1.05;
+    font-weight: 600;
+    letter-spacing: -0.7px;
+    margin: 0 0 28px;
+  }
+  .header h1 :global(em) {
+    font-weight: 500;
+  }
+  .header .lede {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    line-height: 1.5;
+    color: var(--color-muted);
+    margin: 0 0 24px;
+    max-width: 720px;
+  }
+
+  .sections {
+    padding-top: 64px;
+  }
+
+  @media (max-width: 900px) {
+    .narrow {
+      padding: 0 24px;
+    }
+    .header h1 {
+      font-size: 36px;
+    }
+  }
+</style>
