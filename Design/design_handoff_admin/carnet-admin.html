@@ -1,0 +1,1060 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>Carnet — admin (prototype Payload)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.bunny.net" />
+  <link href="https://fonts.bunny.net/css?family=source-serif-4:400,400i,500,600,700|inter:400,500,600,700|jetbrains-mono:400,500" rel="stylesheet" />
+  <style>
+    :root{
+      --b-ink:#1a1d28; --b-bg:#fdfcf8; --b-paper:#ffffff;
+      --b-rule:#d6d3c8; --b-muted:#5e6373; --b-accent:#5a3a7a;
+      --b-accent-tint:rgba(90,58,122,.06);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:var(--b-bg);color:var(--b-ink);
+      font-family:"Inter",system-ui,sans-serif;font-size:13px;line-height:1.5;
+      -webkit-font-smoothing:antialiased}
+    a{color:inherit;text-decoration:none}
+    button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+    input,textarea,select{font:inherit;color:inherit}
+    .serif{font-family:"Source Serif 4",Georgia,serif}
+    .mono{font-family:"JetBrains Mono",ui-monospace,monospace}
+    .accent{color:var(--b-accent)}
+    .muted{color:var(--b-muted)}
+
+    /* ---------- App chrome ---------- */
+    .app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+    .app.no-chrome{grid-template-columns:1fr}
+
+    /* Sidebar */
+    aside.side{background:var(--b-bg);border-right:1px solid var(--b-rule);
+      display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+    aside.side .brand{font-family:"Source Serif 4",serif;font-size:22px;font-weight:600;
+      padding:20px 24px 16px;letter-spacing:-.3px}
+    aside.side .brand .dot{color:var(--b-accent)}
+    aside.side nav{flex:1;overflow:auto;padding:8px 0}
+    aside.side .grp{padding:14px 24px 4px;font-size:10.5px;font-weight:600;
+      letter-spacing:.12em;text-transform:uppercase;color:var(--b-muted)}
+    aside.side a.item{display:flex;justify-content:space-between;align-items:center;
+      padding:7px 24px;color:var(--b-ink);border-left:2px solid transparent;
+      margin-left:0;font-size:13px}
+    aside.side a.item:hover{background:var(--b-accent-tint)}
+    aside.side a.item.active{border-left-color:var(--b-accent);background:var(--b-accent-tint);
+      font-weight:600}
+    aside.side a.item .n{color:var(--b-muted);font-family:"JetBrains Mono",monospace;font-size:11px}
+    aside.side .foot{border-top:1px solid var(--b-rule);padding:14px 24px;font-size:12px;
+      display:flex;align-items:center;gap:10px}
+    aside.side .foot .av{width:26px;height:26px;background:var(--b-accent);color:#fff;
+      display:flex;align-items:center;justify-content:center;font-family:"Source Serif 4",serif;
+      font-weight:600;font-size:13px}
+    aside.side .foot .who{flex:1;line-height:1.3}
+    aside.side .foot .who .n{font-weight:600}
+    aside.side .foot .who .e{color:var(--b-muted);font-size:11px}
+
+    /* Top header (per-screen, inside main) */
+    main{min-width:0;display:flex;flex-direction:column}
+    header.top{background:var(--b-bg);border-bottom:1px solid var(--b-rule);
+      padding:0 32px;height:56px;display:flex;align-items:center;gap:24px}
+    header.top .crumbs{font-size:12px;color:var(--b-muted)}
+    header.top .crumbs a:hover{color:var(--b-ink)}
+    header.top .crumbs .sep{padding:0 8px;color:var(--b-rule)}
+    header.top .crumbs .cur{color:var(--b-ink)}
+    header.top .spacer{flex:1}
+    header.top .acts{display:flex;gap:8px;align-items:center}
+
+    /* Buttons */
+    .btn{padding:7px 14px;border:1px solid var(--b-rule);background:var(--b-paper);
+      font-size:12.5px;color:var(--b-ink);cursor:pointer;line-height:1}
+    .btn:hover{border-color:var(--b-ink)}
+    .btn.primary{background:var(--b-ink);color:var(--b-bg);border-color:var(--b-ink)}
+    .btn.primary:hover{background:#000}
+    .btn.accent{background:var(--b-accent);color:#fff;border-color:var(--b-accent)}
+    .btn.accent:hover{background:#4a2e66}
+    .btn.ghost{background:transparent}
+    .btn .kbd{margin-left:8px;font-family:"JetBrains Mono",monospace;font-size:10.5px;
+      color:var(--b-muted);font-weight:400}
+
+    /* Statut chip */
+    .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;
+      font-size:11px;font-weight:500;border:1px solid var(--b-rule);background:var(--b-paper)}
+    .chip .dot{width:6px;height:6px;background:var(--b-muted);border-radius:50%}
+    .chip.draft .dot{background:#b8842a}
+    .chip.published{border-color:var(--b-accent);color:var(--b-accent)}
+    .chip.published .dot{background:var(--b-accent)}
+    .chip.scheduled .dot{background:#3a6a8a}
+
+    /* Content area */
+    .scroll{flex:1;overflow:auto}
+    .pad{padding:32px}
+    .pad-narrow{padding:32px;max-width:1180px}
+    .pad-wide{padding:32px;max-width:none}
+
+    /* ---------- Login ---------- */
+    .login{min-height:100vh;display:grid;grid-template-rows:1fr auto;background:var(--b-bg)}
+    .login .center{display:flex;align-items:center;justify-content:center}
+    .login .card{width:380px;padding:0 24px}
+    .login .brand{font-family:"Source Serif 4",serif;font-size:64px;font-weight:600;
+      letter-spacing:-1px;margin:0 0 6px}
+    .login .brand .dot{color:var(--b-accent)}
+    .login .sub{color:var(--b-muted);margin-bottom:36px;font-size:13px}
+    .login label{display:block;font-size:11px;font-weight:600;letter-spacing:.08em;
+      text-transform:uppercase;color:var(--b-muted);margin-bottom:6px}
+    .login .field{margin-bottom:18px}
+    .login input{width:100%;padding:10px 12px;background:var(--b-paper);
+      border:1px solid var(--b-rule);font-size:14px}
+    .login input:focus{outline:none;border-color:var(--b-accent)}
+    .login .btn{width:100%;padding:11px 16px;margin-top:8px;font-size:13px}
+    .login .meta{display:flex;justify-content:space-between;font-size:12px;
+      color:var(--b-muted);margin-top:14px}
+    .login .meta a:hover{color:var(--b-accent)}
+    .login .foot{padding:24px 32px;border-top:1px solid var(--b-rule);
+      display:flex;justify-content:space-between;font-family:"JetBrains Mono",monospace;
+      font-size:11px;color:var(--b-muted)}
+
+    /* ---------- Dashboard ---------- */
+    .dash .kicker{font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+      color:var(--b-accent);margin-bottom:10px}
+    .dash h1{font-family:"Source Serif 4",serif;font-size:48px;line-height:1.05;
+      font-weight:600;letter-spacing:-.6px;margin:0 0 8px}
+    .dash h1 em{font-weight:500}
+    .dash .lede{font-size:15px;color:var(--b-muted);margin:0 0 36px;max-width:600px;line-height:1.55}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-bottom:48px;
+      border-top:1px solid var(--b-rule);border-bottom:1px solid var(--b-rule)}
+    .stats .s{padding:20px 24px;border-right:1px solid var(--b-rule)}
+    .stats .s:last-child{border-right:0}
+    .stats .s .n{font-family:"Source Serif 4",serif;font-size:34px;font-weight:600;
+      line-height:1;margin-bottom:6px;letter-spacing:-.5px}
+    .stats .s .l{font-size:12px;color:var(--b-muted)}
+    .dash .twocol{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-bottom:48px}
+    .blk h3{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+      color:var(--b-ink);margin:0 0 14px;display:flex;justify-content:space-between;align-items:baseline}
+    .blk h3 a{font-size:11px;color:var(--b-muted);text-transform:none;letter-spacing:0;font-weight:400}
+    .blk h3 a:hover{color:var(--b-accent)}
+    .draft-row{display:grid;grid-template-columns:60px 1fr 90px;gap:16px;
+      padding:14px 0;border-top:1px solid var(--b-rule);align-items:baseline;cursor:pointer}
+    .draft-row:hover .t{color:var(--b-accent)}
+    .draft-row .num{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--b-muted)}
+    .draft-row .t{font-size:14px;line-height:1.4;font-weight:500}
+    .draft-row .meta{font-size:11px;color:var(--b-muted)}
+    .draft-row .meta .ty{color:var(--b-accent)}
+    .draft-row .upd{font-size:11px;color:var(--b-muted);text-align:right}
+    .shortcuts{display:grid;grid-template-columns:repeat(3,1fr);gap:0;
+      border:1px solid var(--b-rule)}
+    .shortcuts a{padding:18px 20px;border-right:1px solid var(--b-rule);
+      display:flex;flex-direction:column;gap:6px;cursor:pointer}
+    .shortcuts a:last-child{border-right:0}
+    .shortcuts a:hover{background:var(--b-accent-tint)}
+    .shortcuts .l{font-size:11px;color:var(--b-muted);font-family:"JetBrains Mono",monospace}
+    .shortcuts .t{font-family:"Source Serif 4",serif;font-size:18px;font-weight:600;
+      letter-spacing:-.2px}
+
+    /* ---------- Collection list ---------- */
+    .clist .toolbar{display:flex;gap:8px;align-items:center;padding:0 0 20px;flex-wrap:wrap}
+    .clist .search{flex:1;min-width:240px;max-width:380px;position:relative}
+    .clist .search input{width:100%;padding:8px 12px 8px 32px;background:var(--b-paper);
+      border:1px solid var(--b-rule);font-size:13px}
+    .clist .search input:focus{outline:none;border-color:var(--b-accent)}
+    .clist .search .ic{position:absolute;left:11px;top:50%;transform:translateY(-50%);
+      font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--b-muted)}
+    .clist .filter{padding:8px 12px;background:var(--b-paper);border:1px solid var(--b-rule);
+      font-size:13px;color:var(--b-ink);cursor:pointer;display:flex;gap:6px;align-items:center}
+    .clist .filter:hover{border-color:var(--b-ink)}
+    .clist .filter .v{color:var(--b-accent);font-weight:500}
+    .clist .filter .x{color:var(--b-muted);margin-left:2px;font-family:"JetBrains Mono",monospace}
+    .clist .table{border:1px solid var(--b-rule);background:var(--b-paper)}
+    .clist .row{display:grid;grid-template-columns:60px 110px 130px 180px 1fr 100px 32px;
+      gap:16px;padding:12px 16px;align-items:baseline;border-bottom:1px solid var(--b-rule);cursor:pointer}
+    .clist .row:last-child{border-bottom:0}
+    .clist .row:hover{background:var(--b-accent-tint)}
+    .clist .row.head{background:var(--b-bg);border-bottom:1px solid var(--b-rule);
+      font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+      color:var(--b-muted);cursor:default}
+    .clist .row.head:hover{background:var(--b-bg)}
+    .clist .row .num{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--b-muted)}
+    .clist .row .date{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--b-ink)}
+    .clist .row .ty{font-size:12px;color:var(--b-accent)}
+    .clist .row .pole{font-size:12px;color:var(--b-muted)}
+    .clist .row .t{font-size:14px;font-weight:500;line-height:1.4}
+    .clist .row .more{color:var(--b-muted);font-family:"JetBrains Mono",monospace;text-align:right}
+    .clist .pag{display:flex;justify-content:space-between;align-items:center;
+      padding:18px 0;font-size:12px;color:var(--b-muted)}
+    .clist .pag .nav{display:flex;gap:6px}
+    .clist .pag .pg{padding:5px 10px;border:1px solid var(--b-rule);min-width:30px;
+      text-align:center;background:var(--b-paper)}
+    .clist .pag .pg.on{border-color:var(--b-accent);color:var(--b-accent);font-weight:600}
+
+    /* ---------- Document view ---------- */
+    .doc{display:grid;grid-template-columns:1fr 300px;min-height:0}
+    .doc .center{padding:28px 32px;overflow:auto;min-width:0}
+    .doc .meta{border-left:1px solid var(--b-rule);background:var(--b-bg);
+      padding:24px 22px 32px;overflow:auto}
+    .doc .ed-card{background:var(--b-paper);border:1px solid var(--b-rule);
+      border-radius:4px;width:100%;max-width:none;margin:0;padding:32px 40px 28px;
+      position:relative}
+    .doc .ed-num{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--b-muted);
+      margin-bottom:14px;letter-spacing:.04em}
+    .doc .ed-num .id{color:var(--b-ink)}
+    .doc .ed-title{font-family:"Source Serif 4",serif;font-size:36px;line-height:1.1;
+      font-weight:600;letter-spacing:-.4px;margin:0 0 14px;outline:none;
+      border:0;background:transparent;width:100%;display:block;padding:0;
+      color:var(--b-ink)}
+    .doc .ed-title:focus{outline:none}
+    .doc .ed-lede{font-family:"Source Serif 4",serif;font-size:18px;line-height:1.5;
+      color:var(--b-muted);margin:0 0 28px;outline:none;border:0;background:transparent;
+      width:100%;resize:none;padding:0;font-weight:400}
+    .doc .ed-divider{border-top:1px solid var(--b-rule);margin:0 0 24px}
+    .doc .ed-body{font-family:"Source Serif 4",serif;font-size:17px;line-height:1.65;
+      color:var(--b-ink);min-height:280px;outline:none}
+    .doc .ed-body p{margin:0 0 1em}
+    .doc .ed-body h2{font-size:24px;font-weight:600;margin:24px 0 12px;letter-spacing:-.2px}
+    .doc .ed-body .ed-cursor{display:inline-block;width:1.5px;height:18px;
+      background:var(--b-accent);vertical-align:-3px;animation:blink 1s steps(2) infinite;margin-left:1px}
+    @keyframes blink{50%{opacity:0}}
+    .doc .ed-body .block-tag{display:inline-block;padding:0 6px;background:var(--b-accent-tint);
+      color:var(--b-accent);font-family:"Inter",sans-serif;font-size:11px;font-weight:500;
+      border:1px solid var(--b-accent);vertical-align:1px;margin:0 2px}
+
+    /* Slash menu */
+    .slash{position:absolute;background:var(--b-paper);border:1px solid var(--b-rule);
+      box-shadow:0 4px 16px rgba(26,29,40,.12);width:280px;font-family:"Inter",sans-serif;
+      z-index:5}
+    .slash .lbl{padding:8px 14px;font-size:10.5px;font-weight:600;letter-spacing:.1em;
+      text-transform:uppercase;color:var(--b-muted);border-bottom:1px solid var(--b-rule)}
+    .slash .opt{padding:10px 14px;display:grid;grid-template-columns:24px 1fr auto;gap:12px;
+      align-items:baseline;border-bottom:1px solid var(--b-rule)}
+    .slash .opt:last-child{border-bottom:0}
+    .slash .opt:hover,.slash .opt.on{background:var(--b-accent-tint)}
+    .slash .opt .ic{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--b-accent);
+      text-align:center}
+    .slash .opt .lab{font-size:13px;font-weight:500}
+    .slash .opt .desc{display:block;font-size:11px;color:var(--b-muted);font-weight:400;margin-top:2px}
+    .slash .opt .kbd{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--b-muted)}
+
+    /* Citation block in editor */
+    .doc .ed-body blockquote.cit{margin:18px 0;padding:14px 18px;border-left:3px solid var(--b-accent);
+      background:var(--b-bg);font-size:18px;line-height:1.5;font-weight:500}
+    .doc .ed-body .fn-anchor{color:var(--b-accent);text-decoration:none;font-weight:500}
+
+    /* Footnotes editor */
+    .doc .fn-block{width:100%;max-width:none;margin:24px 0 0;border:1px solid var(--b-rule);
+      background:var(--b-paper);border-radius:4px}
+    .doc .fn-block .h{padding:12px 20px;font-size:11px;font-weight:600;letter-spacing:.1em;
+      text-transform:uppercase;color:var(--b-ink);border-bottom:1px solid var(--b-rule);
+      display:flex;justify-content:space-between;align-items:center}
+    .doc .fn-block .h .add{font-family:"JetBrains Mono",monospace;font-size:11px;
+      color:var(--b-accent);font-weight:500;letter-spacing:0;text-transform:none;cursor:pointer}
+    .doc .fn-row{display:grid;grid-template-columns:36px 1fr 28px;gap:14px;
+      padding:12px 20px;border-bottom:1px solid var(--b-rule);align-items:baseline}
+    .doc .fn-row:last-child{border-bottom:0}
+    .doc .fn-row .n{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--b-accent);
+      padding-top:5px}
+    .doc .fn-row .body{font-family:"Source Serif 4",serif;font-size:14px;line-height:1.55;
+      color:var(--b-ink)}
+    .doc .fn-row .body em{font-style:italic}
+    .doc .fn-row .x{color:var(--b-muted);font-family:"JetBrains Mono",monospace;
+      cursor:pointer;text-align:right;font-size:13px}
+
+    /* Sidebar meta */
+    .meta-pane h3{font-size:10.5px;font-weight:600;letter-spacing:.12em;
+      text-transform:uppercase;color:var(--b-muted);margin:0 0 14px}
+    .meta-pane .field{margin-bottom:18px}
+    .meta-pane .field label{display:block;font-size:11px;font-weight:600;
+      color:var(--b-ink);margin-bottom:5px}
+    .meta-pane .field input,.meta-pane .field select,.meta-pane .field textarea{
+      width:100%;padding:7px 10px;background:var(--b-paper);border:1px solid var(--b-rule);
+      font-size:12.5px;color:var(--b-ink)}
+    .meta-pane .field input:focus,.meta-pane .field select:focus{
+      outline:none;border-color:var(--b-accent)}
+    .meta-pane .field .auto{font-family:"JetBrains Mono",monospace;font-size:12px;
+      color:var(--b-muted);padding:7px 10px;border:1px dashed var(--b-rule);background:var(--b-bg)}
+    .meta-pane .field .help{font-size:11px;color:var(--b-muted);margin-top:4px}
+    .meta-pane .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .meta-pane hr{border:0;border-top:1px solid var(--b-rule);margin:22px 0}
+    .meta-pane .relbox{padding:7px 10px;background:var(--b-paper);border:1px solid var(--b-rule);
+      display:flex;justify-content:space-between;align-items:center;font-size:12.5px}
+    .meta-pane .relbox .x{color:var(--b-muted);font-family:"JetBrains Mono",monospace;cursor:pointer}
+    .meta-pane .biblio-list{border:1px solid var(--b-rule);background:var(--b-paper)}
+    .meta-pane .biblio-list .b-row{padding:8px 10px;border-bottom:1px solid var(--b-rule);
+      font-size:12px;line-height:1.45}
+    .meta-pane .biblio-list .b-row:last-child{border-bottom:0}
+    .meta-pane .biblio-list .b-row .au{font-weight:600}
+    .meta-pane .biblio-list .b-row .ti{color:var(--b-muted);font-style:italic}
+    .meta-pane .add-rel{padding:7px 10px;background:transparent;border:1px dashed var(--b-rule);
+      color:var(--b-muted);width:100%;text-align:left;font-size:12px;cursor:pointer;margin-top:6px}
+    .meta-pane .add-rel:hover{border-color:var(--b-accent);color:var(--b-accent)}
+
+    /* Toast */
+    .toast{position:fixed;bottom:24px;right:24px;background:var(--b-ink);color:var(--b-bg);
+      padding:12px 18px;font-size:12.5px;display:flex;align-items:center;gap:10px;
+      box-shadow:0 4px 16px rgba(26,29,40,.18);z-index:50}
+    .toast .ic{color:#7ad19a;font-family:"JetBrains Mono",monospace}
+
+    /* ---------- Biblio edit ---------- */
+    .bib .form{width:100%;margin:0;background:var(--b-paper);
+      border:1px solid var(--b-rule);border-radius:4px;padding:32px 40px}
+    .bib h1{font-family:"Source Serif 4",serif;font-size:30px;font-weight:600;
+      letter-spacing:-.3px;margin:0 0 4px}
+    .bib .id{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--b-muted);margin-bottom:24px}
+    .bib .grp{margin-bottom:24px}
+    .bib .grp h3{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+      color:var(--b-muted);margin:0 0 12px;padding-bottom:6px;border-bottom:1px solid var(--b-rule)}
+    .bib .field{margin-bottom:14px}
+    .bib .field label{display:block;font-size:11px;font-weight:600;color:var(--b-ink);margin-bottom:4px}
+    .bib .field input,.bib .field select,.bib .field textarea{
+      width:100%;padding:8px 11px;background:var(--b-bg);border:1px solid var(--b-rule);font-size:13px}
+    .bib .field input:focus,.bib .field select:focus,.bib .field textarea:focus{
+      outline:none;border-color:var(--b-accent);background:var(--b-paper)}
+    .bib .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .bib .grid3{display:grid;grid-template-columns:140px 1fr 1fr;gap:14px}
+    .bib .preview{margin-top:12px;padding:14px 18px;background:var(--b-bg);
+      border-left:2px solid var(--b-accent);font-family:"Source Serif 4",serif;
+      font-size:14px;line-height:1.55}
+    .bib .preview .lbl{font-family:"Inter",sans-serif;font-size:10.5px;color:var(--b-muted);
+      letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;font-weight:600}
+    .bib .used-in{margin-top:14px;font-size:12px;color:var(--b-muted)}
+    .bib .used-in a{color:var(--b-accent)}
+
+    /* ---------- Screen nav (prototype-only) ---------- */
+    .scr-nav{position:fixed;bottom:8px;right:8px;background:var(--b-paper);
+      border:1px solid var(--b-rule);font-family:"Inter",sans-serif;font-size:11px;
+      display:flex;z-index:100;box-shadow:0 4px 12px rgba(26,29,40,.08)}
+    .scr-nav a{padding:6px 10px;border-right:1px solid var(--b-rule);color:var(--b-muted)}
+    .scr-nav a:last-child{border-right:0}
+    .scr-nav a.on{color:var(--b-accent);font-weight:600;background:var(--b-accent-tint)}
+    .scr-nav a:hover{color:var(--b-ink)}
+
+    /* hide chrome where unused (login) */
+    body.no-chrome aside.side,body.no-chrome header.top{display:none}
+
+    /* Responsive doc layout */
+    @media (max-width:1180px){
+      .doc{grid-template-columns:1fr}
+      .doc .meta{border-left:0;border-top:1px solid var(--b-rule)}
+    }
+    @media (max-width:900px){
+      .app{grid-template-columns:1fr}
+      aside.side{display:none}
+      .doc .ed-card{padding:24px 20px}
+    }
+    /* Tweaks panel (admin prototype) */
+    .tw{position:fixed;right:8px;bottom:48px;width:260px;background:var(--b-paper);
+      border:1px solid var(--b-rule);box-shadow:0 8px 24px rgba(26,29,40,.12);
+      font-family:"Inter",sans-serif;font-size:12px;z-index:100;display:none}
+    .tw.open{display:block}
+    .tw .h{padding:10px 14px;border-bottom:1px solid var(--b-rule);
+      display:flex;justify-content:space-between;align-items:center;
+      font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--b-muted)}
+    .tw .h .x{cursor:pointer;color:var(--b-muted)}
+    .tw .sec{padding:12px 14px;border-bottom:1px solid var(--b-rule)}
+    .tw .sec:last-child{border-bottom:0}
+    .tw .lbl{font-size:11px;color:var(--b-ink);margin-bottom:8px;font-weight:500}
+    .tw .swatches{display:flex;gap:6px;flex-wrap:wrap}
+    .tw .sw{width:32px;height:32px;border:1px solid var(--b-rule);cursor:pointer;
+      position:relative}
+    .tw .sw.on{outline:2px solid var(--b-accent);outline-offset:1px}
+    .tw .sw .n{position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);
+      font-family:"JetBrains Mono",monospace;font-size:9px;color:var(--b-muted);white-space:nowrap}
+    .tw .swatches{margin-bottom:18px}
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- Prototype-only screen jumper -->
+  <nav class="scr-nav" id="scrNav">
+    <a href="#/login" data-r="login">Login</a>
+    <a href="#/dashboard" data-r="dashboard">Dashboard</a>
+    <a href="#/posts" data-r="posts">Liste</a>
+    <a href="#/posts/042" data-r="post">Édition</a>
+    <a href="#/biblio/saiz-2014" data-r="biblio">Biblio</a>
+  </nav>
+
+  <!-- Tweaks panel (admin prototype) -->
+  <div class="tw" id="tw">
+    <div class="h"><span>Tweaks</span><span class="x" id="twX">✕</span></div>
+    <div class="sec">
+      <div class="lbl">Fond des cadres (papier)</div>
+      <div class="swatches" id="swPaper"></div>
+    </div>
+    <div class="sec">
+      <div class="lbl">Couleur d’accent</div>
+      <div class="swatches" id="swAccent"></div>
+    </div>
+  </div>
+
+  <script>
+  // Plain JS — no React for this admin prototype, keeps it tight + closer to Payload's static admin look.
+
+  // ---------- Data ----------
+  const POLES = {
+    'genre-geopolitique': 'Genre & géopolitique',
+    'lgbtqi-international': 'LGBTQI+ & international',
+    'humanitaire-genre': 'Humanitaire & genre',
+    'migrations-exil': 'Migrations & exil',
+    'conflits-minorites': 'Conflits & minorités',
+  };
+
+  const POSTS = [
+    { num:'043', date:'2026-04-22', dateH:'22 avril 2026', type:'Analyse', pole:'lgbtqi-international', status:'draft', upd:'il y a 3h',
+      title:"Diplomatie LGBTQI+ et Sud global : le tournant de 2024" },
+    { num:'042', date:'2026-04-14', dateH:'14 avril 2026', type:'Analyse', pole:'genre-geopolitique', status:'published', upd:'il y a 12 j',
+      title:"L'homonationalisme a-t-il une diplomatie ? Retour sur dix ans de discours sur les droits LGBTQI+ aux Nations unies" },
+    { num:'041', date:'2026-04-02', dateH:'02 avril 2026', type:'Analyse', pole:'migrations-exil', status:'published', upd:'il y a 25 j',
+      title:"Sortir de l'« exception » : le statut de réfugié·e LGBTQI+ après la directive 2024/1346" },
+    { num:'009', date:'2026-04-01', dateH:'01 avril 2026', type:'Fiche', pole:'lgbtqi-international', status:'published', upd:'il y a 26 j',
+      title:"Pinkwashing : généalogie, usages, contre-usages" },
+    { num:'017', date:'2026-03-28', dateH:'28 mars 2026', type:'Note de lecture', pole:'theorie-feministe', status:'published', upd:'il y a 30 j',
+      title:"Sara R. Farris, In the Name of Women's Rights (Duke UP, 2017) — relecture" },
+    { num:'040', date:'2026-03-18', dateH:'18 mars 2026', type:'Analyse', pole:'humanitaire-genre', status:'published', upd:'—',
+      title:"Femmes, paix, sécurité : la résolution 1325 a vingt-cinq ans, et après ?" },
+    { num:'016', date:'2026-03-14', dateH:'14 mars 2026', type:'Note de lecture', pole:'queer-theory', status:'published', upd:'—',
+      title:"Jasbir K. Puar, Terrorist Assemblages, vingt ans après" },
+    { num:'044', date:null, dateH:'—', type:'Note de lecture', pole:'theorie-feministe', status:'draft', upd:'il y a 1h',
+      title:"M. Lugones, « Heterosexualism and the Colonial / Modern Gender System »" },
+    { num:'045', date:null, dateH:'planifié 02 mai', type:'Analyse', pole:'conflits-minorites', status:'scheduled', upd:'planifié',
+      title:"Les minorités de genre en Ukraine, état des lieux après trois ans de guerre" },
+    { num:'007', date:'2026-03-07', dateH:'07 mars 2026', type:'Fiche', pole:'migrations-exil', status:'published', upd:'—',
+      title:"Persécution liée au genre : cadres juridiques internationaux" },
+  ];
+
+  const BIBLIO = [
+    { key:'saiz-2014', au:'Saiz, Ignacio', an:'2014', ti:"Bracketing Sexuality", in:"Health and Human Rights, vol. 6, n° 2, p. 43-82" },
+    { key:'puar-2007', au:'Puar, Jasbir K.', an:'2007', ti:'Terrorist Assemblages. Homonationalism in Queer Times', in:'Durham, Duke University Press' },
+    { key:'farris-2017', au:'Farris, Sara R.', an:'2017', ti:"In the Name of Women's Rights. The Rise of Femonationalism", in:'Durham, Duke University Press' },
+    { key:'massad-2007', au:'Massad, Joseph', an:'2007', ti:'Desiring Arabs', in:'Chicago, University of Chicago Press' },
+  ];
+
+  // ---------- Router ----------
+  function parseHash() {
+    const h = (location.hash || '#/dashboard').replace(/^#\/?/, '');
+    const seg = h.split('/').filter(Boolean);
+    return { name: seg[0] || 'dashboard', id: seg[1] };
+  }
+
+  // ---------- Rendering helpers ----------
+  function el(tag, attrs={}, ...kids) {
+    const n = document.createElement(tag);
+    for (const k in attrs) {
+      if (k === 'class') n.className = attrs[k];
+      else if (k === 'html') n.innerHTML = attrs[k];
+      else if (k.startsWith('on')) n.addEventListener(k.slice(2), attrs[k]);
+      else n.setAttribute(k, attrs[k]);
+    }
+    for (const kid of kids.flat()) {
+      if (kid == null || kid === false) continue;
+      n.appendChild(typeof kid === 'string' ? document.createTextNode(kid) : kid);
+    }
+    return n;
+  }
+  const go = (h) => { location.hash = h; };
+
+  function statusChip(s) {
+    const lab = { draft:'Brouillon', published:'Publié', scheduled:'Planifié' }[s];
+    return el('span', { class:'chip ' + s }, el('span', { class:'dot' }), lab);
+  }
+
+  // ---------- Sidebar nav ----------
+  function Sidebar(active) {
+    const item = (key, label, count, target) => {
+      const on = active === key;
+      return el('a', {
+        class: 'item' + (on ? ' active' : ''),
+        href: target,
+        onclick: (e) => { e.preventDefault(); go(target.replace('#','')); }
+      }, el('span', {}, label), count != null ? el('span', { class:'n' }, String(count)) : null);
+    };
+    return el('aside', { class:'side' },
+      el('div', { class:'brand' }, 'Carnet', el('span', { class:'dot' }, '.')),
+      el('nav', {},
+        el('div', { class:'grp' }, 'Contenu'),
+        item('posts',   'Billets',       47, '#/posts'),
+        item('poles',   'Pôles',          5, '#/poles'),
+        item('biblio',  'Bibliographie', 128, '#/biblio'),
+        item('media',   'Médias',         24, '#/media'),
+        el('div', { class:'grp' }, 'Pages'),
+        item('about',   'À propos',  null, '#/about'),
+        item('colophon','Colophon',  null, '#/colophon'),
+        el('div', { class:'grp' }, 'Réglages'),
+        item('users',   'Utilisateurs', null, '#/users'),
+        item('routes',  'Routing',      null, '#/routes'),
+        item('settings','Site',         null, '#/settings'),
+      ),
+      el('div', { class:'foot' },
+        el('div', { class:'av' }, 'A'),
+        el('div', { class:'who' },
+          el('div', { class:'n' }, 'Alice Aussel Delamaide'),
+          el('div', { class:'e' }, 'admin'),
+        ),
+      )
+    );
+  }
+
+  // ---------- Login ----------
+  function ScreenLogin() {
+    document.body.classList.add('no-chrome');
+    const screen = el('div', { class:'login' },
+      el('div', { class:'center' },
+        el('div', { class:'card' },
+          el('h1', { class:'brand' }, 'Carnet', el('span', { class:'dot' }, '.')),
+          el('div', { class:'sub' }, 'Espace d\u2019\u00e9criture \u2014 carnet.aliceosdel.org'),
+          el('form', { onsubmit:(e) => { e.preventDefault(); go('/dashboard'); } },
+            el('div', { class:'field' },
+              el('label', {}, 'Adresse e-mail'),
+              el('input', { type:'email', value:'alice@aliceosdel.org', autofocus:'true' }),
+            ),
+            el('div', { class:'field' },
+              el('label', {}, 'Mot de passe'),
+              el('input', { type:'password', value:'\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' }),
+            ),
+            el('button', { class:'btn accent', type:'submit' }, 'Entrer dans l\u2019admin'),
+            el('div', { class:'meta' },
+              el('a', {}, 'Mot de passe oubli\u00e9'),
+              el('a', { class:'mono' }, 'v3.42.0'),
+            ),
+          ),
+        ),
+      ),
+      el('div', { class:'foot' },
+        el('span', {}, 'carnet.aliceosdel.org'),
+        el('span', {}, 'Payload v3 \u00b7 Ghost-free build'),
+      ),
+    );
+    return screen;
+  }
+
+  // ---------- Dashboard ----------
+  function ScreenDashboard() {
+    const drafts = POSTS.filter(p => p.status === 'draft').slice(0,3);
+    const sched  = POSTS.filter(p => p.status === 'scheduled').slice(0,3);
+    return el('main', {},
+      el('header', { class:'top' },
+        el('div', { class:'crumbs' },
+          el('span', { class:'cur' }, 'Tableau de bord'),
+        ),
+        el('div', { class:'spacer' }),
+        el('div', { class:'acts' },
+          el('button', { class:'btn ghost' }, 'Voir le site \u2197'),
+          el('button', { class:'btn primary', onclick:() => go('/posts/new') }, 'Nouveau billet', el('span', { class:'kbd' }, '\u2318 N')),
+        ),
+      ),
+      el('div', { class:'scroll' },
+        el('div', { class:'pad-narrow dash' },
+          el('div', { class:'kicker' }, 'Carnet \u00b7 admin'),
+          el('h1', { html:'Bonjour <em>Alice</em>.' }),
+          el('p', { class:'lede' }, 'Vous avez 2 brouillons en cours et 1 billet plani\u00e9 pour mai. Le carnet a \u00e9t\u00e9 visit\u00e9 par 1\u202f240\u00a0lecteurs uniques cette semaine.'),
+
+          el('div', { class:'stats' },
+            ['28','analyses publi\u00e9es'].map((v,i) => i===0 ? null : null), // dummy
+          ),
+        )
+      )
+    );
+  }
+
+  // override Dashboard with proper stats grid (cleaner than inline)
+  function ScreenDashboardReal() {
+    const drafts = POSTS.filter(p => p.status === 'draft').slice(0,3);
+    const sched  = POSTS.filter(p => p.status === 'scheduled').slice(0,3);
+    const stat = (n, l) => el('div', { class:'s' }, el('div', { class:'n' }, n), el('div', { class:'l' }, l));
+    const draftRow = (p) => el('div', { class:'draft-row', onclick:() => go('/posts/' + p.num) },
+      el('div', { class:'num' }, 'n\u00b0\u00a0' + p.num),
+      el('div', {},
+        el('div', { class:'t' }, p.title),
+        el('div', { class:'meta' }, el('span', { class:'ty' }, p.type), '\u00a0\u00b7\u00a0', POLES[p.pole] || '\u2014'),
+      ),
+      el('div', { class:'upd' }, p.upd),
+    );
+    return el('main', {},
+      el('header', { class:'top' },
+        el('div', { class:'crumbs' }, el('span', { class:'cur' }, 'Tableau de bord')),
+        el('div', { class:'spacer' }),
+        el('div', { class:'acts' },
+          el('button', { class:'btn ghost' }, 'Voir le site \u2197'),
+          el('button', { class:'btn primary', onclick:() => go('/posts/new') }, 'Nouveau billet', el('span', { class:'kbd' }, '\u2318 N')),
+        ),
+      ),
+      el('div', { class:'scroll' },
+        el('div', { class:'pad-narrow dash' },
+          el('div', { class:'kicker' }, 'Carnet \u00b7 admin'),
+          el('h1', { html:'Bonjour <em>Alice</em>.' }),
+          el('p', { class:'lede' }, 'Deux brouillons en cours, un billet plani\u00e9 pour le 2\u00a0mai. Le carnet a \u00e9t\u00e9 visit\u00e9 par 1\u202f240\u00a0lecteurs uniques cette semaine.'),
+          el('div', { class:'stats' },
+            stat('28','analyses publi\u00e9es'),
+            stat('17','notes de lecture'),
+            stat('9', 'fiches th\u00e9matiques'),
+            stat('5', 'p\u00f4les'),
+          ),
+          el('div', { class:'twocol' },
+            el('div', { class:'blk' },
+              el('h3', {}, 'Brouillons en cours', el('a', { href:'#/posts?status=draft', onclick:(e) => { e.preventDefault(); go('/posts'); } }, 'Tous \u2192')),
+              ...drafts.map(draftRow),
+            ),
+            el('div', { class:'blk' },
+              el('h3', {}, 'Plani\u00e9 \u00e0 publier', el('a', {}, 'Calendrier \u2192')),
+              ...(sched.length ? sched.map(draftRow) : [el('div', { class:'muted', style:'padding:14px 0;border-top:1px solid var(--b-rule)' }, 'Aucun billet plani\u00e9.')]),
+            ),
+          ),
+          el('div', { class:'blk', style:'margin-bottom:48px' },
+            el('h3', {}, 'Raccourcis'),
+            el('div', { class:'shortcuts' },
+              el('a', { onclick:() => go('/posts/new') }, el('div', { class:'l' }, '\u2318 N'), el('div', { class:'t' }, 'Nouveau billet')),
+              el('a', { onclick:() => go('/posts/new?type=note') }, el('div', { class:'l' }, '#note'), el('div', { class:'t' }, 'Nouvelle note de lecture')),
+              el('a', { onclick:() => go('/posts/new?type=fiche') }, el('div', { class:'l' }, '#fiche'), el('div', { class:'t' }, 'Nouvelle fiche th\u00e9matique')),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ---------- Collection list ----------
+  function ScreenList() {
+    return el('main', {},
+      el('header', { class:'top' },
+        el('div', { class:'crumbs' },
+          el('a', { onclick:() => go('/dashboard') }, 'Carnet'),
+          el('span', { class:'sep' }, '/'),
+          el('span', { class:'cur' }, 'Billets'),
+        ),
+        el('div', { class:'spacer' }),
+        el('div', { class:'acts' },
+          el('button', { class:'btn ghost' }, 'Exporter'),
+          el('button', { class:'btn primary', onclick:() => go('/posts/new') }, 'Nouveau billet', el('span', { class:'kbd' }, '\u2318 N')),
+        ),
+      ),
+      el('div', { class:'scroll' },
+        el('div', { class:'pad-wide clist' },
+          el('div', { class:'toolbar' },
+            el('div', { class:'search' },
+              el('span', { class:'ic' }, '\u2315'),
+              el('input', { placeholder:'Rechercher dans 47 billets\u2026' }),
+            ),
+            el('button', { class:'filter' }, 'Type ', el('span', { class:'v' }, ': tous'), el('span', { class:'x' }, '\u25be')),
+            el('button', { class:'filter' }, 'P\u00f4le ', el('span', { class:'v' }, ': tous'), el('span', { class:'x' }, '\u25be')),
+            el('button', { class:'filter' }, 'Statut ', el('span', { class:'v' }, ': tous'), el('span', { class:'x' }, '\u25be')),
+            el('button', { class:'filter' }, 'Tri ', el('span', { class:'v' }, ': r\u00e9cent'), el('span', { class:'x' }, '\u25be')),
+          ),
+          el('div', { class:'table' },
+            el('div', { class:'row head' },
+              el('div', {}, 'N\u00b0'),
+              el('div', {}, 'Date'),
+              el('div', {}, 'Type'),
+              el('div', {}, 'P\u00f4le'),
+              el('div', {}, 'Titre'),
+              el('div', {}, 'Statut'),
+              el('div', {}),
+            ),
+            ...POSTS.map(p => el('div', { class:'row', onclick:() => go('/posts/' + p.num) },
+              el('div', { class:'num' }, 'n\u00b0\u00a0' + p.num),
+              el('div', { class:'date' }, p.date || '\u2014'),
+              el('div', { class:'ty' }, p.type),
+              el('div', { class:'pole' }, POLES[p.pole] || p.pole),
+              el('div', { class:'t' }, p.title),
+              el('div', {}, statusChip(p.status)),
+              el('div', { class:'more' }, '\u22ef'),
+            )),
+          ),
+          el('div', { class:'pag' },
+            el('span', {}, 'Affichage 1\u201347 sur 47 \u00b7 25 par page'),
+            el('div', { class:'nav' },
+              el('button', { class:'pg' }, '\u2190'),
+              el('button', { class:'pg on' }, '1'),
+              el('button', { class:'pg' }, '2'),
+              el('button', { class:'pg' }, '\u2192'),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ---------- Document view ----------
+  function ScreenDoc(id) {
+    const p = POSTS.find(x => x.num === id) || POSTS[1];
+    const meta = el('aside', { class:'meta meta-pane' },
+      el('h3', {}, 'M\u00e9tadonn\u00e9es'),
+      el('div', { class:'field' },
+        el('label', {}, 'Num\u00e9ro de billet'),
+        el('input', { value:'042' }),
+      ),
+      el('div', { class:'field' },
+        el('label', {}, 'Slug'),
+        el('input', { value:'homonationalisme-diplomatie' }),
+        el('div', { class:'help' }, 'URL\u00a0: /2026/04/homonationalisme-diplomatie'),
+      ),
+      el('div', { class:'row' },
+        el('div', { class:'field' },
+          el('label', {}, 'Type'),
+          el('select', {},
+            el('option', {}, 'Analyse'),
+            el('option', {}, 'Note de lecture'),
+            el('option', {}, 'Fiche'),
+          ),
+        ),
+        el('div', { class:'field' },
+          el('label', {}, 'P\u00f4le'),
+          el('select', {},
+            el('option', {}, 'Genre & g\u00e9opolitique'),
+            ...Object.values(POLES).slice(1).map(v => el('option', {}, v)),
+          ),
+        ),
+      ),
+      el('hr'),
+      el('h3', {}, 'Calendrier'),
+      el('div', { class:'row' },
+        el('div', { class:'field' },
+          el('label', {}, 'Publication'),
+          el('input', { type:'text', value:'2026-04-14' }),
+        ),
+        el('div', { class:'field' },
+          el('label', {}, 'Mise \u00e0 jour'),
+          el('input', { type:'text', value:'2026-04-22' }),
+        ),
+      ),
+      el('hr'),
+      el('h3', {}, 'Bibliographie li\u00e9e'),
+      el('div', { class:'biblio-list' },
+        ...BIBLIO.slice(0,3).map(b => el('div', { class:'b-row' },
+          el('span', { class:'au' }, b.au), ' (', b.an, '), ',
+          el('span', { class:'ti' }, b.ti), '.'
+        )),
+      ),
+      el('button', { class:'add-rel' }, '+ Ajouter une r\u00e9f\u00e9rence\u2026'),
+      el('hr'),
+      el('h3', {}, 'Auto-calcul\u00e9'),
+      el('div', { class:'field' },
+        el('label', {}, 'ID Carnet'),
+        el('div', { class:'auto' }, 'carnet:2026-042'),
+      ),
+      el('div', { class:'field' },
+        el('label', {}, 'Temps de lecture'),
+        el('div', { class:'auto' }, '\u2248\u00a038 min \u00b7 7\u202f842 mots'),
+      ),
+    );
+
+    const slashMenu = el('div', { class:'slash', style:'left:0;top:100%;margin-top:4px' },
+      el('div', { class:'lbl' }, 'Blocs Carnet'),
+      el('div', { class:'opt on' },
+        el('div', { class:'ic' }, 'fn'),
+        el('div', {},
+          el('div', { class:'lab' }, 'Note de bas de page'),
+          el('span', { class:'desc' }, 'Note num\u00e9rot\u00e9e, retour automatique')),
+        el('div', { class:'kbd' }, 'F'),
+      ),
+      el('div', { class:'opt' },
+        el('div', { class:'ic' }, '\u00ab\u00bb'),
+        el('div', {},
+          el('div', { class:'lab' }, 'Citation longue'),
+          el('span', { class:'desc' }, 'Bloc filet gauche accent')),
+        el('div', { class:'kbd' }, 'Q'),
+      ),
+      el('div', { class:'opt' },
+        el('div', { class:'ic' }, '@'),
+        el('div', {},
+          el('div', { class:'lab' }, 'Bibliographie inline'),
+          el('span', { class:'desc' }, 'Ins\u00e8re une r\u00e9f\u00e9rence par sa cl\u00e9')),
+        el('div', { class:'kbd' }, 'B'),
+      ),
+      el('div', { class:'opt' },
+        el('div', { class:'ic' }, '\u25a2'),
+        el('div', {},
+          el('div', { class:'lab' }, 'Figure'),
+          el('span', { class:'desc' }, 'Image + l\u00e9gende')),
+        el('div', { class:'kbd' }, 'I'),
+      ),
+      el('div', { class:'lbl' }, 'Mise en forme'),
+      el('div', { class:'opt' },
+        el('div', { class:'ic' }, 'H2'),
+        el('div', {}, el('div', { class:'lab' }, 'Titre de section')),
+        el('div', { class:'kbd' }, '\u23291'),
+      ),
+      el('div', { class:'opt' },
+        el('div', { class:'ic' }, 'H3'),
+        el('div', {}, el('div', { class:'lab' }, 'Sous-titre')),
+        el('div', { class:'kbd' }, '\u23292'),
+      ),
+    );
+
+    const center = el('div', { class:'center' },
+      el('div', { class:'ed-card' },
+        el('div', { class:'ed-num' }, 'Billet n\u00b0\u00a0042 \u00b7 ', el('span', { class:'id' }, 'carnet:2026-042')),
+        el('input', { class:'ed-title serif', value:"L\u2019homonationalisme a-t-il une diplomatie ?" }),
+        el('textarea', { class:'ed-lede serif', rows:'2' }, "Retour sur dix ans de discours sur les droits LGBTQI+ aux Nations unies \u2014 et sur ce qu'ils font \u00e0 la diplomatie occidentale comme \u00e0 ses contestataires."),
+        el('hr', { class:'ed-divider' }),
+        el('div', { class:'ed-body', html:
+`<p>Lorsque le Conseil des droits de l'homme des Nations unies adopte, en juin 2011, sa r\u00e9solution\u00a017/19 sur l'orientation sexuelle et l'identit\u00e9 de genre, le geste para\u00eet modeste\u00a0: un texte court, vot\u00e9 \u00e0 une majorit\u00e9 \u00e9troite, demandant un rapport au Haut-Commissariat. Ce vote constitue pourtant <em>le</em> pr\u00e9c\u00e9dent\u00a0; tout ce que je veux examiner ici en d\u00e9coule ou s'y oppose<a class="fn-anchor" href="#fn1">[1]</a>.</p>
+<p>Quinze ans plus tard, le paysage diplomatique a bascul\u00e9. La d\u00e9fense des droits LGBTQI+ est devenue, tour \u00e0 tour, un marqueur d'identit\u00e9 occidentale, une <em>monnaie</em> dans les rapports Nord-Sud, un enjeu de polarisation interne dans les d\u00e9mocraties lib\u00e9rales, et un vecteur d'instrumentalisation tant par certains \u00c9tats \u00ab\u00a0progressistes\u00a0\u00bb que par leurs adversaires d\u00e9clar\u00e9s<a class="fn-anchor" href="#fn2">[2]</a>.</p>
+<h2>I \u2014 La r\u00e9solution comme acte fondateur</h2>
+<p>Il faut revenir \u00e0 la s\u00e9quence elle-m\u00eame. Le projet sud-africain, soutenu par le Br\u00e9sil, prend forme dans un contexte o\u00f9 l'Afrique du Sud post-apartheid se r\u00eave m\u00e9diatrice morale du Sud global<span class="block-tag">@biblio: saiz-2014</span>.</p>
+<blockquote class="cit">Le pinkwashing n'est pas le mensonge d'un \u00c9tat qui maquillerait sa violence\u00a0; c'est le travail quotidien de red\u00e9finition de ce que vaut, internationalement, la qualit\u00e9 d'\u00c9tat de droit.</blockquote>
+<p>On peut objecter que cette g\u00e9n\u00e9alogie a \u00e9t\u00e9 rapidement effac\u00e9e<span class="ed-cursor"></span></p>` }),
+        // place slash menu absolute below current paragraph approximation:
+        el('div', { style:'position:relative;margin-top:-22px' }, slashMenu),
+      ),
+      el('div', { class:'fn-block' },
+        el('div', { class:'h' }, el('span', {}, 'Notes de bas de page (4)'), el('span', { class:'add' }, '+ Ajouter une note')),
+        ...[
+          { n:1, body:'Sur le contexte du vote, voir <em>Saiz (2014)</em>, p.\u00a047 sq. \u2014 r\u00e9f\u00e9rence essentielle pour comprendre la strat\u00e9gie sud-africaine.' },
+          { n:2, body:'Je reprends, en la d\u00e9pla\u00e7ant, la formule de <em>Puar (2007)</em> sur l\u2019\u00ab\u00a0assemblage\u00a0\u00bb homonationaliste.' },
+          { n:3, body:'Voir le <em>Presidential Memorandum on International Initiatives to Advance the Human Rights of LGBT Persons</em>, 6\u00a0d\u00e9cembre 2011.' },
+          { n:4, body:'Sur la s\u00e9quence russe, voir l\u2019analyse en cours dans le billet \u00ab\u00a0Quand les marges remontent au centre\u00a0\u00bb.' },
+        ].map(f => el('div', { class:'fn-row' },
+          el('div', { class:'n' }, '[' + f.n + ']'),
+          el('div', { class:'body', html:f.body }),
+          el('div', { class:'x' }, '\u00d7'),
+        )),
+      ),
+    );
+
+    return el('main', { class:'doc-shell' },
+      el('header', { class:'top' },
+        el('div', { class:'crumbs' },
+          el('a', { onclick:() => go('/dashboard') }, 'Carnet'),
+          el('span', { class:'sep' }, '/'),
+          el('a', { onclick:() => go('/posts') }, 'Billets'),
+          el('span', { class:'sep' }, '/'),
+          el('span', { class:'cur' }, 'n\u00b0\u00a0042'),
+        ),
+        statusChip('published'),
+        el('div', { class:'spacer' }),
+        el('div', { class:'acts' },
+          el('span', { class:'muted', style:'font-size:11px' }, 'Sauvegard\u00e9 il y a 2 min'),
+          el('button', { class:'btn ghost' }, 'Aper\u00e7u \u2197'),
+          el('button', { class:'btn' }, 'Sauvegarder', el('span', { class:'kbd' }, '\u2318 S')),
+          el('button', { class:'btn accent' }, 'Publier les modifications'),
+        ),
+      ),
+      el('div', { class:'scroll', style:'padding:0' },
+        el('div', { class:'doc' }, center, meta),
+      ),
+    );
+  }
+
+  // ---------- Biblio edit ----------
+  function ScreenBiblio(id) {
+    const b = BIBLIO.find(x => x.key === id) || BIBLIO[0];
+    return el('main', {},
+      el('header', { class:'top' },
+        el('div', { class:'crumbs' },
+          el('a', { onclick:() => go('/dashboard') }, 'Carnet'),
+          el('span', { class:'sep' }, '/'),
+          el('a', { onclick:() => go('/biblio') }, 'Bibliographie'),
+          el('span', { class:'sep' }, '/'),
+          el('span', { class:'cur mono', style:'font-size:12px' }, b.key),
+        ),
+        el('div', { class:'spacer' }),
+        el('div', { class:'acts' },
+          el('button', { class:'btn ghost' }, 'Supprimer'),
+          el('button', { class:'btn' }, 'Sauvegarder', el('span', { class:'kbd' }, '\u2318 S')),
+        ),
+      ),
+      el('div', { class:'scroll' },
+        el('div', { class:'pad bib' },
+          el('div', { class:'form' },
+            el('h1', {}, 'R\u00e9f\u00e9rence bibliographique'),
+            el('div', { class:'id' }, 'cl\u00e9\u00a0: ', b.key),
+
+            el('div', { class:'grp' },
+              el('h3', {}, 'Identification'),
+              el('div', { class:'grid3' },
+                el('div', { class:'field' },
+                  el('label', {}, 'Type'),
+                  el('select', {},
+                    el('option', {}, 'Article de revue'),
+                    el('option', {}, 'Livre'),
+                    el('option', {}, 'Chapitre'),
+                    el('option', {}, 'Ressource en ligne'),
+                  ),
+                ),
+                el('div', { class:'field' },
+                  el('label', {}, 'Auteur(e)s'),
+                  el('input', { value:b.au }),
+                ),
+                el('div', { class:'field' },
+                  el('label', {}, 'Ann\u00e9e'),
+                  el('input', { value:b.an }),
+                ),
+              ),
+              el('div', { class:'field' },
+                el('label', {}, 'Titre'),
+                el('input', { value:b.ti }),
+              ),
+            ),
+
+            el('div', { class:'grp' },
+              el('h3', {}, 'Publication'),
+              el('div', { class:'grid' },
+                el('div', { class:'field' },
+                  el('label', {}, '\u00c9diteur / Revue'),
+                  el('input', { value:'Health and Human Rights' }),
+                ),
+                el('div', { class:'field' },
+                  el('label', {}, 'Lieu'),
+                  el('input', { value:'Cambridge (MA)' }),
+                ),
+              ),
+              el('div', { class:'grid3' },
+                el('div', { class:'field' },
+                  el('label', {}, 'Volume'),
+                  el('input', { value:'6' }),
+                ),
+                el('div', { class:'field' },
+                  el('label', {}, 'Num\u00e9ro'),
+                  el('input', { value:'2' }),
+                ),
+                el('div', { class:'field' },
+                  el('label', {}, 'Pages'),
+                  el('input', { value:'43-82' }),
+                ),
+              ),
+              el('div', { class:'field' },
+                el('label', {}, 'DOI / URL'),
+                el('input', { value:'https://doi.org/10.2307/4065432' }),
+              ),
+            ),
+
+            el('div', { class:'grp' },
+              el('h3', {}, 'Notes'),
+              el('div', { class:'field' },
+                el('label', {}, 'Annotation personnelle'),
+                el('textarea', { rows:'3' }, 'R\u00e9f\u00e9rence essentielle pour la s\u00e9quence du vote 17/19 ; voir notamment p.\u00a047 sq. sur la strat\u00e9gie sud-africaine.'),
+              ),
+            ),
+
+            el('div', { class:'preview' },
+              el('div', { class:'lbl' }, 'Aper\u00e7u (style biblio)'),
+              el('div', {}, 'Saiz, Ignacio, 2014, \u00ab\u00a0Bracketing Sexuality\u00a0\u00bb, ', el('em', {}, 'Health and Human Rights'), ', vol.\u00a06, n\u00b0\u00a02, p.\u00a043\u201182.'),
+            ),
+            el('div', { class:'used-in' },
+              'Utilis\u00e9e dans 3 billets\u00a0: ',
+              el('a', { onclick:() => go('/posts/042') }, 'n\u00b0\u00a0042'),
+              ', ',
+              el('a', { onclick:() => go('/posts/041') }, 'n\u00b0\u00a0041'),
+              ', ',
+              el('a', { onclick:() => go('/posts/040') }, 'n\u00b0\u00a0040'),
+              '.',
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ---------- Toast (visible on document screen) ----------
+  function Toast() {
+    return el('div', { class:'toast' },
+      el('span', { class:'ic' }, '\u2713'),
+      el('span', {}, 'Brouillon sauvegard\u00e9 \u00b7 il y a 2 min'),
+    );
+  }
+
+  // ---------- Mount ----------
+  function render() {
+    const route = parseHash();
+    const root = document.getElementById('root');
+    root.innerHTML = '';
+    document.body.classList.remove('no-chrome');
+
+    // Update screen-nav highlight
+    const map = { login:'login', dashboard:'dashboard', posts: route.id ? 'post' : 'posts', biblio: route.id ? 'biblio' : 'biblio' };
+    const target = map[route.name] || route.name;
+    document.querySelectorAll('#scrNav a').forEach(a => a.classList.toggle('on', a.dataset.r === target));
+
+    if (route.name === 'login') {
+      root.appendChild(ScreenLogin());
+      return;
+    }
+
+    const wrap = el('div', { class:'app' });
+    let active;
+    let main;
+    if (route.name === 'posts' && route.id) { active = 'posts'; main = ScreenDoc(route.id); }
+    else if (route.name === 'posts')         { active = 'posts'; main = ScreenList(); }
+    else if (route.name === 'biblio' && route.id){ active = 'biblio'; main = ScreenBiblio(route.id); }
+    else if (route.name === 'biblio')        { active = 'biblio'; main = ScreenBiblio('saiz-2014'); }
+    else                                     { active = 'dashboard'; main = ScreenDashboardReal(); }
+    wrap.appendChild(Sidebar(active));
+    wrap.appendChild(main);
+    root.appendChild(wrap);
+
+    if (route.name === 'posts' && route.id) root.appendChild(Toast());
+  }
+
+  window.addEventListener('hashchange', render);
+  if (!location.hash) location.hash = '#/dashboard';
+  render();
+
+  // ---------- Tweaks (host protocol) ----------
+  const PAPER_OPTS = [
+    { v:'#ffffff', n:'pur' },
+    { v:'#fbfaf6', n:'crème' },
+    { v:'#f7f5ee', n:'craie' },
+    { v:'#f3f0e6', n:'parchemin' },
+    { v:'#f1efe9', n:'ivoire' },
+    { v:'#eeece4', n:'lin' },
+  ];
+  const ACCENT_OPTS = ['#1a1d28','#8a3a3a','#5a3a7a','#1f3a5a','#2d5a3d'];
+  const TW_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "paper": "#fbfaf6",
+    "accent": "#1a1d28"
+  }/*EDITMODE-END*/;
+  let tw = { ...TW_DEFAULTS };
+
+  function applyTweaks() {
+    document.documentElement.style.setProperty('--b-paper', tw.paper);
+    document.documentElement.style.setProperty('--b-accent', tw.accent);
+    // recompute tint from accent
+    const m = tw.accent.match(/^#(..)(..)(..)$/);
+    if (m) {
+      const r = parseInt(m[1],16), g = parseInt(m[2],16), b = parseInt(m[3],16);
+      document.documentElement.style.setProperty('--b-accent-tint', `rgba(${r},${g},${b},.06)`);
+    }
+  }
+
+  function buildSwatches() {
+    const sp = document.getElementById('swPaper');
+    sp.innerHTML = '';
+    PAPER_OPTS.forEach(o => {
+      const s = document.createElement('div');
+      s.className = 'sw' + (o.v === tw.paper ? ' on' : '');
+      s.style.background = o.v;
+      s.title = o.n + ' · ' + o.v;
+      const lab = document.createElement('div'); lab.className='n'; lab.textContent = o.n;
+      s.appendChild(lab);
+      s.onclick = () => { tw.paper = o.v; applyTweaks(); buildSwatches(); persist(); };
+      sp.appendChild(s);
+    });
+    const sa = document.getElementById('swAccent');
+    sa.innerHTML = '';
+    ACCENT_OPTS.forEach(v => {
+      const s = document.createElement('div');
+      s.className = 'sw' + (v === tw.accent ? ' on' : '');
+      s.style.background = v;
+      s.title = v;
+      s.onclick = () => { tw.accent = v; applyTweaks(); buildSwatches(); persist(); };
+      sa.appendChild(s);
+    });
+  }
+
+  function persist() {
+    try { window.parent.postMessage({ type:'__edit_mode_set_keys', edits: tw }, '*'); } catch(e) {}
+  }
+
+  // host protocol: register listener BEFORE announcing availability
+  window.addEventListener('message', (e) => {
+    const d = e.data || {};
+    if (d.type === '__activate_edit_mode') document.getElementById('tw').classList.add('open');
+    else if (d.type === '__deactivate_edit_mode') document.getElementById('tw').classList.remove('open');
+  });
+  document.getElementById('twX').onclick = () => {
+    document.getElementById('tw').classList.remove('open');
+    try { window.parent.postMessage({ type:'__edit_mode_dismissed' }, '*'); } catch(e) {}
+  };
+  applyTweaks();
+  buildSwatches();
+  try { window.parent.postMessage({ type:'__edit_mode_available' }, '*'); } catch(e) {}
+  </script>
+</body>
+</html>

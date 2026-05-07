@@ -1,0 +1,62 @@
+{
+  "name": "carnet",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "dev:web": "astro dev",
+    "dev:api": "pnpm --dir services/payload dev",
+    "dev:mail": "pnpm --dir services/mail dev",
+    "build": "astro build",
+    "build:web": "astro build",
+    "build:api": "pnpm --dir services/payload build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "check": "astro check",
+    "a11y": "node scripts/a11y-audit.mjs",
+    "a11y:deep": "node scripts/a11y-deep.mjs",
+    "format": "prettier --write \"src/**/*.{astro,ts,tsx,js,json,md}\" \"*.{md,mjs,ts,json}\"",
+    "lint": "eslint \"src/**/*.{astro,ts,tsx,js}\""
+  },
+  "dependencies": {
+    "@astrojs/node": "^10.0.6",
+    "@astrojs/rss": "^4.0.18",
+    "@astrojs/sitemap": "^3.2.1",
+    "@fontsource/inter": "^5.2.7",
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "@fontsource/source-serif-4": "^5.2.7",
+    "astro": "^6.1.8",
+    "marked": "^18.0.2"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@axe-core/playwright": "^4.11.2",
+    "@resvg/resvg-js": "^2.6.2",
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/node": "^22.10.1",
+    "eslint": "^9.17.0",
+    "eslint-plugin-astro": "^1.3.1",
+    "htmlparser2": "^12.0.0",
+    "playwright": "^1.59.1",
+    "prettier": "^3.4.2",
+    "prettier-plugin-astro": "^0.14.1",
+    "prettier-plugin-tailwindcss": "^0.6.9",
+    "satori": "^0.26.0",
+    "sharp": "^0.34.5",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.2"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp"
+    ],
+    "overrides": {
+      "yaml@<2.8.3": ">=2.8.3"
+    }
+  }
+}

@@ -1,0 +1,34 @@
+# Dev Setup VS Code extension config pour Carnet.
+#
+# Fetches secrets from Infisical (self-hosted env.backlice.dev) and
+# writes them to the repo-root `.env` when the workspace opens (or
+# on the `Dev Setup: Fetch Secrets` command). Docker compose, the
+# deploy.sh script and the dev servers (Astro + Payload) all
+# consume that file — it is the single canonical place for local
+# secrets.
+#
+# Pre-requisites:
+#   1. Install the "Dev Setup" VS Code extension.
+#   2. Run `Dev Setup: Login to Infisical` and paste the Universal
+#      Auth Client ID / Client Secret of a Machine Identity that
+#      has read access to the project below.
+#
+# In production, this file is unused — secrets come from
+# `scripts/deploy.sh` which calls `infisical export` directly
+# with the VPS-level Universal Auth credentials.
+
+secrets:
+  provider: infisical
+  loader: dotenv
+  # TODO: remplacer par le slug exact du projet sur env.backlice.dev
+  # (visible dans l'URL de l'admin Infisical quand tu ouvres le projet).
+  project: carnet
+  batches:
+    # Env Infisical "dev" — valeurs locales (Postgres docker, Mailpit, etc.).
+    # En prod, ce fichier est ignoré : deploy.sh fetche directement l'env
+    # "prod" via les credentials VPS-level Universal Auth.
+    # Ordre = priorité sur les doublons (first wins).
+    - dev/payload
+    - dev/postgres
+    - dev/smtp
+    - dev/web
