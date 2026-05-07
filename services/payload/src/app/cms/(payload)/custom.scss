@@ -566,6 +566,346 @@ textarea.field-type__input {
   }
 }
 
+// ─── Boutons Carnet (utilisés dans les vues custom) ─────────────
+
+.carnet-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--b-rule);
+  background: var(--b-paper);
+  color: var(--b-ink);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+
+  &:hover {
+    border-color: var(--b-ink);
+  }
+
+  .kbd {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--b-muted);
+    margin-left: 4px;
+  }
+
+  &--ghost {
+    background: transparent;
+    border-color: var(--b-rule);
+    color: var(--b-muted);
+
+    &:hover {
+      color: var(--b-ink);
+      border-color: var(--b-ink);
+    }
+  }
+
+  &--accent {
+    background: var(--b-accent);
+    color: var(--b-bg);
+    border-color: var(--b-accent);
+
+    .kbd {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    &:hover {
+      background: #000;
+      border-color: #000;
+    }
+  }
+}
+
+// ─── List view custom (Posts) ───────────────────────────────────
+// Composant React custom branché via Posts.admin.components.views.list.
+// Remplace la liste native Payload par le tableau éditorial du handoff.
+
+.carnet-listview {
+  padding: 24px 40px 64px;
+  font-family: var(--font-sans);
+  background: var(--b-bg);
+  min-height: 100vh;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 0 16px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--b-rule);
+    font-size: 13px;
+    color: var(--b-muted);
+  }
+
+  &__crumbs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    a {
+      color: var(--b-muted);
+      text-decoration: none;
+      transition: color 0.12s;
+
+      &:hover {
+        color: var(--b-ink);
+      }
+    }
+
+    .sep {
+      color: var(--b-rule);
+    }
+
+    .cur {
+      color: var(--b-ink);
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  &__h1 {
+    font-family: var(--font-serif);
+    font-size: 32px;
+    font-weight: 600;
+    letter-spacing: -0.4px;
+    margin: 24px 0 20px;
+    color: var(--b-ink);
+  }
+
+  &__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0;
+    border-top: 1px solid var(--b-rule);
+    border-bottom: 1px solid var(--b-rule);
+    margin-bottom: 0;
+  }
+
+  &__search {
+    position: relative;
+    flex: 1;
+    min-width: 220px;
+    max-width: 360px;
+
+    .ic {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--b-muted);
+      font-size: 14px;
+    }
+
+    input {
+      width: 100%;
+      padding: 7px 12px 7px 30px;
+      background: var(--b-paper);
+      border: 1px solid var(--b-rule);
+      font-family: inherit;
+      font-size: 12.5px;
+      color: var(--b-ink);
+
+      &:focus {
+        outline: none;
+        border-color: var(--b-accent);
+      }
+    }
+  }
+
+  &__filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: var(--b-paper);
+    border: 1px solid var(--b-rule);
+    font-size: 12.5px;
+
+    .lbl {
+      color: var(--b-muted);
+    }
+
+    select {
+      border: 0;
+      background: transparent;
+      font-family: inherit;
+      font-size: inherit;
+      color: var(--b-ink);
+      cursor: pointer;
+      padding: 0 16px 0 0;
+
+      &:focus {
+        outline: none;
+      }
+    }
+
+    &:hover {
+      border-color: var(--b-ink);
+    }
+  }
+
+  &__error {
+    padding: 16px;
+    background: rgba(182, 58, 58, 0.06);
+    border: 1px solid #b63a3a;
+    color: #b63a3a;
+    font-size: 13px;
+    margin-top: 16px;
+  }
+
+  &__table {
+    margin-top: 0;
+    background: transparent;
+  }
+
+  &__row {
+    display: grid;
+    grid-template-columns: 70px 110px 130px 180px 1fr 110px;
+    gap: 24px;
+    padding: 14px 0;
+    align-items: baseline;
+    border-bottom: 1px solid var(--b-rule);
+    color: var(--b-ink);
+    text-decoration: none;
+    transition: background 0.12s, color 0.12s;
+
+    &:not(.carnet-listview__row--head):hover {
+      background: var(--b-accent-tint);
+
+      .title {
+        color: var(--b-accent);
+      }
+    }
+
+    &--head {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--b-muted);
+      padding: 12px 0;
+      border-bottom: 1px solid var(--b-rule);
+
+      &:hover {
+        background: transparent;
+      }
+    }
+
+    .num,
+    .date {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--b-muted);
+    }
+
+    .type {
+      font-size: 12.5px;
+      color: var(--b-ink);
+    }
+
+    .theme {
+      font-size: 12.5px;
+      color: var(--b-accent);
+    }
+
+    .title {
+      font-family: var(--font-serif);
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.35;
+      color: var(--b-ink);
+      transition: color 0.12s;
+    }
+
+    .status {
+      text-align: right;
+    }
+  }
+
+  &__loading,
+  &__empty {
+    padding: 48px 0;
+    text-align: center;
+    color: var(--b-muted);
+    font-size: 13px;
+    border-bottom: 1px solid var(--b-rule);
+  }
+
+  &__pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    font-size: 12.5px;
+    color: var(--b-muted);
+  }
+
+  &__pagination-pages {
+    display: flex;
+    gap: 4px;
+
+    button {
+      padding: 4px 10px;
+      background: var(--b-paper);
+      border: 1px solid var(--b-rule);
+      font-family: inherit;
+      font-size: 12px;
+      color: var(--b-muted);
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+
+      &:hover:not(:disabled) {
+        border-color: var(--b-ink);
+        color: var(--b-ink);
+      }
+
+      &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      &.on {
+        background: var(--b-ink);
+        color: var(--b-bg);
+        border-color: var(--b-ink);
+      }
+    }
+  }
+
+  // Responsive — colonnes les moins critiques cachées en small viewport
+  @media (max-width: 1180px) {
+    &__row {
+      grid-template-columns: 60px 100px 130px 1fr 100px;
+    }
+    &__row > .theme {
+      display: none;
+    }
+  }
+
+  @media (max-width: 900px) {
+    padding: 16px 20px 48px;
+
+    &__row {
+      grid-template-columns: 60px 1fr 100px;
+    }
+    &__row > .date,
+    &__row > .type {
+      display: none;
+    }
+  }
+}
+
 // ─── Header custom Posts edit (breadcrumb + chip statut) ────────
 // Composant React custom branché via Posts.admin.components.edit.
 // beforeDocumentControls. Affiche la fil d'ariane et le chip statut

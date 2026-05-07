@@ -47,6 +47,15 @@ export const Posts: CollectionConfig = {
       edit: {
         beforeDocumentControls: ['@/components/admin/PostEditHeader#default'],
       },
+      views: {
+        // List view custom — remplace entièrement la liste native Payload
+        // par le tableau éditorial du handoff (toolbar 4 filtres, chips
+        // de statut, pagination compacte).
+        // Cf Design/design_handoff_admin/carnet-admin.html → ScreenList.
+        list: {
+          Component: '@/components/admin/PostListView#default',
+        },
+      },
     },
   },
   fields: [
