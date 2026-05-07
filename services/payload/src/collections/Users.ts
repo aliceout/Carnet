@@ -51,6 +51,13 @@ export const Users: CollectionConfig = {
           Component: '@/components/admin/UsersListView#default',
         },
       },
+      // Header custom (crumbs Carnet / Mon compte ou Carnet /
+      // Utilisateurs / [email]) au-dessus de la barre d'actions
+      // native pour /cms/admin/account et /cms/admin/collections/
+      // users/[id].
+      edit: {
+        beforeDocumentControls: ['@/components/admin/AccountEditHeader#default'],
+      },
     },
   },
   auth: {

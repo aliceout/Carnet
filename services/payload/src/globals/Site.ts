@@ -14,6 +14,15 @@ export const Site: GlobalConfig = {
     read: () => true,
     update: ({ req }) => Boolean(req.user),
   },
+  admin: {
+    components: {
+      // Header custom (crumbs « Carnet / Site (global) ») inséré
+      // au-dessus de la barre d'actions native Payload.
+      elements: {
+        beforeDocumentControls: ['@/components/admin/SiteEditHeader#default'],
+      },
+    },
+  },
   fields: [
     {
       name: 'baseline',
