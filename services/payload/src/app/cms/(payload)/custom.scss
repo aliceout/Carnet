@@ -12,6 +12,14 @@
 
 :root,
 html {
+  // Largeur de la nav latérale Carnet (220px). Payload v3 utilise
+  // cette var pour calculer la colonne réservée dans le grid de
+  // .template-default (`grid-template-columns: var(--nav-width) auto`).
+  // Sans override, Payload utilise sa valeur par défaut (~256px) qui
+  // crée un gap entre la fin de notre .carnet-nav (220px) et le bord
+  // gauche du content.
+  --nav-width: 220px;
+
   --b-ink: #1a1d28;
   --b-bg: #fdfcf8;
   --b-paper: #fbfaf6;
