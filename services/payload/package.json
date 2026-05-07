@@ -19,6 +19,9 @@
     "test:auth": "cross-env NODE_OPTIONS=--no-deprecation tsx --test src/auth/auth.test.ts"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.7",
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "@fontsource/source-serif-4": "^5.2.7",
     "@payloadcms/db-postgres": "3.84.1",
     "@payloadcms/email-nodemailer": "3.84.1",
     "@payloadcms/next": "3.84.1",

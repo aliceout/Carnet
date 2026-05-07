@@ -1,4 +1,68 @@
-// Overrides CSS de l'admin Payload.
+// Overrides CSS de l'admin Payload — applique la palette + typographie
+// Carnet par-dessus le thème natif Payload.
+//
+// Réf : Design/design_handoff_admin/README.md (handoff). Important :
+// l'admin Carnet a un accent NEUTRE NOIR (#1a1d28) — pas le violet
+// #5a3a7a du frontend public, choix éditorial pour que l'interface
+// d'écriture reste sobre et que l'accent du site garde sa charge.
+
+// ─── Tokens Carnet en :root ──────────────────────────────────────
+// On utilise un sélecteur :root,html pour bien override les vars
+// Payload qui sont aussi en :root.
+
+:root,
+html {
+  --b-ink: #1a1d28;
+  --b-bg: #fdfcf8;
+  --b-paper: #fbfaf6;
+  --b-rule: #d6d3c8;
+  --b-muted: #5e6373;
+  --b-accent: #1a1d28; /* admin = noir, pas violet */
+  --b-accent-tint: rgba(26, 29, 40, 0.06);
+
+  --font-serif: 'Source Serif 4', Georgia, serif;
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Menlo', ui-monospace, monospace;
+}
+
+// ─── Override des CSS vars Payload ───────────────────────────────
+// Payload expose un système de couleurs via `--theme-*` et
+// `--theme-elevation-*`. On les remappe sur la palette Carnet.
+
+:root,
+html {
+  // Fond global et texte
+  --theme-bg: var(--b-bg);
+  --theme-text: var(--b-ink);
+  --theme-input-bg: var(--b-paper);
+
+  // Élévations (gradient de fonds entre paper et ink)
+  --theme-elevation-0: var(--b-bg);
+  --theme-elevation-50: var(--b-paper);
+  --theme-elevation-100: var(--b-paper);
+  --theme-elevation-150: var(--b-rule);
+  --theme-elevation-200: var(--b-rule);
+  --theme-elevation-250: var(--b-rule);
+  --theme-elevation-300: var(--b-muted);
+  --theme-elevation-400: var(--b-muted);
+  --theme-elevation-500: var(--b-muted);
+  --theme-elevation-600: var(--b-ink);
+  --theme-elevation-700: var(--b-ink);
+  --theme-elevation-800: var(--b-ink);
+  --theme-elevation-900: var(--b-ink);
+  --theme-elevation-1000: var(--b-ink);
+
+  // Sémantique : success vert sobre, error rouge sobre, warning ambre
+  --theme-success-500: #4a7a4d;
+  --theme-warning-500: #b8842a;
+  --theme-error-500: #b63a3a;
+  --success-500: #4a7a4d;
+  --warning-500: #b8842a;
+  --error-500: #b63a3a;
+
+  // Bordures
+  --theme-border-color: var(--b-rule);
+}
 
 // Le wrapper des pages publiques (login, invitation, forgot, reset)
 // utilise `background-color: var(--theme-bg-color)` côté Payload, mais
@@ -6,5 +70,201 @@
 // fond reste blanc. On force la bonne var. !important pour passer
 // au-dessus du @layer payload-default.
 .template-minimal {
-  background-color: var(--theme-bg) !important;
+  background-color: var(--b-bg) !important;
+}
+
+// ─── Typographies globales ───────────────────────────────────────
+// L'admin Payload utilise par défaut une stack système. On applique
+// Inter sur l'UI et Source Serif 4 sur les titres éditoriaux qu'on
+// peut taguer (h1 du document view, brand login, dashboard hello).
+
+body {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--b-ink);
+  background: var(--b-bg);
+}
+
+// Inputs et formulaires
+input,
+textarea,
+select,
+button {
+  font-family: var(--font-sans);
+}
+
+// Code, mono, pre
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+// Tagger les éléments mono explicitement (utilisé dans les composants
+// custom : numéros de billet, slugs, dates ISO, clés biblio).
+.carnet-mono {
+  font-family: var(--font-mono);
+}
+
+.carnet-serif {
+  font-family: var(--font-serif);
+}
+
+// ─── Nav latérale Payload ────────────────────────────────────────
+// Sélecteurs Payload v3 BEM-like : `.nav`, `.nav__link`, `.nav-group`,
+// etc. On affine sans tout réécrire (la structure reste celle de
+// Payload, juste avec la palette + typo Carnet).
+
+.nav {
+  background: var(--b-bg);
+  border-right: 1px solid var(--b-rule);
+}
+
+.nav__link {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--b-muted);
+  border-left: 2px solid transparent;
+  transition: background 0.12s, color 0.12s, border-left-color 0.12s;
+
+  &:hover {
+    background: var(--b-accent-tint);
+    color: var(--b-ink);
+  }
+
+  &.active,
+  &--active,
+  &[aria-current='page'] {
+    background: var(--b-accent-tint);
+    color: var(--b-ink);
+    border-left-color: var(--b-accent);
+    font-weight: 600;
+  }
+}
+
+// Labels de groupe (Contenu / Pages / Réglages)
+.nav-group__label,
+.nav-group-link__label {
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--b-muted);
+}
+
+// ─── Boutons ─────────────────────────────────────────────────────
+
+.btn {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  border-radius: 0;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.btn--style-primary {
+  background: var(--b-accent);
+  color: var(--b-bg);
+  border: 1px solid var(--b-accent);
+
+  &:hover {
+    background: #000;
+    border-color: #000;
+  }
+}
+
+.btn--style-secondary {
+  background: transparent;
+  color: var(--b-ink);
+  border: 1px solid var(--b-rule);
+
+  &:hover {
+    border-color: var(--b-ink);
+  }
+}
+
+// ─── Champs (text, textarea, select) ────────────────────────────
+
+.field-type input,
+.field-type textarea,
+.field-type select,
+input.field-type__input,
+textarea.field-type__input {
+  background: var(--b-paper);
+  border: 1px solid var(--b-rule);
+  border-radius: 0;
+  font-family: var(--font-sans);
+  color: var(--b-ink);
+
+  &:focus {
+    border-color: var(--b-accent);
+    outline: none;
+    box-shadow: none;
+  }
+}
+
+.field-label,
+.tooltip {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--b-muted);
+  text-transform: uppercase;
+}
+
+// ─── Liste de collection (list view) ─────────────────────────────
+
+.collection-list,
+.list-controls {
+  font-family: var(--font-sans);
+}
+
+.cell-id,
+.cell-slug,
+.cell-numero {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--b-ink);
+}
+
+// ─── Headings éditoriaux dans les vues custom ───────────────────
+// Pour les composants custom (LoginView, future dashboard) on tagge
+// les h1 avec une classe `.carnet-h1` qui applique Source Serif 4.
+
+.carnet-h1 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  color: var(--b-ink);
+}
+
+.carnet-h1--brand {
+  font-size: 64px;
+  line-height: 1;
+
+  .dot {
+    color: var(--b-accent);
+  }
+}
+
+.carnet-kicker {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--b-muted);
+  font-weight: 500;
+}
+
+// ─── Misc cleanup ────────────────────────────────────────────────
+
+// Désactive les rayons sur les blocs natifs Payload pour rester dans
+// l'esprit "filets fins, pas de rayon".
+.gutter--left .field-type,
+.field-type__wrap {
+  border-radius: 0;
 }

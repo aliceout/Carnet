@@ -104,15 +104,32 @@ export default function LoginView(): React.ReactElement {
     <div
       style={{
         ...stack,
-        maxWidth: 'calc(var(--base) * 20)',
+        maxWidth: 380,
         margin: 'calc(var(--base) * 3) auto',
-        padding: 'var(--base)',
-        color: 'var(--theme-text)',
-        background: 'var(--theme-elevation-50)',
+        padding: '40px 32px',
+        color: 'var(--b-ink)',
+        background: 'var(--b-paper)',
+        border: '1px solid var(--b-rule)',
         borderRadius: 4,
+        gap: 'calc(var(--base) * 1.25)',
       }}
     >
-      <h1 style={{ margin: 0 }}>Connexion</h1>
+      {/* Branding Carnet — h1 Source Serif 4 64px, point en accent.
+          Réf : Design/design_handoff_admin/README.md → écran Login. */}
+      <header style={{ marginBottom: 12 }}>
+        <h1
+          className="carnet-h1 carnet-h1--brand"
+          style={{ margin: 0, marginBottom: 8 }}
+        >
+          Carnet<span className="dot">.</span>
+        </h1>
+        <p
+          className="carnet-kicker"
+          style={{ margin: 0, fontSize: 11, color: 'var(--b-muted)' }}
+        >
+          Espace d'écriture — carnet.aliceosdel.org
+        </p>
+      </header>
 
       {error && <Banner type="error">{error}</Banner>}
       {info && !error && <Banner type="info">{info}</Banner>}
