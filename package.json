@@ -10,7 +10,6 @@
     "dev": "astro dev",
     "dev:web": "astro dev",
     "dev:api": "pnpm --dir services/payload dev",
-    "dev:mail": "pnpm --dir services/mail dev",
     "build": "astro build",
     "build:web": "astro build",
     "build:api": "pnpm --dir services/payload build",

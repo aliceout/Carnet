@@ -23,7 +23,6 @@ Prérequis : Node 22+, pnpm 10+, Docker.
 # 2. Installer les deps (1× par service)
 pnpm install
 pnpm --dir services/payload install
-pnpm --dir services/mail install
 
 # 3. Postgres + Mailpit en arrière-plan
 docker compose -f compose.dev.yml up -d
@@ -31,11 +30,11 @@ docker compose -f compose.dev.yml up -d
 # 4. Lancer (un terminal par process)
 pnpm dev:api    # admin Payload   → http://localhost:3001/cms/admin
 pnpm dev:web    # site Astro      → http://localhost:4321
-pnpm dev:mail   # backend mail    → http://localhost:3000  (optionnel)
 ```
 
-Mailpit (capture les mails envoyés en local — invitations, OTP 2FA) :
-<http://localhost:8025>.
+Mailpit (capture les mails d'auth envoyés en local — invitations, OTP 2FA) :
+<http://localhost:8025>. Payload envoie ses mails via SMTP intégré
+(`@payloadcms/email-nodemailer`), pas besoin de service mail séparé.
 
 ---
 
@@ -58,11 +57,10 @@ pour le détail. Voir aussi [`INSTALL.md`](INSTALL.md) pour le setup complet.
 ```
 src/                       App Astro SSR (pages, components, layouts)
 services/
-├── payload/               CMS Payload (Next.js + Postgres) → /cms/admin
-└── mail/                  Backend mail (Hono + nodemailer) → /api/*
+└── payload/               CMS Payload (Next.js + Postgres) → /cms/admin
 public/                    Assets statiques + fonts self-hostées
 scripts/deploy.sh          Script de déploiement VPS
-compose.yml                Compose prod (db, payload, site, mail)
+compose.yml                Compose prod (db, payload, site)
 compose.dev.yml            Compose dev (postgres + mailpit)
 ```
 
