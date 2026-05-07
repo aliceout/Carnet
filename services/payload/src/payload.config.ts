@@ -67,6 +67,12 @@ export default buildConfig({
           Component: '@/components/auth/InvitationAcceptView#default',
           path: '/invitation/:token',
         },
+        // Dashboard custom — remplace l'écran d'accueil natif Payload
+        // par le hero éditorial du handoff (kicker + h1 + 4 stats +
+        // brouillons + planifiés + raccourcis).
+        dashboard: {
+          Component: '@/components/admin/Dashboard#default',
+        },
       },
       // Keepalive injecté en barre d'actions globale → tourne sur toutes
       // les pages de l'admin tant qu'un onglet est ouvert.
