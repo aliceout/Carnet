@@ -28,6 +28,13 @@ export const Themes: CollectionConfig = {
     useAsTitle: 'name',
     defaultColumns: ['name', 'slug', 'updatedAt'],
     listSearchableFields: ['name', 'slug'],
+    components: {
+      views: {
+        list: {
+          Component: '@/components/admin/ThemeListView#default',
+        },
+      },
+    },
   },
   fields: [
     {

@@ -904,6 +904,92 @@ textarea.field-type__input {
       display: none;
     }
   }
+
+  // ── Variantes par collection ─────────────────────────────────
+  // La grille __row par défaut est calibrée pour Posts (6 colonnes).
+  // Themes / Biblio surchargent grid-template-columns.
+
+  &--themes &__row {
+    grid-template-columns: 200px 200px 1fr 80px;
+  }
+  &--themes &__row .slug {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--b-accent);
+  }
+  &--themes &__row .desc {
+    font-family: var(--font-serif);
+    font-size: 14px;
+    color: var(--b-muted);
+    line-height: 1.4;
+  }
+  &--themes &__row .count {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--b-muted);
+    text-align: right;
+  }
+  @media (max-width: 1180px) {
+    &--themes &__row {
+      grid-template-columns: 180px 1fr 60px;
+    }
+    &--themes &__row > .desc {
+      display: none;
+    }
+  }
+  @media (max-width: 900px) {
+    &--themes &__row {
+      grid-template-columns: 1fr 60px;
+    }
+    &--themes &__row > .slug {
+      display: none;
+    }
+  }
+
+  &--biblio &__row {
+    grid-template-columns: 130px 200px 60px 1fr 100px;
+  }
+  &--biblio &__row .slug {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--b-accent);
+  }
+  &--biblio &__row .author {
+    font-family: var(--font-serif);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--b-ink);
+  }
+  &--biblio &__row .year {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--b-muted);
+  }
+  &--biblio &__row .title {
+    font-style: italic;
+  }
+  &--biblio &__row .type-cell {
+    font-size: 12px;
+    color: var(--b-muted);
+    text-transform: lowercase;
+  }
+  @media (max-width: 1180px) {
+    &--biblio &__row {
+      grid-template-columns: 110px 60px 1fr 80px;
+    }
+    &--biblio &__row > .author {
+      display: none;
+    }
+  }
+  @media (max-width: 900px) {
+    &--biblio &__row {
+      grid-template-columns: 1fr 60px;
+    }
+    &--biblio &__row > .slug,
+    &--biblio &__row > .year {
+      display: none;
+    }
+  }
 }
 
 // ─── Header custom Posts edit (breadcrumb + chip statut) ────────

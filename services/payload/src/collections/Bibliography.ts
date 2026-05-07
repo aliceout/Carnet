@@ -26,6 +26,13 @@ export const Bibliography: CollectionConfig = {
     useAsTitle: 'displayLabel',
     defaultColumns: ['displayLabel', 'author', 'year', 'type', 'updatedAt'],
     listSearchableFields: ['author', 'title', 'slug'],
+    components: {
+      views: {
+        list: {
+          Component: '@/components/admin/BibliographyListView#default',
+        },
+      },
+    },
   },
   fields: [
     {
