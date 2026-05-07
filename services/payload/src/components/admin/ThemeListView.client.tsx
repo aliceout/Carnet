@@ -110,8 +110,6 @@ export default function ThemeListViewClient(): React.ReactElement {
         </div>
       </header>
 
-      <h1 className="carnet-listview__h1">Thèmes</h1>
-
       <div className="carnet-listview__toolbar">
         <div className="carnet-listview__search">
           <span className="ic" aria-hidden="true">

@@ -465,6 +465,37 @@ header svg.icon--logo {
   display: none !important;
 }
 
+// ─── Wrapper de contenu : suppression du gap sidebar/content ─────
+// Payload v3 met du padding par défaut sur le wrapper du content
+// (.template-default, .payload__main, .app-content selon version) :
+// ce padding crée une bande blanche entre la fin de notre Nav
+// custom (220px) et le début de notre content. On le neutralise
+// pour que la topbar parte directement après la nav, sans gap.
+
+.template-default,
+.payload__main,
+.app-content,
+[class*='Template_default'],
+[class*='template_default'],
+[class*='template-default'],
+[class*='AppContent'],
+[class*='appContent'] {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+// Le wrapper interne des views (list, edit) peut aussi avoir un
+// padding qui décale le content de l'extrême gauche.
+.collection-list,
+.list-view,
+[class*='ListView'],
+[class*='listView'],
+[class*='CollectionList'],
+[class*='collectionList'] {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
 // ─── Dashboard custom ────────────────────────────────────────────
 // Composant React custom branché via admin.components.views.dashboard.
 // Remplace le rendu CollectionCards natif par un hero éditorial.

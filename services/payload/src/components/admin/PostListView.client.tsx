@@ -184,8 +184,6 @@ export default function PostListViewClient(): React.ReactElement {
         </div>
       </header>
 
-      <h1 className="carnet-listview__h1">Billets</h1>
-
       <div className="carnet-listview__toolbar">
         <div className="carnet-listview__search">
           <span className="ic" aria-hidden="true">
