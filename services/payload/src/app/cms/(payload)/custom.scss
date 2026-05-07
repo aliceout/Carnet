@@ -481,6 +481,86 @@ header svg.icon--logo {
   display: none !important;
 }
 
+// ─── Pages natives Payload (Media, Users, Pages éditoriales, Mon
+// compte, Site global) — sticky topbar + style boutons cohérent ──
+// On n'a pas de custom view pour ces collections (elles utilisent
+// le rendu natif Payload). On applique du CSS pour qu'elles aient
+// au moins le sticky topbar + les boutons accent.
+
+// Sticky des controls natifs (toolbar + heading + actions)
+.list-controls,
+.list-header,
+.doc-controls,
+.doc-header,
+.collection-list__header,
+.collection-list__header-controls,
+.edit-document__header,
+[class*='ListControls'],
+[class*='listControls'],
+[class*='DocumentHeader'],
+[class*='documentHeader'],
+[class*='doc-controls'] {
+  position: sticky;
+  top: 0;
+  background: var(--b-bg);
+  z-index: 5;
+}
+
+// Heading h1 natif sur les pages list (Pages, Media, Users) :
+// styles cohérents avec notre carnet-listview__h1 (mais on n'enlève
+// pas le h1 ici car il est la seule indication du contexte de page —
+// pas de breadcrumb natif visible)
+.collection-list h1,
+.list-view h1,
+.edit-document h1 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  color: var(--b-ink);
+}
+
+// Boutons "Create New" / "Save" / "Publish" natifs Payload :
+// forcer la palette accent Carnet (au lieu du gris-béton par défaut).
+// !important nécessaire pour passer le @layer payload-default.
+.btn--style-primary,
+.btn.btn--style-primary,
+button.btn--style-primary,
+[class*='btn--style-primary'],
+.collection-list__sub-header .btn,
+.edit-document__header .btn--primary {
+  background: var(--b-accent) !important;
+  color: var(--b-bg) !important;
+  border: 1px solid var(--b-accent) !important;
+  border-radius: 0 !important;
+  font-family: var(--font-sans) !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  padding: 5px 14px !important;
+
+  &:hover {
+    background: #000 !important;
+    border-color: #000 !important;
+  }
+}
+
+// Boutons secondaires natifs (Bulk Upload, Edit, API, etc.) :
+// border discrète, fond paper, plus discret.
+.btn--style-secondary,
+[class*='btn--style-secondary'] {
+  background: var(--b-paper) !important;
+  color: var(--b-ink) !important;
+  border: 1px solid var(--b-rule) !important;
+  border-radius: 0 !important;
+  font-family: var(--font-sans) !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  padding: 5px 14px !important;
+
+  &:hover {
+    border-color: var(--b-ink) !important;
+  }
+}
+
 // ─── Wrapper de contenu : suppression du gap sidebar/content ─────
 // Payload v3 met du padding par défaut sur le wrapper du content
 // (.template-default, .payload__main, .app-content selon version) :
