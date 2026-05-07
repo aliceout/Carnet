@@ -566,6 +566,100 @@ textarea.field-type__input {
   }
 }
 
+// ─── Header custom Posts edit (breadcrumb + chip statut) ────────
+// Composant React custom branché via Posts.admin.components.edit.
+// beforeDocumentControls. Affiche la fil d'ariane et le chip statut
+// au-dessus de la barre d'actions native Payload.
+
+.carnet-doc-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  margin-bottom: 8px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--b-muted);
+
+  &__crumbs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    a {
+      color: var(--b-muted);
+      text-decoration: none;
+      transition: color 0.12s;
+
+      &:hover {
+        color: var(--b-ink);
+      }
+    }
+
+    .sep {
+      color: var(--b-rule);
+    }
+  }
+
+  &__current {
+    color: var(--b-ink);
+    font-weight: 600;
+  }
+}
+
+.carnet-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid var(--b-rule);
+  border-radius: 999px;
+  background: var(--b-paper);
+
+  &__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  &--draft {
+    color: #b8842a;
+    border-color: #b8842a;
+  }
+
+  &--scheduled {
+    color: #3a6a8a;
+    border-color: #3a6a8a;
+  }
+
+  &--published {
+    color: var(--b-accent);
+    border-color: var(--b-accent);
+  }
+}
+
+// Méta-ligne mono « Billet n° 042 · carnet:2026-042 » en haut du form
+.carnet-doc-metaline {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--b-muted);
+  letter-spacing: 0.04em;
+  margin: 0 0 16px;
+  padding: 0;
+
+  &__id {
+    color: var(--b-ink);
+  }
+}
+
 // ─── Document edit view (Posts, etc.) ───────────────────────────
 // Pass 1 : overrides CSS sur la vue native Payload pour appliquer la
 // palette + typographie + structure éditoriale du handoff carnet-admin.

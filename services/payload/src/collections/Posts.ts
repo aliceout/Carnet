@@ -40,8 +40,27 @@ export const Posts: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['numero', 'title', 'type', 'publishedAt', 'draft', 'updatedAt'],
     listSearchableFields: ['title', 'slug', 'lede'],
+    components: {
+      // Header custom (breadcrumb « Carnet / Billets / n° 042 » + chip
+      // statut) inséré au-dessus de la barre d'actions native Payload.
+      // Cf Design/design_handoff_admin/carnet-admin.html → ScreenDoc.
+      edit: {
+        beforeDocumentControls: ['@/components/admin/PostEditHeader#default'],
+      },
+    },
   },
   fields: [
+    {
+      // Field UI fantôme — rend la ligne mono « Billet n° 042 ·
+      // carnet:2026-042 » en haut du formulaire, comme la maquette.
+      name: 'metaLine',
+      type: 'ui',
+      admin: {
+        components: {
+          Field: '@/components/admin/PostMetaLine#default',
+        },
+      },
+    },
     {
       name: 'numero',
       type: 'number',
