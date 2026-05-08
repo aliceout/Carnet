@@ -678,6 +678,30 @@ export default function PostEditViewClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(explicitBiblioIds), inlineBiblioIds]);
 
+  // Synchro auto : toute ref biblio citée inline dans le corps qui
+  // n'est pas encore dans la liste explicite `post.bibliography` y
+  // est ajoutée. Comme c'est cette liste qui est sérialisée au save
+  // et rendue en pied d'article côté frontend, sans cette synchro la
+  // citation apparaît dans le texte mais pas dans la section
+  // Bibliographie publique.
+  useEffect(() => {
+    if (inlineBiblioIds.length === 0) return;
+    setPost((p) => {
+      const cur = (p.bibliography ?? []) as Array<BibEntry | number | string>;
+      const curIds = new Set(cur.map((b) => String(typeof b === 'object' ? b.id : b)));
+      const toAdd: Array<BibEntry | number | string> = [];
+      for (const id of inlineBiblioIds) {
+        if (!curIds.has(String(id))) {
+          const entry = biblioOptions.find((b) => b.id === id);
+          toAdd.push(entry ?? id);
+        }
+      }
+      if (toAdd.length === 0) return p;
+      return { ...p, bibliography: [...cur, ...toAdd] };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inlineBiblioIds, biblioOptions]);
+
   return (
     <div className="carnet-postedit">
       <CarnetTopbar

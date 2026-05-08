@@ -139,17 +139,21 @@ function renderBlock(node: LexicalNode, ctx: RenderContext): string {
     case 'biblio_inline': {
       const entry = fields.entry;
       const prefix = fields.prefix ? escapeHtml(fields.prefix) + ' ' : '';
-      const suffix = fields.suffix ? escapeHtml(fields.suffix) : '';
+      // Page(s) citée(s) dans ce passage — distinct de la pagination de
+      // l'ouvrage en biblio. Préfixé « , p. » devant la valeur saisie.
+      const pagesRaw = typeof fields.pages === 'string' ? fields.pages.trim() : '';
+      const pagesPart = pagesRaw ? `, p.&nbsp;${escapeHtml(pagesRaw)}` : '';
+      const suffix = fields.suffix ? `, ${escapeHtml(fields.suffix)}` : '';
       if (!entry || typeof entry !== 'object' || !entry.slug) {
         // Référence non populated — fallback minimal.
         return `<span class="biblio-inline-empty">(réf.)</span>`;
       }
-      // Format Chicago author-date court : « (Butler 2017) ». On utilise
-      // `authorLabel` calculé serveur-side (« Butler », « Butler & Spivak »,
-      // « Butler et al. »).
+      // Format Chicago author-date court : « (Butler 2017, p. 47) ». On
+      // utilise `authorLabel` calculé serveur-side (« Butler », « Butler
+      // & Spivak », « Butler et al. »).
       const shortAuthors = (entry.authorLabel ?? '').trim();
       const yearPart = entry.year ? `, ${entry.year}` : '';
-      const inner = `${prefix}${escapeHtml(shortAuthors || '—')}${yearPart}${suffix}`;
+      const inner = `${prefix}${escapeHtml(shortAuthors || '—')}${yearPart}${pagesPart}${suffix}`;
       return `<a class="biblio-inline" href="#bib-${escapeHtml(entry.slug)}">(${inner})</a>`;
     }
 

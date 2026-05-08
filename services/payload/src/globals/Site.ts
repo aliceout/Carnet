@@ -33,28 +33,17 @@ export const Site: GlobalConfig = {
     {
       name: 'identity',
       type: 'group',
-      label: "Identité de l'auteur·ice",
+      label: 'Identité du carnet',
       fields: [
         {
           name: 'authorName',
           type: 'text',
           required: false,
-          label: 'Signature du Carnet',
+          label: 'Nom complet',
           defaultValue: '',
           admin: {
             description:
-              "Affichée en signature dans la baseline du footer et la description meta. Peut être un nom (« Marie Dupont »), un labo (« LATTS »), un collectif, etc.",
-          },
-        },
-        {
-          name: 'authorCitation',
-          type: 'text',
-          required: false,
-          label: 'Format citation par défaut',
-          defaultValue: '',
-          admin: {
-            description:
-              'Format Chicago author-date « Nom, P. » utilisé dans le bloc « Pour citer » des billets qui n’ont pas d’auteur·ices renseigné·es (cas legacy). Pour les nouveaux billets, la citation est dérivée automatiquement des auteur·ices déclaré·es dans la barre latérale.',
+              'Nom du laboratoire de recherche, de la personne, du collectif… selon l\'utilisation du carnet. Affiché en signature dans la baseline du footer et la description meta.',
           },
         },
       ],

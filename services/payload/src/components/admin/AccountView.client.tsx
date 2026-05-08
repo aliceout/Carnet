@@ -29,6 +29,7 @@ type Me = {
   id: number | string;
   email: string;
   displayName?: string | null;
+  citationFormat?: string | null;
   role: UserRole;
   status: UserStatus;
   lastLoginAt?: string | null;
@@ -62,7 +63,8 @@ function isoDateTime(d?: string | null): string {
 export default function AccountViewClient(): React.ReactElement {
   const [me, setMe] = useState<Me | null>(null);
   const [displayName, setDisplayName] = useState('');
-  const [initialDisplayName, setInitialDisplayName] = useState('');
+  const [citationFormat, setCitationFormat] = useState('');
+  const [initialJson, setInitialJson] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,8 +82,10 @@ export default function AccountViewClient(): React.ReactElement {
         const u = (res as { user?: Me }).user ?? (res as Me);
         setMe(u);
         const name = u.displayName ?? '';
+        const cf = u.citationFormat ?? '';
         setDisplayName(name);
-        setInitialDisplayName(name);
+        setCitationFormat(cf);
+        setInitialJson(JSON.stringify({ displayName: name, citationFormat: cf }));
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : 'Erreur inconnue');
@@ -89,7 +93,7 @@ export default function AccountViewClient(): React.ReactElement {
       .finally(() => setLoading(false));
   }, []);
 
-  const dirty = displayName !== initialDisplayName;
+  const dirty = JSON.stringify({ displayName, citationFormat }) !== initialJson;
 
   async function save() {
     if (!me) return;
@@ -100,13 +104,13 @@ export default function AccountViewClient(): React.ReactElement {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ displayName }),
+        body: JSON.stringify({ displayName, citationFormat }),
       });
       if (!res.ok) {
         const body = await res.text();
         throw new Error(`HTTP ${res.status} — ${body.slice(0, 200)}`);
       }
-      setInitialDisplayName(displayName);
+      setInitialJson(JSON.stringify({ displayName, citationFormat }));
       setSavedAt(Date.now());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
@@ -165,6 +169,21 @@ export default function AccountViewClient(): React.ReactElement {
               <span className="hint">Affiché dans la nav et les en-têtes admin.</span>
             </label>
 
+            <label className="carnet-editview__field">
+              <span className="lbl">Format citation (Chicago)</span>
+              <input
+                type="text"
+                value={citationFormat}
+                onChange={(e) => setCitationFormat(e.target.value)}
+                placeholder="Ex : Dupont, M."
+              />
+              <span className="hint">
+                Format « Nom, P. » utilisé pour vous dans le bloc « Pour citer
+                » des billets. Si vide, la signature est dérivée
+                automatiquement du nom affiché.
+              </span>
+            </label>
+
             <label className="carnet-editview__field carnet-editview__field--readonly">
               <span className="lbl">Email</span>
               <input type="email" value={me.email} readOnly disabled />
@@ -212,32 +231,38 @@ export default function AccountViewClient(): React.ReactElement {
 }
 
 // ─── Section Zotero (sous-composant) ──────────────────────────────────
-// Saisie de la clé API + ID de bibliothèque + type, plus actions :
-// tester la connexion, sauvegarder, synchroniser maintenant, déconnecter.
+// Saisie de la clé API + ID utilisateur Zotero + actions : tester la
+// connexion, sauvegarder, synchroniser maintenant, déconnecter.
 //
-// La clé API est masquée à la lecture (hook afterRead côté serveur la
-// remplace par `••••••••XXXX`). Si l'utilisatrice tape dans le champ
-// Clé API, la nouvelle valeur écrase la précédente. Si elle laisse vide,
-// la clé persistée est conservée.
+// La clé API n'est jamais exposée par l'API : `apiKey.access.read`
+// retourne false côté collection. L'UI obtient un état sanitisé via
+// GET /me/zotero-status (configured + last4 pour l'indice visuel).
+// Si l'utilisatrice tape dans le champ Clé API, la nouvelle valeur
+// écrase la précédente ; si elle laisse vide, la clé persistée est
+// conservée.
 
 const API_ZOTERO = '/cms/api/users/me/zotero';
+const API_ZOTERO_STATUS = '/cms/api/users/me/zotero-status';
 
-type ZoteroState = {
-  apiKey?: string | null; // masqué côté serveur
-  libraryId?: string | null;
-  libraryType?: 'user' | 'group' | null;
-  lastSyncAt?: string | null;
-  lastSyncVersion?: number | null;
-  lastSyncAdded?: number | null;
-  lastSyncUpdated?: number | null;
-  lastSyncError?: string | null;
+type ZoteroStatus = {
+  configured: boolean;
+  last4: string | null;
+  libraryId: string;
+  libraryType: 'user' | 'group';
+  lastSyncAt: string | null;
+  lastSyncVersion: number | null;
+  lastSyncAdded: number | null;
+  lastSyncUpdated: number | null;
+  lastSyncError: string | null;
 };
 
 type SyncResult = {
   ok: boolean;
   added: number;
   updated: number;
-  errors: Array<{ key: string; reason: string }>;
+  deleted: number;
+  keptCited: Array<{ key: string; title: string; postNumeros: number[] }>;
+  errors: Array<{ key: string; title: string | null; reason: string }>;
   newVersion: number;
 };
 
@@ -248,22 +273,39 @@ type TestResult = {
 };
 
 function ZoteroSection(): React.ReactElement {
-  const [state, setState] = useState<ZoteroState>({});
+  const [status, setStatus] = useState<ZoteroStatus | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [libraryIdInput, setLibraryIdInput] = useState('');
   const [busy, setBusy] = useState<null | 'save' | 'test' | 'sync' | 'disconnect'>(null);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  // Modale de confirmation de déconnexion (remplace window.confirm).
+  const [disconnectOpen, setDisconnectOpen] = useState(false);
+  // Liste détaillée des items ignorés au dernier sync — affichée en
+  // dessous du message « X items ignorés » pour permettre à l'autrice
+  // d'identifier les refs à corriger dans Zotero. `title` est extrait
+  // du doc Zotero quand il existe ; sinon on n'a que la clé.
+  const [syncErrors, setSyncErrors] = useState<
+    Array<{ key: string; title: string | null; reason: string }>
+  >([]);
+  // Refs supprimées côté Zotero mais conservées au Carnet parce qu'elles
+  // sont encore citées dans des billets — affichées avec le numéro des
+  // billets concernés pour permettre à l'autrice de retirer la citation
+  // ou de garder la ref.
+  const [syncKeptCited, setSyncKeptCited] = useState<
+    Array<{ key: string; title: string; postNumeros: number[] }>
+  >([]);
 
   const refresh = React.useCallback(() => {
     setError(null);
-    fetch('/cms/api/users/me?depth=0', { credentials: 'include' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((res: { user?: { zotero?: ZoteroState } } | null) => {
-        const z = res?.user?.zotero ?? {};
-        setState(z);
-        setLibraryIdInput(z.libraryId ?? '');
+    fetch(API_ZOTERO_STATUS, { credentials: 'include' })
+      .then((r) => (r.ok ? (r.json() as Promise<ZoteroStatus>) : null))
+      .then((res) => {
+        if (res) {
+          setStatus(res);
+          setLibraryIdInput(res.libraryId ?? '');
+        }
         setLoaded(true);
       })
       .catch((err) => {
@@ -276,10 +318,10 @@ function ZoteroSection(): React.ReactElement {
     refresh();
   }, [refresh]);
 
-  const hasKey = !!(state.apiKey && state.apiKey.length > 0);
+  const hasKey = status?.configured === true;
   const dirty =
     apiKeyInput.length > 0 ||
-    libraryIdInput !== (state.libraryId ?? '');
+    libraryIdInput !== (status?.libraryId ?? '');
 
   async function save() {
     setBusy('save');
@@ -345,6 +387,8 @@ function ZoteroSection(): React.ReactElement {
     setBusy('sync');
     setError(null);
     setInfo(null);
+    setSyncErrors([]);
+    setSyncKeptCited([]);
     try {
       const res = await fetch(`${API_ZOTERO}-sync`, {
         method: 'POST',
@@ -358,12 +402,18 @@ function ZoteroSection(): React.ReactElement {
       const parts: string[] = [];
       if (data.added > 0) parts.push(`${data.added} ajoutée${data.added > 1 ? 's' : ''}`);
       if (data.updated > 0) parts.push(`${data.updated} mise${data.updated > 1 ? 's' : ''} à jour`);
+      if (data.deleted > 0) parts.push(`${data.deleted} supprimée${data.deleted > 1 ? 's' : ''}`);
       if (parts.length === 0) parts.push('rien de neuf depuis Zotero');
       let msg = `Sync terminé — ${parts.join(', ')}.`;
+      if (data.keptCited.length > 0) {
+        msg += ` ${data.keptCited.length} ref${data.keptCited.length > 1 ? 's' : ''} supprimée${data.keptCited.length > 1 ? 's' : ''} côté Zotero mais conservée${data.keptCited.length > 1 ? 's' : ''} (encore citée${data.keptCited.length > 1 ? 's' : ''}) — voir le détail ci-dessous.`;
+      }
       if (data.errors.length > 0) {
-        msg += ` ${data.errors.length} item${data.errors.length > 1 ? 's' : ''} ignoré${data.errors.length > 1 ? 's' : ''} (titre, année ou auteur manquant côté Zotero).`;
+        msg += ` ${data.errors.length} item${data.errors.length > 1 ? 's' : ''} ignoré${data.errors.length > 1 ? 's' : ''} — voir le détail ci-dessous.`;
       }
       setInfo(msg);
+      setSyncErrors(data.errors);
+      setSyncKeptCited(data.keptCited);
       refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue.');
@@ -372,9 +422,7 @@ function ZoteroSection(): React.ReactElement {
     }
   }
 
-  async function disconnect() {
-    if (typeof window === 'undefined') return;
-    if (!window.confirm('Déconnecter Zotero ? La clé API sera effacée. Les références déjà importées dans le Carnet ne seront pas supprimées.')) return;
+  async function confirmDisconnect() {
     setBusy('disconnect');
     setError(null);
     setInfo(null);
@@ -389,6 +437,7 @@ function ZoteroSection(): React.ReactElement {
       }
       setApiKeyInput('');
       setInfo('Zotero déconnecté.');
+      setDisconnectOpen(false);
       refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue.');
@@ -422,7 +471,13 @@ function ZoteroSection(): React.ReactElement {
           <input
             type="password"
             value={apiKeyInput}
-            placeholder={hasKey ? (state.apiKey ?? '••••••••') : 'Collez votre clé Zotero'}
+            placeholder={
+              hasKey
+                ? status?.last4
+                  ? `••••••••${status.last4}`
+                  : '••••••••'
+                : 'Collez votre clé Zotero'
+            }
             onChange={(e) => setApiKeyInput(e.target.value)}
             autoComplete="off"
           />
@@ -494,7 +549,7 @@ function ZoteroSection(): React.ReactElement {
           <button
             type="button"
             className="carnet-btn carnet-btn--ghost"
-            onClick={disconnect}
+            onClick={() => setDisconnectOpen(true)}
             disabled={busy !== null}
           >
             {busy === 'disconnect' ? 'Déconnexion…' : 'Déconnecter'}
@@ -505,24 +560,160 @@ function ZoteroSection(): React.ReactElement {
       {error && <div className="carnet-zotero__error">Erreur : {error}</div>}
       {info && <div className="carnet-zotero__info">{info}</div>}
 
-      {hasKey && state.lastSyncAt && (
+      {syncKeptCited.length > 0 && (
+        <details className="carnet-zotero__skipped">
+          <summary>
+            {syncKeptCited.length} ref{syncKeptCited.length > 1 ? 's' : ''}{' '}
+            supprimée{syncKeptCited.length > 1 ? 's' : ''} côté Zotero mais
+            conservée{syncKeptCited.length > 1 ? 's' : ''} au Carnet — voir le détail
+          </summary>
+          <p className="hint">
+            Ces références ont été supprimées dans Zotero mais sont encore
+            citées dans des billets — on les garde pour ne pas casser les
+            citations existantes. Pour vraiment vous en débarrasser : retirez
+            la citation du billet, puis supprimez la ref depuis la liste
+            Bibliographie (× en bout de ligne).
+          </p>
+          <ul>
+            {syncKeptCited.map((e) => (
+              <li key={e.key}>
+                <span className="title">{e.title}</span>{' '}
+                <span className="mono key">{e.key}</span>
+                <br />
+                <span className="reason">
+                  → encore citée dans{' '}
+                  {e.postNumeros.length === 0 ? (
+                    'au moins un billet'
+                  ) : (
+                    e.postNumeros
+                      .map((n) => `n° ${String(n).padStart(3, '0')}`)
+                      .join(', ')
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
+      {syncErrors.length > 0 && (
+        <details className="carnet-zotero__skipped">
+          <summary>
+            {syncErrors.length} item{syncErrors.length > 1 ? 's' : ''} ignoré
+            {syncErrors.length > 1 ? 's' : ''} — voir le détail
+          </summary>
+          <p className="hint">
+            Corrigez ces refs dans Zotero (elles ne peuvent pas former une
+            citation Chicago telles quelles), puis relancez un sync.
+          </p>
+          <ul>
+            {syncErrors.map((e) => {
+              const url =
+                status?.libraryType === 'group' && status.libraryId
+                  ? `https://www.zotero.org/groups/${status.libraryId}/items/${e.key}`
+                  : null;
+              return (
+                <li key={e.key}>
+                  {e.title ? (
+                    <span className="title">{e.title}</span>
+                  ) : (
+                    <span className="title muted">(sans titre)</span>
+                  )}{' '}
+                  {url ? (
+                    <Link
+                      href={url}
+                      target="_blank"
+                      rel="noopener"
+                      className="mono key"
+                    >
+                      {e.key}
+                    </Link>
+                  ) : (
+                    <span className="mono key">{e.key}</span>
+                  )}
+                  <br />
+                  <span className="reason">→ {e.reason}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </details>
+      )}
+
+      {hasKey && status?.lastSyncAt && (
         <div className="carnet-zotero__last">
           <span className="lbl">Dernier sync :</span>{' '}
-          <span className="mono">{isoDateTime(state.lastSyncAt)}</span>
-          {(state.lastSyncAdded || state.lastSyncUpdated) && (
+          <span className="mono">{isoDateTime(status.lastSyncAt)}</span>
+          {(status.lastSyncAdded || status.lastSyncUpdated) && (
             <>
               {' — '}
-              {state.lastSyncAdded ? `${state.lastSyncAdded} ajoutée${state.lastSyncAdded > 1 ? 's' : ''}` : null}
-              {state.lastSyncAdded && state.lastSyncUpdated ? ', ' : null}
-              {state.lastSyncUpdated ? `${state.lastSyncUpdated} mise${state.lastSyncUpdated > 1 ? 's' : ''} à jour` : null}
+              {status.lastSyncAdded ? `${status.lastSyncAdded} ajoutée${status.lastSyncAdded > 1 ? 's' : ''}` : null}
+              {status.lastSyncAdded && status.lastSyncUpdated ? ', ' : null}
+              {status.lastSyncUpdated ? `${status.lastSyncUpdated} mise${status.lastSyncUpdated > 1 ? 's' : ''} à jour` : null}
             </>
           )}
-          {state.lastSyncVersion ? (
+          {status.lastSyncVersion ? (
             <>
               {' '}
-              · version <span className="mono">{state.lastSyncVersion}</span>
+              · version <span className="mono">{status.lastSyncVersion}</span>
             </>
           ) : null}
+        </div>
+      )}
+
+      {disconnectOpen && (
+        <div
+          className="carnet-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && busy !== 'disconnect') {
+              setDisconnectOpen(false);
+            }
+          }}
+        >
+          <div className="carnet-modal" role="dialog" aria-modal="true">
+            <header className="carnet-modal__header">
+              <h2>Déconnecter Zotero&nbsp;?</h2>
+              <button
+                type="button"
+                className="carnet-modal__close"
+                onClick={() => {
+                  if (busy === 'disconnect') return;
+                  setDisconnectOpen(false);
+                }}
+                aria-label="Fermer"
+              >
+                ×
+              </button>
+            </header>
+
+            <div className="carnet-modal__body">
+              <p>
+                La clé API sera effacée du Carnet. Les références déjà
+                importées dans la bibliographie ne seront pas supprimées,
+                mais elles ne pourront plus être mises à jour automatiquement
+                tant que vous n'aurez pas reconnecté Zotero.
+              </p>
+            </div>
+
+            <footer className="carnet-modal__footer">
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--ghost"
+                onClick={() => setDisconnectOpen(false)}
+                disabled={busy === 'disconnect'}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--danger"
+                onClick={() => void confirmDisconnect()}
+                disabled={busy === 'disconnect'}
+              >
+                {busy === 'disconnect' ? 'Déconnexion…' : 'Déconnecter'}
+              </button>
+            </footer>
+          </div>
         </div>
       )}
     </div>

@@ -2,7 +2,7 @@ import type { CollectionConfig, FieldHook } from 'payload';
 
 import { canMutateRole, isAdminOrRoot, isSelfOrAdmin, userRole } from '../access/roles';
 import { AUTH_CONFIG } from '../auth/config';
-import { encrypt, isEncrypted, maskSecret } from '../lib/crypto';
+import { encrypt, isEncrypted } from '../lib/crypto';
 
 // Collection users — étendue pour supporter :
 //  - rôles (root unique / admin / editor)
@@ -132,6 +132,21 @@ export const Users: CollectionConfig = {
       type: 'text',
       label: 'Nom affiché',
       required: false,
+    },
+    {
+      // Format Chicago author-date personnel — affiché dans le bloc
+      // « Pour citer » des billets que ce user co-signe. Si vide, la
+      // signature est dérivée du displayName via une heuristique
+      // (cf src/lib/site.ts → formatPostCitationChicago). Utile pour
+      // les noms à particules ou les cas où l'heuristique se trompe.
+      name: 'citationFormat',
+      type: 'text',
+      label: 'Format citation (Chicago)',
+      required: false,
+      admin: {
+        description:
+          'Format Chicago author-date « Nom, P. » utilisé pour vous dans le bloc « Pour citer » des billets que vous co-signez. Si vide, la signature est dérivée automatiquement du nom affiché.',
+      },
     },
     {
       name: 'role',
@@ -276,14 +291,14 @@ export const Users: CollectionConfig = {
 
     // ─── Intégration Zotero (par-user) ───────────────────────────────
     // Chaque user peut connecter sa bibliothèque Zotero personnelle.
-    // La clé API est chiffrée applicativement (PAYLOAD_SECRET) et
-    // n'est jamais renvoyée en clair par l'API REST — afterRead la
-    // remplace par un placeholder masqué (`••••••••XXXX`) pour donner
-    // un indice de présence sans exposer la valeur.
+    // La clé API est chiffrée applicativement (PAYLOAD_SECRET) et n'est
+    // jamais exposée par l'API REST : `apiKey.access.read` retourne
+    // false, donc le champ est strictement omis des réponses.
     //
-    // Le déchiffrement effectif n'a lieu qu'au sein du endpoint sync
-    // (cf /cms/api/users/me/zotero-sync), qui charge le doc avec
-    // overrideAccess et appelle decrypt() explicitement.
+    // L'UI obtient un état sanitisé (configured + last4 + libraryId +
+    // lastSync*) via GET /cms/api/users/me/zotero-status. Les endpoints
+    // serveur qui ont besoin de la valeur claire (test, sync) lisent
+    // avec `overrideAccess: true` et appellent decrypt() explicitement.
     {
       name: 'zotero',
       type: 'group',
@@ -302,53 +317,24 @@ export const Users: CollectionConfig = {
           name: 'apiKey',
           type: 'text',
           label: 'Clé API Zotero',
+          // Lecture interdite à tous les clients : la clé chiffrée n'est
+          // jamais exposée par l'API REST. Les endpoints serveur qui en
+          // ont besoin (test, sync) lisent avec `overrideAccess: true`,
+          // ce qui passe outre cette restriction. L'UI obtient un indice
+          // de présence (configured + last4) via GET /me/zotero-status.
           access: {
-            read: isSelfOrAdmin,
+            read: () => false,
           },
           hooks: {
             // Idempotent : si la valeur arrive déjà sous forme `zenc:…`
             // on ne re-chiffre pas. Vide ou null laisse passer (efface
             // la clé). Sinon on chiffre avant d'écrire en DB.
-            //
-            // Cas piège : Payload lit le doc avant un update partiel
-            // pour merger les fields non fournis. Cette lecture passe
-            // par afterRead → la valeur masquée `••••••••XXXX` est
-            // re-soumise au beforeChange → on chiffrerait des bullets.
-            // Si on détecte une valeur masquée, on conserve le ciphertext
-            // d'origine (originalDoc) au lieu de la corrompre.
             beforeChange: [
-              ({ value, originalDoc }) => {
+              ({ value }) => {
                 if (value === null || value === undefined || value === '') return value;
                 if (typeof value !== 'string') return value;
                 if (isEncrypted(value)) return value;
-                if (value.startsWith('•')) {
-                  const orig = (originalDoc as { zotero?: { apiKey?: string } } | undefined)
-                    ?.zotero?.apiKey;
-                  if (typeof orig === 'string' && isEncrypted(orig)) return orig;
-                  return value;
-                }
                 return encrypt(value);
-              },
-            ],
-            // Masque la clé dans toutes les réponses API : on ne renvoie
-            // jamais la valeur déchiffrée. Le format `••••••••XXXX` (4
-            // derniers caractères de la clé en clair) sert juste d'indice
-            // de présence.
-            //
-            // Exception : les endpoints serveur qui ont besoin de la
-            // valeur chiffrée brute (test, sync) appellent l'opération
-            // avec `context: { zoteroRawRead: true }`. Payload v3 passe
-            // ce context directement comme argument du field hook (pas
-            // via req.context) — on lit les deux pour être robuste.
-            afterRead: [
-              ({ value, req, context }) => {
-                if (value === null || value === undefined || value === '') return '';
-                const fromHook = (context as { zoteroRawRead?: boolean } | undefined)
-                  ?.zoteroRawRead === true;
-                const fromReq = (req?.context as { zoteroRawRead?: boolean } | undefined)
-                  ?.zoteroRawRead === true;
-                if (fromHook || fromReq) return value;
-                return maskSecret(value);
               },
             ],
           },

@@ -150,6 +150,10 @@ export default function PageEditViewClient({
   // ajoutées via les boutons sont automatiquement dépliées.
   const [collapsedIdx, setCollapsedIdx] = useState<Set<number>>(new Set());
 
+  // Modale de confirmation pour supprimer une section. Null = fermée,
+  // sinon l'index de la section ciblée.
+  const [deleteSectionIdx, setDeleteSectionIdx] = useState<number | null>(null);
+
   useEffect(() => {
     if (!docId) {
       setLoading(false);
@@ -538,16 +542,7 @@ export default function PageEditViewClient({
                         <button
                           type="button"
                           className="page-section__del"
-                          onClick={() => {
-                            if (typeof window === 'undefined') return;
-                            if (
-                              window.confirm(
-                                'Supprimer cette section de la page ? L\'opération est annulée tant que vous ne sauvegardez pas.',
-                              )
-                            ) {
-                              removeSection(i);
-                            }
-                          }}
+                          onClick={() => setDeleteSectionIdx(i)}
                           aria-label="Supprimer cette section"
                           title="Supprimer"
                         >
@@ -631,6 +626,65 @@ export default function PageEditViewClient({
             </section>
           )}
         </form>
+      )}
+
+      {deleteSectionIdx != null && (
+        <div
+          className="carnet-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDeleteSectionIdx(null);
+          }}
+        >
+          <div className="carnet-modal" role="dialog" aria-modal="true">
+            <header className="carnet-modal__header">
+              <h2>Supprimer cette section&nbsp;?</h2>
+              <button
+                type="button"
+                className="carnet-modal__close"
+                onClick={() => setDeleteSectionIdx(null)}
+                aria-label="Fermer"
+              >
+                ×
+              </button>
+            </header>
+
+            <div className="carnet-modal__body">
+              {(() => {
+                const target = (data.sections ?? [])[deleteSectionIdx];
+                const kind = target ? BLOCK_LABEL[target.blockType] ?? target.blockType : '';
+                return (
+                  <p>
+                    La section <strong>{String(deleteSectionIdx + 1).padStart(2, '0')}</strong>
+                    {kind ? ` (${kind})` : ''} sera retirée de la page. Le
+                    retrait n'est définitif qu'après la sauvegarde de la
+                    page — vous pouvez l'annuler en rechargeant tant que
+                    vous n'avez pas cliqué sur Sauvegarder.
+                  </p>
+                );
+              })()}
+            </div>
+
+            <footer className="carnet-modal__footer">
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--ghost"
+                onClick={() => setDeleteSectionIdx(null)}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--danger"
+                onClick={() => {
+                  removeSection(deleteSectionIdx);
+                  setDeleteSectionIdx(null);
+                }}
+              >
+                Retirer
+              </button>
+            </footer>
+          </div>
+        </div>
       )}
 
       {deleteOpen && (

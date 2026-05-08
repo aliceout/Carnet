@@ -125,7 +125,10 @@ export default function BibliographyEditViewClient({
   const [initial, setInitial] = useState<string>(JSON.stringify(EMPTY));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  // Modale de confirmation de suppression (remplace window.confirm).
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [usedIn, setUsedIn] = useState<UsedInPost[]>([]);
@@ -261,25 +264,25 @@ export default function BibliographyEditViewClient({
     }
   }
 
-  async function remove() {
+  async function confirmDelete() {
     if (!data.id) return;
-    if (typeof window === 'undefined') return;
-    const ok = window.confirm(
-      `Supprimer définitivement la référence « ${data.slug || data.title || data.id} » ?`,
-    );
-    if (!ok) return;
-    setDeleting(true);
-    setError(null);
+    setDeleteSubmitting(true);
+    setDeleteError(null);
     try {
       const res = await fetch(`${API_BIBLIO}/${encodeURIComponent(String(data.id))}`, {
         method: 'DELETE',
         credentials: 'include',
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      window.location.href = '/cms/admin/collections/bibliography';
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(`HTTP ${res.status} — ${t.slice(0, 200)}`);
+      }
+      if (typeof window !== 'undefined') {
+        window.location.href = '/cms/admin/collections/bibliography';
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur inconnue');
-      setDeleting(false);
+      setDeleteError(err instanceof Error ? err.message : 'Erreur inconnue');
+      setDeleteSubmitting(false);
     }
   }
 
@@ -330,11 +333,14 @@ export default function BibliographyEditViewClient({
           <button
             type="button"
             className="carnet-btn carnet-btn--ghost"
-            onClick={() => void remove()}
-            disabled={deleting || saving}
+            onClick={() => {
+              setDeleteOpen(true);
+              setDeleteError(null);
+            }}
+            disabled={saving}
             suppressHydrationWarning
           >
-            {deleting ? 'Suppression…' : 'Supprimer'}
+            Supprimer
           </button>
         )}
         {!isZoteroRef && (
@@ -364,17 +370,7 @@ export default function BibliographyEditViewClient({
           }}
         >
           <div className="carnet-editview__hero">
-            <h1 className="carnet-h1">
-              Référence bibliographique
-              {isZoteroRef && (
-                <span
-                  className="carnet-zotero-badge"
-                  title="Importée depuis Zotero — éditable uniquement dans Zotero."
-                >
-                  Z
-                </span>
-              )}
-            </h1>
+            <h1 className="carnet-h1">Référence bibliographique</h1>
             {data.slug && (
               <p className="carnet-editview__hero-key">
                 clé : <span className="mono">{data.slug}</span>
@@ -638,6 +634,70 @@ export default function BibliographyEditViewClient({
             </div>
           )}
         </form>
+      )}
+
+      {deleteOpen && (
+        <div
+          className="carnet-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !deleteSubmitting) {
+              setDeleteOpen(false);
+              setDeleteError(null);
+            }
+          }}
+        >
+          <div className="carnet-modal" role="dialog" aria-modal="true">
+            <header className="carnet-modal__header">
+              <h2>Supprimer cette référence&nbsp;?</h2>
+              <button
+                type="button"
+                className="carnet-modal__close"
+                onClick={() => {
+                  if (deleteSubmitting) return;
+                  setDeleteOpen(false);
+                  setDeleteError(null);
+                }}
+                aria-label="Fermer"
+              >
+                ×
+              </button>
+            </header>
+
+            {deleteError && (
+              <div className="carnet-modal__error">Erreur&nbsp;: {deleteError}</div>
+            )}
+
+            <div className="carnet-modal__body">
+              <p>
+                «&nbsp;{data.slug || data.title || data.id}&nbsp;» sera
+                définitivement supprimée. Les billets qui la citent perdront
+                la référence à la sauvegarde de cette modification.
+              </p>
+            </div>
+
+            <footer className="carnet-modal__footer">
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--ghost"
+                onClick={() => {
+                  setDeleteOpen(false);
+                  setDeleteError(null);
+                }}
+                disabled={deleteSubmitting}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--danger"
+                onClick={() => void confirmDelete()}
+                disabled={deleteSubmitting}
+              >
+                {deleteSubmitting ? 'Suppression…' : 'Supprimer'}
+              </button>
+            </footer>
+          </div>
+        </div>
       )}
     </div>
   );

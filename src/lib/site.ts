@@ -109,8 +109,13 @@ export function formatHeroLede(s: string): string {
  */
 export type PostAuthorEntry = {
   kind?: 'user' | 'external';
-  user?: { displayName?: string; email?: string } | number | string | null;
+  user?:
+    | { displayName?: string; email?: string; citationFormat?: string | null }
+    | number
+    | string
+    | null;
   name?: string;
+  citationFormat?: string | null;
   affiliation?: string;
 };
 
@@ -131,9 +136,9 @@ function authorDisplayName(a: PostAuthorEntry): string {
 
 /**
  * Byline lisible pour le bandeau sous le titre :
- *   1 auteur·ice  → « Alice Aussel Delamaide »
- *   2            → « Alice Aussel Delamaide et Aïcha Touré »
- *   3+           → « Alice Aussel Delamaide, Aïcha Touré et Marie Dupont »
+ *   1 auteur·ice  → « Marie Lacoste »
+ *   2            → « Marie Lacoste et Aïcha Touré »
+ *   3+           → « Marie Lacoste, Aïcha Touré et Marie Dupont »
  *   externe avec rattachement → « Aïcha Touré (LATTS) »
  *
  * Filtre les entrées vides (user non sélectionné, name vide).
@@ -155,14 +160,30 @@ export function formatPostByline(authors: PostAuthorEntry[] | null | undefined):
 }
 
 /**
+ * Renvoie le format Chicago surchargé pour une entrée auteur·ice si
+ * elle en a un — soit posé sur l'entrée elle-même (kind=external) soit
+ * sur le user populé (kind=user). Sinon undefined.
+ */
+function authorCitationOverride(a: PostAuthorEntry): string | undefined {
+  if ((a.kind ?? 'user') === 'user') {
+    if (a.user && typeof a.user === 'object') {
+      const cf = a.user.citationFormat?.trim();
+      return cf || undefined;
+    }
+    return undefined;
+  }
+  const cf = a.citationFormat?.trim();
+  return cf || undefined;
+}
+
+/**
  * Format Chicago author-date pour le bloc « Pour citer cet article ».
- * On essaie de reconstruire « Nom, P. » à partir du displayName ou du
- * name (fonctionne pour les noms simples « Prénom Nom » ; pour les
- * cas complexes — particules, pseudonymes — l'autrice peut surcharger
- * via le champ Site.identity.authorCitation pour le primary).
+ * Pour chaque auteur·ice : on prend `citationFormat` s'il est défini sur
+ * son profil (cas particules, pseudonymes…), sinon on dérive « Nom, P. »
+ * depuis le displayName (heuristique : dernier mot = nom).
  *
- *   « Aussel Delamaide, A. & Touré, A. »  (2 auteur·ices)
- *   « Aussel Delamaide, A., Touré, A. & Dupont, M. »  (3+)
+ *   « Rodriguez, A. & Touré, A. »  (2 auteur·ices)
+ *   « Rodriguez, A., Touré, A. & Dupont, M. »  (3+)
  */
 export function formatPostCitationChicago(
   authors: PostAuthorEntry[] | null | undefined,
@@ -170,6 +191,8 @@ export function formatPostCitationChicago(
   if (!authors || authors.length === 0) return '';
   const parts = authors
     .map((a) => {
+      const override = authorCitationOverride(a);
+      if (override) return override;
       const full = authorDisplayName(a);
       if (!full) return '';
       // Heuristique : dernier mot = nom, mots précédents = prénoms initialés.

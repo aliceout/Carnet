@@ -464,7 +464,6 @@ const ABOUT_PAGE = {
 const SITE_GLOBAL = {
   identity: {
     authorName: 'Michel Rose',
-    authorCitation: 'Rose, Michel',
   },
   baseline:
     'Carnet de recherche de Michel Rose. Genre, géopolitique, droits LGBTQI+, humanitaire, migrations. Auto-hébergé. Sans pisteur.',

@@ -46,6 +46,12 @@ export default function TagListViewClient(): React.ReactElement {
   const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
   const [reloadKey, setReloadKey] = useState(0);
 
+  // Modale de confirmation de suppression d'un tag (remplace le
+  // window.confirm natif). target = le tag à supprimer ; null = fermée.
+  const [deleteTarget, setDeleteTarget] = useState<Tag | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -135,17 +141,13 @@ export default function TagListViewClient(): React.ReactElement {
   }
 
   // DELETE : supprime un tag (Payload nettoie automatiquement les
-  // relations qui pointent dessus).
-  async function deleteTag(tag: Tag) {
-    if (typeof window === 'undefined') return;
-    const usages = counts.get(String(tag.id)) ?? 0;
-    const msg =
-      usages > 0
-        ? `Supprimer le tag « ${tag.name} » ? Il est utilisé dans ${usages} billet${usages > 1 ? 's' : ''} ; la relation y sera retirée automatiquement.`
-        : `Supprimer le tag « ${tag.name} » ?`;
-    if (!window.confirm(msg)) return;
-    setBusy(String(tag.id), true);
-    setError(null);
+  // relations qui pointent dessus). Effectif après confirmation
+  // dans la modale (cf deleteTarget plus haut).
+  async function confirmDeleteTag() {
+    const tag = deleteTarget;
+    if (!tag) return;
+    setDeleteSubmitting(true);
+    setDeleteError(null);
     try {
       const res = await fetch(`${API_TAGS}/${encodeURIComponent(String(tag.id))}`, {
         method: 'DELETE',
@@ -155,11 +157,12 @@ export default function TagListViewClient(): React.ReactElement {
         const t = await res.text();
         throw new Error(`HTTP ${res.status} — ${t.slice(0, 200)}`);
       }
+      setDeleteTarget(null);
       setReloadKey((k) => k + 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur inconnue');
+      setDeleteError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {
-      setBusy(String(tag.id), false);
+      setDeleteSubmitting(false);
     }
   }
 
@@ -208,7 +211,10 @@ export default function TagListViewClient(): React.ReactElement {
               count={counts.get(String(t.id)) ?? 0}
               busy={busyIds.has(String(t.id))}
               onRename={(name) => renameTag(t, name)}
-              onDelete={() => void deleteTag(t)}
+              onDelete={() => {
+                setDeleteTarget(t);
+                setDeleteError(null);
+              }}
             />
           ))
         )}
@@ -251,6 +257,77 @@ export default function TagListViewClient(): React.ReactElement {
           </div>
         )}
       </div>
+
+      {deleteTarget && (
+        <div
+          className="carnet-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !deleteSubmitting) {
+              setDeleteTarget(null);
+              setDeleteError(null);
+            }
+          }}
+        >
+          <div className="carnet-modal" role="dialog" aria-modal="true">
+            <header className="carnet-modal__header">
+              <h2>Supprimer ce tag&nbsp;?</h2>
+              <button
+                type="button"
+                className="carnet-modal__close"
+                onClick={() => {
+                  if (deleteSubmitting) return;
+                  setDeleteTarget(null);
+                  setDeleteError(null);
+                }}
+                aria-label="Fermer"
+              >
+                ×
+              </button>
+            </header>
+
+            {deleteError && (
+              <div className="carnet-modal__error">Erreur&nbsp;: {deleteError}</div>
+            )}
+
+            <div className="carnet-modal__body">
+              {(() => {
+                const usages = counts.get(String(deleteTarget.id)) ?? 0;
+                return (
+                  <p>
+                    «&nbsp;{deleteTarget.name}&nbsp;» sera définitivement
+                    supprimé.{' '}
+                    {usages > 0
+                      ? `Il est utilisé dans ${usages} billet${usages > 1 ? 's' : ''} ; la relation sera retirée automatiquement.`
+                      : 'Aucun billet ne le référence.'}
+                  </p>
+                );
+              })()}
+            </div>
+
+            <footer className="carnet-modal__footer">
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--ghost"
+                onClick={() => {
+                  setDeleteTarget(null);
+                  setDeleteError(null);
+                }}
+                disabled={deleteSubmitting}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--danger"
+                onClick={() => void confirmDeleteTag()}
+                disabled={deleteSubmitting}
+              >
+                {deleteSubmitting ? 'Suppression…' : 'Supprimer'}
+              </button>
+            </footer>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

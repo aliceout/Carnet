@@ -107,7 +107,6 @@ const readingLabel = post.readingTime
 // Site global — fournit l'identité (citation Chicago) et le mode
 // d'affichage des notes (classique en pied / sidenotes en marge).
 type SiteData = {
-  identity?: { authorCitation?: string };
   reading?: { notesMode?: 'classic' | 'sidenotes' };
 };
 let site: SiteData = {};
@@ -167,11 +166,11 @@ const postAuthors = (post.authors ?? []) as PostAuthorEntry[];
 const byline = formatPostByline(postAuthors);
 const postCitation = formatPostCitationChicago(postAuthors);
 
-// Si le billet n'a pas d'auteur·ices renseigné·es (cas legacy sur des
-// billets antérieurs à la migration), on retombe sur la signature
-// globale du Site (champ identity.authorCitation).
-const fallbackCitation = site.identity?.authorCitation?.trim() || 'Auteur·ice';
-const authorCitation = postCitation || fallbackCitation;
+// Si le billet n'a aucun·e auteur·ice renseigné·e (cas legacy ou
+// ratage), on tombe sur un placeholder neutre. Chaque user a son
+// propre `citationFormat` (cf Mon compte) qui surcharge l'heuristique
+// dans formatPostCitationChicago.
+const authorCitation = postCitation || 'Auteur·ice';
 
 // Citation bibliographique du billet (Chicago author-date façon Carnet)
 const articleUrl = new URL(Astro.url.pathname, Astro.site).toString();

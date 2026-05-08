@@ -20,7 +20,7 @@
 // Edition : chaque block rend un petit form inline (textareas + selects)
 // dans son propre DOM — pas de drawer Payload, pas de modal.
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { $getNodeByKey, DecoratorNode, ElementNode } from 'lexical';
 import type {
   EditorConfig,
@@ -42,6 +42,7 @@ export type FootnoteFields = { content: string };
 export type BiblioInlineFields = {
   entry: number | string | null;
   prefix?: string;
+  pages?: string;
   suffix?: string;
 };
 export type CitationBlocFields = { text: string; source?: string };
@@ -173,6 +174,7 @@ function BiblioInlineRenderer({
 }) {
   const [local, patch] = useNodeFields<BiblioInlineFields>(nodeKey, fields);
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const ref = useRef<HTMLSpanElement>(null);
   const biblioOptions = useBiblioOptions();
 
@@ -195,6 +197,31 @@ function BiblioInlineRenderer({
     ? `(${shortAuthors || '—'}${selected.year ? `, ${selected.year}` : ''})`
     : '(réf. à choisir)';
 
+  // Liste filtrée par la recherche : substring match insensible à la
+  // casse sur authorLabel, year, title. Cap à 30 résultats pour éviter
+  // un dropdown gigantesque. Tant que la requête est vide, on n'affiche
+  // rien — pas d'avalanche au clic d'ouverture du popover.
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return [];
+    return biblioOptions
+      .filter((b) => {
+        const hay = `${b.authorLabel ?? ''} ${b.year ?? ''} ${b.title ?? ''}`.toLowerCase();
+        return hay.includes(q);
+      })
+      .slice(0, 30);
+  }, [biblioOptions, search]);
+
+  function pickEntry(id: number | string) {
+    patch({ entry: id });
+    setSearch('');
+  }
+
+  function clearEntry() {
+    patch({ entry: null });
+    setSearch('');
+  }
+
   return (
     <span ref={ref} className="ed-bi">
       <span
@@ -214,33 +241,82 @@ function BiblioInlineRenderer({
       {open && (
         <span className="ed-bi__pop">
           <span className="lbl">Référence bibliographique</span>
-          <select
-            value={local.entry == null ? '' : String(local.entry)}
-            onChange={(e) =>
-              patch({ entry: e.target.value === '' ? null : Number(e.target.value) || e.target.value })
-            }
-          >
-            <option value="">— aucune —</option>
-            {biblioOptions.map((b) => (
-              <option key={b.id} value={String(b.id)}>
-                {b.authorLabel || '—'}
-                {b.year ? ` (${b.year})` : ''}
-                {b.title ? ` · ${b.title}` : ''}
-              </option>
-            ))}
-          </select>
-          <span className="lbl">Préfixe</span>
-          <input
-            type="text"
-            value={local.prefix ?? ''}
-            placeholder="cf., voir…"
-            onChange={(e) => patch({ prefix: e.target.value })}
-          />
+          {selected ? (
+            <span className="ed-bi__selected">
+              <span className="ed-bi__selected-label">
+                {selected.authorLabel || '—'}
+                {selected.year ? ` (${selected.year})` : ''}
+                {selected.title ? ` · ${selected.title}` : ''}
+              </span>
+              <button
+                type="button"
+                className="ed-bi__selected-clear"
+                onClick={clearEntry}
+                aria-label="Retirer la référence"
+                title="Retirer"
+              >
+                ×
+              </button>
+            </span>
+          ) : (
+            <>
+              <input
+                type="text"
+                className="ed-bi__search"
+                value={search}
+                placeholder="Rechercher (auteur, année, titre)…"
+                onChange={(e) => setSearch(e.target.value)}
+                autoFocus
+              />
+              {search.trim() && (
+                <span className="ed-bi__results">
+                  {filtered.length === 0 ? (
+                    <span className="ed-bi__empty">Aucune référence trouvée.</span>
+                  ) : (
+                    filtered.map((b) => (
+                      <button
+                        key={b.id}
+                        type="button"
+                        className="ed-bi__result"
+                        onClick={() => pickEntry(b.id)}
+                      >
+                        <span className="author">{b.authorLabel || '—'}</span>
+                        {b.year ? <span className="year"> ({b.year})</span> : null}
+                        {b.title ? <span className="title"> · {b.title}</span> : null}
+                      </button>
+                    ))
+                  )}
+                </span>
+              )}
+            </>
+          )}
+
+          <span className="ed-bi__row">
+            <span className="ed-bi__col">
+              <span className="lbl">Préfixe</span>
+              <input
+                type="text"
+                value={local.prefix ?? ''}
+                placeholder="cf., voir…"
+                onChange={(e) => patch({ prefix: e.target.value })}
+              />
+            </span>
+            <span className="ed-bi__col">
+              <span className="lbl">Page(s)</span>
+              <input
+                type="text"
+                value={local.pages ?? ''}
+                placeholder="47, 47-52…"
+                onChange={(e) => patch({ pages: e.target.value })}
+              />
+            </span>
+          </span>
+
           <span className="lbl">Suffixe</span>
           <input
             type="text"
             value={local.suffix ?? ''}
-            placeholder=", p. 47"
+            placeholder="chap. 3, tableau 4…"
             onChange={(e) => patch({ suffix: e.target.value })}
           />
         </span>
@@ -486,6 +562,7 @@ export class CarnetInlineBlockNode extends DecoratorNode<React.ReactElement> {
           fields={{
             entry: (fields.entry as number | string | null) ?? null,
             prefix: String(fields.prefix ?? ''),
+            pages: String(fields.pages ?? ''),
             suffix: String(fields.suffix ?? ''),
           }}
         />

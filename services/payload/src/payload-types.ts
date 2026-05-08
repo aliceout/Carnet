@@ -262,6 +262,10 @@ export interface User {
   id: number;
   displayName?: string | null;
   /**
+   * Format Chicago author-date « Nom, P. » utilisé pour vous dans le bloc « Pour citer » des billets que vous co-signez. Si vide, la signature est dérivée automatiquement du nom affiché.
+   */
+  citationFormat?: string | null;
+  /**
    * Root = compte propriétaire (1 seul, non supprimable). Admin = peut gérer les comptes. Éditeur·ice = édite le contenu.
    */
   role: 'root' | 'admin' | 'editor';
@@ -724,6 +728,7 @@ export interface PagesSelect<T extends boolean = true> {
  */
 export interface UsersSelect<T extends boolean = true> {
   displayName?: T;
+  citationFormat?: T;
   role?: T;
   status?: T;
   invitation?:
@@ -844,13 +849,9 @@ export interface Site {
   id: number;
   identity?: {
     /**
-     * Affichée en signature dans la baseline du footer et la description meta. Peut être un nom (« Marie Dupont »), un labo (« LATTS »), un collectif, etc.
+     * Nom du laboratoire de recherche, de la personne, du collectif… selon le porteur du carnet. Affiché en signature dans la baseline du footer et la description meta.
      */
     authorName?: string | null;
-    /**
-     * Format Chicago author-date « Nom, P. » utilisé dans le bloc « Pour citer » des billets qui n’ont pas d’auteur·ices renseigné·es (cas legacy). Pour les nouveaux billets, la citation est dérivée automatiquement des auteur·ices déclaré·es dans la barre latérale.
-     */
-    authorCitation?: string | null;
   };
   branding?: {
     /**
@@ -944,7 +945,6 @@ export interface SiteSelect<T extends boolean = true> {
     | T
     | {
         authorName?: T;
-        authorCitation?: T;
       };
   branding?:
     | T

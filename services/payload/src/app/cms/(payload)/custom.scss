@@ -1603,12 +1603,13 @@ button.btn--style-primary,
     }
   }
 
-  // Biblio : 6 colonnes (Prénom, Nom, Année, Titre, Éditeur/Revue, Type).
-  // La clé (slug) est retirée — elle reste visible dans la vue édition
-  // de chaque référence (champ slug en mono accent en haut). On
-  // affiche à la place l'éditeur (livres) ou la revue (articles).
+  // Biblio : 7 colonnes (Prénom, Nom, Année, Titre, Éditeur/Revue,
+  // Type, Actions). La clé (slug) est retirée — elle reste visible
+  // dans la vue édition de chaque référence (champ slug en mono accent
+  // en haut). On affiche à la place l'éditeur (livres) ou la revue
+  // (articles). La colonne Actions est étroite (× supprimer).
   &--biblio &__row {
-    grid-template-columns: 110px 130px 60px 1fr 200px 100px;
+    grid-template-columns: 110px 130px 60px 1fr 200px 100px 36px;
   }
   &--biblio &__row .firstname,
   &--biblio &__row .lastname {
@@ -1643,9 +1644,12 @@ button.btn--style-primary,
     color: var(--b-muted);
     text-transform: lowercase;
   }
+  &--biblio &__row .actions {
+    text-align: right;
+  }
   @media (max-width: 1180px) {
     &--biblio &__row {
-      grid-template-columns: 60px 1fr 80px;
+      grid-template-columns: 60px 1fr 80px 36px;
     }
     &--biblio &__row > .firstname,
     &--biblio &__row > .lastname,
@@ -1655,7 +1659,7 @@ button.btn--style-primary,
   }
   @media (max-width: 900px) {
     &--biblio &__row {
-      grid-template-columns: 1fr 60px;
+      grid-template-columns: 1fr 60px 36px;
     }
     &--biblio &__row > .year {
       display: none;
@@ -4087,14 +4091,14 @@ button.btn--style-primary,
       top: 100%;
       left: 0;
       margin-top: 4px;
-      width: 320px;
+      width: 460px;
       background: var(--b-paper);
       border: 1px solid var(--b-accent);
-      padding: 10px;
+      padding: 12px;
       z-index: 30;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
       font-family: var(--font-sans);
       font-size: 12px;
@@ -4123,6 +4127,113 @@ button.btn--style-primary,
           border-color: var(--b-accent);
         }
       }
+    }
+
+    // Référence sélectionnée — chip lisible avec × pour la retirer.
+    // Apparaît à la place du champ de recherche quand `entry` est posé.
+    &__selected {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      background: var(--b-accent-tint);
+      border: 1px solid var(--b-accent);
+    }
+    &__selected-label {
+      flex: 1;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--b-ink);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    &__selected-clear {
+      flex: 0 0 auto;
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      background: transparent;
+      border: 0;
+      color: var(--b-muted);
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+
+      &:hover {
+        color: #b63a3a;
+      }
+    }
+
+    // Champ de recherche dans le popover (typeahead biblio).
+    &__search {
+      width: 100%;
+    }
+
+    // Liste filtrée des résultats sous le champ de recherche. Bornée
+    // en hauteur, scrollable, items cliquables.
+    &__results {
+      display: flex;
+      flex-direction: column;
+      max-height: 220px;
+      overflow: auto;
+      border: 1px solid var(--b-rule);
+      background: var(--b-bg);
+    }
+    &__result {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 6px 8px;
+      background: transparent;
+      border: 0;
+      border-bottom: 1px solid var(--b-rule);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--b-ink);
+      cursor: pointer;
+      line-height: 1.4;
+
+      &:last-child {
+        border-bottom: 0;
+      }
+
+      &:hover {
+        background: var(--b-accent-tint);
+      }
+
+      .author {
+        font-weight: 600;
+      }
+      .year {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--b-muted);
+      }
+      .title {
+        color: var(--b-muted);
+        font-style: italic;
+      }
+    }
+    &__empty {
+      display: block;
+      padding: 10px;
+      color: var(--b-muted);
+      font-size: 11.5px;
+      text-align: center;
+    }
+
+    // Row 2 colonnes (Préfixe / Page(s)) pour gagner en compacité dans
+    // le popover élargi.
+    &__row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    &__col {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
   }
 
@@ -4810,27 +4921,11 @@ button.btn--style-primary,
 }
 
 // ─── Intégration Zotero ─────────────────────────────────────────────
-// Pastille mono « Z » apposée sur le titre d'une ref importée depuis
-// Zotero (visible dans la liste biblio + dans le hero de l'edit view).
-// Format compact, accent couleur, ne casse pas l'alignement vertical.
-.carnet-zotero-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  margin-left: 8px;
-  padding: 0;
-  background: var(--b-accent-tint);
-  border: 1px solid var(--b-accent);
-  border-radius: 3px;
-  color: var(--b-accent);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1;
-  vertical-align: middle;
-}
+// Pas de marqueur visuel sur les refs Zotero dans la liste biblio :
+// avec un import majoritaire depuis Zotero, un badge ligne par ligne
+// devenait du bruit. Le filtre « Provenance » dans la toolbar et la
+// banner à l'intérieur de l'édition (`.carnet-zotero-banner`) suffisent
+// à signaler / filtrer / expliquer la lecture seule.
 
 // Banner d'avertissement affiché en haut de l'édition d'une ref Zotero,
 // pour expliquer pourquoi tout est verrouillé.
@@ -5010,6 +5105,81 @@ button.btn--style-primary,
     font-size: 12.5px;
     color: var(--b-muted);
     padding: 12px 0;
+  }
+
+  // Détails des items ignorés au dernier sync. Replié par défaut
+  // (<details> natif). Liste compacte clé Zotero + raison ; pour les
+  // bibliothèques de groupe la clé est cliquable vers Zotero.
+  &__skipped {
+    border: 1px solid var(--b-rule);
+    background: var(--b-bg);
+    padding: 10px 14px;
+    font-size: 12.5px;
+
+    summary {
+      cursor: pointer;
+      color: var(--b-muted);
+      font-weight: 500;
+
+      &:hover {
+        color: var(--b-ink);
+      }
+    }
+
+    .hint {
+      margin: 8px 0 6px;
+      color: var(--b-muted);
+      font-size: 11.5px;
+      line-height: 1.5;
+    }
+
+    ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 220px;
+      overflow: auto;
+    }
+
+    li {
+      padding: 6px 0;
+      border-bottom: 1px dashed var(--b-rule);
+      line-height: 1.45;
+
+      &:last-child {
+        border-bottom: 0;
+      }
+    }
+
+    .title {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 13px;
+      color: var(--b-ink);
+
+      &.muted {
+        font-style: normal;
+        color: var(--b-muted);
+      }
+    }
+
+    .key {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--b-muted);
+      margin-left: 6px;
+    }
+
+    .mono {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--b-ink);
+    }
+
+    .reason {
+      color: var(--b-muted);
+      font-size: 12px;
+    }
   }
 }
 

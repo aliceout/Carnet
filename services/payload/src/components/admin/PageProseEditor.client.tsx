@@ -11,7 +11,7 @@
 // post ou inversement, le contenu reste compatible. Le theme partage
 // les classes ed-* déjà stylées dans custom.scss (cf .ed-body …).
 
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
@@ -107,6 +107,13 @@ function safeInitialState(value: LexicalState | null | undefined): string {
 function Toolbar(): React.ReactElement {
   const [editor] = useLexicalComposerContext();
 
+  // État de la modale d'insertion de lien (remplace window.prompt).
+  // On capture la sélection courante au clic sur le bouton Lien, et on
+  // la restaure avant d'appliquer la commande — sinon le focus passe
+  // sur l'input de la modale et la sélection éditeur est perdue.
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
+
   // Convertit chaque bloc top-level couvert par la sélection vers le
   // type demandé (paragraphe, heading h2/h3, blockquote) en préservant
   // ses enfants. Équivalent maison de `$setBlocksType` (@lexical/selection),
@@ -158,10 +165,18 @@ function Toolbar(): React.ReactElement {
     editor.dispatchCommand(REMOVE_LIST_COMMAND, undefined);
   }
 
-  function toggleLink() {
-    const url = window.prompt('URL du lien (laisser vide pour retirer)');
-    if (url === null) return;
-    editor.dispatchCommand(TOGGLE_LINK_COMMAND, url || null);
+  function openLinkModal() {
+    setLinkUrl('');
+    setLinkOpen(true);
+  }
+
+  function applyLink(url: string | null) {
+    // Re-focus l'éditeur pour rétablir la sélection avant de
+    // dispatcher la commande. Sans ça, la sélection est sur
+    // l'input de la modale et la commande ne s'applique pas.
+    editor.focus();
+    editor.dispatchCommand(TOGGLE_LINK_COMMAND, url);
+    setLinkOpen(false);
   }
 
   return (
@@ -196,9 +211,84 @@ function Toolbar(): React.ReactElement {
       <button type="button" onClick={() => setBlock('quote')} title="Citation">
         “
       </button>
-      <button type="button" onClick={toggleLink} title="Lien">
+      <button type="button" onClick={openLinkModal} title="Lien">
         ⌘
       </button>
+
+      {linkOpen && (
+        <div
+          className="carnet-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setLinkOpen(false);
+          }}
+        >
+          <form
+            className="carnet-modal"
+            role="dialog"
+            aria-modal="true"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const v = linkUrl.trim();
+              if (!v) return;
+              applyLink(v);
+            }}
+          >
+            <header className="carnet-modal__header">
+              <h2>Insérer un lien</h2>
+              <button
+                type="button"
+                className="carnet-modal__close"
+                onClick={() => setLinkOpen(false)}
+                aria-label="Fermer"
+              >
+                ×
+              </button>
+            </header>
+
+            <div className="carnet-modal__body">
+              <label className="carnet-editview__field">
+                <span className="lbl">URL</span>
+                <input
+                  type="url"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  placeholder="https://…"
+                  autoFocus
+                />
+                <span className="hint">
+                  Le lien sera appliqué au texte actuellement sélectionné.
+                </span>
+              </label>
+            </div>
+
+            <footer className="carnet-modal__footer">
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--ghost"
+                onClick={() => applyLink(null)}
+                title="Retirer le lien de la sélection"
+              >
+                Retirer le lien
+              </button>
+              <span style={{ flex: 1 }} />
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--ghost"
+                onClick={() => setLinkOpen(false)}
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                className="carnet-btn carnet-btn--accent"
+                disabled={!linkUrl.trim()}
+              >
+                Appliquer
+              </button>
+            </footer>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

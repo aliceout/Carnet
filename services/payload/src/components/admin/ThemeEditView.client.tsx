@@ -47,7 +47,10 @@ export default function ThemeEditViewClient({
   const [initial, setInitial] = useState<string>(JSON.stringify(EMPTY));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  // Modale de confirmation de suppression (remplace window.confirm).
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [usedIn, setUsedIn] = useState<UsedInPost[]>([]);
@@ -131,25 +134,25 @@ export default function ThemeEditViewClient({
     }
   }
 
-  async function remove() {
+  async function confirmDelete() {
     if (!data.id) return;
-    if (typeof window === 'undefined') return;
-    const ok = window.confirm(
-      `Supprimer définitivement le thème « ${data.name || data.slug || data.id} » ?`,
-    );
-    if (!ok) return;
-    setDeleting(true);
-    setError(null);
+    setDeleteSubmitting(true);
+    setDeleteError(null);
     try {
       const res = await fetch(`${API_THEMES}/${encodeURIComponent(String(data.id))}`, {
         method: 'DELETE',
         credentials: 'include',
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      window.location.href = '/cms/admin/collections/themes';
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(`HTTP ${res.status} — ${t.slice(0, 200)}`);
+      }
+      if (typeof window !== 'undefined') {
+        window.location.href = '/cms/admin/collections/themes';
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur inconnue');
-      setDeleting(false);
+      setDeleteError(err instanceof Error ? err.message : 'Erreur inconnue');
+      setDeleteSubmitting(false);
     }
   }
 
@@ -190,11 +193,14 @@ export default function ThemeEditViewClient({
           <button
             type="button"
             className="carnet-btn carnet-btn--ghost"
-            onClick={() => void remove()}
-            disabled={deleting || saving}
+            onClick={() => {
+              setDeleteOpen(true);
+              setDeleteError(null);
+            }}
+            disabled={saving}
             suppressHydrationWarning
           >
-            {deleting ? 'Suppression…' : 'Supprimer'}
+            Supprimer
           </button>
         )}
         <button
@@ -293,6 +299,70 @@ export default function ThemeEditViewClient({
             </div>
           )}
         </form>
+      )}
+
+      {deleteOpen && (
+        <div
+          className="carnet-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !deleteSubmitting) {
+              setDeleteOpen(false);
+              setDeleteError(null);
+            }
+          }}
+        >
+          <div className="carnet-modal" role="dialog" aria-modal="true">
+            <header className="carnet-modal__header">
+              <h2>Supprimer ce thème&nbsp;?</h2>
+              <button
+                type="button"
+                className="carnet-modal__close"
+                onClick={() => {
+                  if (deleteSubmitting) return;
+                  setDeleteOpen(false);
+                  setDeleteError(null);
+                }}
+                aria-label="Fermer"
+              >
+                ×
+              </button>
+            </header>
+
+            {deleteError && (
+              <div className="carnet-modal__error">Erreur&nbsp;: {deleteError}</div>
+            )}
+
+            <div className="carnet-modal__body">
+              <p>
+                «&nbsp;{data.name || data.slug || data.id}&nbsp;» sera
+                définitivement supprimé. Les billets rattachés à ce thème
+                garderont leurs autres thèmes mais perdront celui-ci.
+              </p>
+            </div>
+
+            <footer className="carnet-modal__footer">
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--ghost"
+                onClick={() => {
+                  setDeleteOpen(false);
+                  setDeleteError(null);
+                }}
+                disabled={deleteSubmitting}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--danger"
+                onClick={() => void confirmDelete()}
+                disabled={deleteSubmitting}
+              >
+                {deleteSubmitting ? 'Suppression…' : 'Supprimer'}
+              </button>
+            </footer>
+          </div>
+        </div>
       )}
     </div>
   );

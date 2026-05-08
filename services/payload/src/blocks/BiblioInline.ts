@@ -34,11 +34,21 @@ export const BiblioInline: Block = {
       admin: { description: 'Ex : « cf. », « voir », « comparer ».' },
     },
     {
+      name: 'pages',
+      type: 'text',
+      required: false,
+      label: 'Page(s) citée(s)',
+      admin: {
+        description:
+          'Page(s) précisément citées dans ce passage du billet — pas la pagination de l\'ouvrage en biblio. Ex : « 47 », « 47-52 », « 47, 53-55 ».',
+      },
+    },
+    {
       name: 'suffix',
       type: 'text',
       required: false,
       label: 'Suffixe',
-      admin: { description: 'Ex : « , p. 47 », « , chap. 3 ».' },
+      admin: { description: 'Complément libre. Ex : « chap. 3 », « tableau 4 ».' },
     },
   ],
 };
