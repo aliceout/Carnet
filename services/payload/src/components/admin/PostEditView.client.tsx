@@ -53,10 +53,24 @@ const API_POSTS = '/cms/api/posts';
 type PostType = 'analyse' | 'note' | 'fiche';
 
 type Theme = { id: number | string; slug: string; name: string };
+type Tag = { id: number | string; slug: string; name: string };
+type CarnetUser = { id: number | string; displayName?: string; email?: string };
+type PostAuthor = {
+  kind?: 'user' | 'external';
+  user?: CarnetUser | number | string | null;
+  name?: string;
+  affiliation?: string;
+};
+type BibAuthor = {
+  firstName?: string | null;
+  lastName: string;
+  role?: 'author' | 'editor' | 'translator';
+};
 type BibEntry = {
   id: number | string;
   slug?: string;
-  author?: string;
+  authors?: BibAuthor[] | null;
+  authorLabel?: string | null;
   year?: number | string;
   title?: string;
 };
@@ -68,6 +82,8 @@ type Post = {
   slug: string;
   type: PostType;
   themes?: (Theme | number | string)[] | null;
+  tags?: (Tag | number | string)[] | null;
+  authors?: PostAuthor[] | null;
   publishedAt: string;
   updatedAt?: string;
   lede: string;
@@ -81,7 +97,7 @@ type Post = {
 type Status = 'draft' | 'scheduled' | 'published';
 
 const TYPE_LABELS: Record<PostType, string> = {
-  analyse: 'Analyse',
+  analyse: 'Article',
   note: 'Note de lecture',
   fiche: 'Fiche',
 };
@@ -127,6 +143,8 @@ const EMPTY_DRAFT: Omit<Post, 'id'> & { id?: number | string | null } = {
   slug: '',
   type: 'analyse',
   themes: [],
+  tags: [],
+  authors: [],
   publishedAt: new Date().toISOString().slice(0, 10),
   lede: '',
   body: null,
@@ -144,13 +162,30 @@ export default function PostEditViewClient({
   );
   const [initialJson, setInitialJson] = useState<string>(JSON.stringify(EMPTY_DRAFT));
   const [themes, setThemes] = useState<Theme[]>([]);
+  const [allTags, setAllTags] = useState<Tag[]>([]);
+  const [allUsers, setAllUsers] = useState<CarnetUser[]>([]);
   const [biblioOptions, setBiblioOptions] = useState<BibEntry[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Erreurs de validation client par champ. Affichées en rouge sous
+  // le champ concerné (cf .field.invalid dans .ed-card et le sidebar).
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
+
+  // Modale de confirmation de suppression du billet courant. open=true
+  // affiche le backdrop + dialog ; submitting bloque les boutons
+  // pendant l'appel DELETE.
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Accordéons « Tutoriel » à droite des headers fn-block et bib-block.
+  // Fermés par défaut — le tutoriel ne sert que la première fois.
+  const [fnHelpOpen, setFnHelpOpen] = useState(false);
+  const [bibHelpOpen, setBibHelpOpen] = useState(false);
 
   // Tick toutes les 30s pour rafraîchir le « il y a X min »
   useEffect(() => {
@@ -168,19 +203,54 @@ export default function PostEditViewClient({
       .then((r) => r.json())
       .then((data: { docs: Theme[] }) => setThemes(data.docs ?? []))
       .catch(() => setThemes([]));
-    const biblioP = fetch('/cms/api/bibliography?limit=200&depth=0&sort=author', {
+    const tagsP = fetch('/cms/api/tags?limit=500&depth=0&sort=name', {
+      credentials: 'include',
+    })
+      .then((r) => r.json())
+      .then((data: { docs: Tag[] }) => setAllTags(data.docs ?? []))
+      .catch(() => setAllTags([]));
+    const biblioP = fetch('/cms/api/bibliography?limit=1000&depth=0&sort=authorLabel', {
       credentials: 'include',
     })
       .then((r) => r.json())
       .then((data: { docs: BibEntry[] }) => setBiblioOptions(data.docs ?? []))
       .catch(() => setBiblioOptions([]));
+    // Liste des user·rices actifs du Carnet pour le picker auteur·ices.
+    // status='active' uniquement — on n'expose pas les pending/disabled.
+    const usersP = fetch(
+      '/cms/api/users?limit=200&depth=0&sort=displayName&where[status][equals]=active',
+      { credentials: 'include' },
+    )
+      .then((r) => r.json())
+      .then((data: { docs: CarnetUser[] }) => setAllUsers(data.docs ?? []))
+      .catch(() => setAllUsers([]));
+    // User·rice connecté·e — sert à pré-remplir authors[] dès l'ouverture
+    // d'un nouveau billet (sinon l'auto-assign n'arrive qu'au save).
+    const meP = fetch('/cms/api/users/me', { credentials: 'include' })
+      .then((r) => r.json())
+      .then(
+        (data: { user?: { id?: number | string } | null }) =>
+          (data.user?.id as number | string | undefined) ?? null,
+      )
+      .catch(() => null);
 
     if (!docId) {
-      // Création : pas de fetch post, on part de EMPTY_DRAFT
-      Promise.all([themesP, biblioP]).finally(() => {
-        setInitialJson(JSON.stringify(EMPTY_DRAFT));
-        setLoading(false);
-      });
+      // Création : pas de fetch post, on part de EMPTY_DRAFT enrichi
+      // par le user connecté comme premier·ère auteur·ice.
+      Promise.all([themesP, tagsP, biblioP, usersP, meP])
+        .then(([, , , , meId]) => {
+          if (meId != null) {
+            const draft: typeof EMPTY_DRAFT = {
+              ...EMPTY_DRAFT,
+              authors: [{ kind: 'user', user: meId }],
+            };
+            setPost(draft);
+            setInitialJson(JSON.stringify(draft));
+          } else {
+            setInitialJson(JSON.stringify(EMPTY_DRAFT));
+          }
+        })
+        .finally(() => setLoading(false));
       return;
     }
 
@@ -195,6 +265,8 @@ export default function PostEditViewClient({
         const norm: Post = {
           ...doc,
           themes: Array.isArray(doc.themes) ? doc.themes : [],
+          tags: Array.isArray(doc.tags) ? doc.tags : [],
+          authors: Array.isArray(doc.authors) ? doc.authors : [],
           bibliography: Array.isArray(doc.bibliography) ? doc.bibliography : [],
           body: doc.body ?? null,
         };
@@ -205,7 +277,9 @@ export default function PostEditViewClient({
         setError(err instanceof Error ? err.message : 'Erreur inconnue');
       });
 
-    Promise.all([themesP, biblioP, postP]).finally(() => setLoading(false));
+    Promise.all([themesP, tagsP, biblioP, usersP, meP, postP]).finally(() =>
+      setLoading(false),
+    );
   }, [docId]);
 
   const dirty = JSON.stringify(post) !== initialJson;
@@ -233,6 +307,159 @@ export default function PostEditViewClient({
     });
   }
 
+  function attachTag(tag: Tag) {
+    setPost((p) => {
+      const cur = (p.tags ?? []) as (Tag | number | string)[];
+      const ids = cur.map((t) => (typeof t === 'object' ? t.id : t));
+      if (ids.includes(tag.id)) return p;
+      return { ...p, tags: [...cur, tag] };
+    });
+  }
+
+  function detachTag(tagId: number | string) {
+    setPost((p) => {
+      const cur = (p.tags ?? []) as (Tag | number | string)[];
+      return {
+        ...p,
+        tags: cur.filter((t) => (typeof t === 'object' ? t.id : t) !== tagId),
+      };
+    });
+  }
+
+  // ─── Validation : body Lexical considéré vide ? ──────────────
+  // Vrai si aucun text non-whitespace ET aucun block décoratif. Un
+  // billet avec juste une figure ou une citation longue n'est PAS
+  // considéré vide. Utilisé par save() pour le check `body required`.
+  function isLexicalBodyEmpty(body: LexicalState | null): boolean {
+    if (!body?.root || !Array.isArray(body.root.children)) return true;
+    function hasContent(node: unknown): boolean {
+      if (!node || typeof node !== 'object') return false;
+      const n = node as Record<string, unknown>;
+      if (typeof n.text === 'string' && n.text.trim().length > 0) return true;
+      // Un block (figure, citation_bloc) compte comme du contenu, même
+      // sans texte rendu inline.
+      if (n.type === 'block') return true;
+      if (Array.isArray(n.children)) {
+        return (n.children as unknown[]).some(hasContent);
+      }
+      return false;
+    }
+    return !hasContent(body.root);
+  }
+
+  // ─── Normalisation Lexical avant save ────────────────────────
+  // Quand on charge un billet (depth=1), les blocks Lexical qui
+  // contiennent une relationship (biblio_inline.entry, figure.image)
+  // arrivent avec le doc populé en objet. Si on renvoie ce JSON tel
+  // quel à Payload pour un PATCH, le validateur du field rejette
+  // l'objet — il attend un ID. On walke donc le body avant save et
+  // on remplace les objets populés par leur id. Cf erreur 400
+  // « inlineBlock node failed to validate: entry … » apparue après
+  // la refonte de la collection bibliography.
+  function normalizeLexicalBody(input: LexicalState | null): LexicalState | null {
+    if (!input) return null;
+    function walk(node: unknown): unknown {
+      if (!node || typeof node !== 'object') return node;
+      const n = node as Record<string, unknown>;
+      const fields = n.fields as Record<string, unknown> | undefined;
+      const blockType = fields?.blockType as string | undefined;
+      if (
+        (n.type === 'inlineBlock' || n.type === 'block') &&
+        fields &&
+        (blockType === 'biblio_inline' || blockType === 'figure')
+      ) {
+        const relKey = blockType === 'biblio_inline' ? 'entry' : 'image';
+        const v = fields[relKey];
+        if (v && typeof v === 'object' && 'id' in (v as Record<string, unknown>)) {
+          n.fields = { ...fields, [relKey]: (v as { id: number | string }).id };
+        }
+      }
+      if (Array.isArray(n.children)) {
+        n.children = (n.children as unknown[]).map(walk);
+      }
+      return n;
+    }
+    // Le root JSON Lexical est { root: { children: [...] } }
+    const cloned = JSON.parse(JSON.stringify(input)) as LexicalState;
+    walk(cloned.root);
+    return cloned;
+  }
+
+  // ─── Auteur·ices ─────────────────────────────────────────────
+  function addAuthor(kind: 'user' | 'external') {
+    setPost((p) => {
+      const cur = p.authors ?? [];
+      const fresh: PostAuthor =
+        kind === 'user' ? { kind: 'user', user: null } : { kind: 'external', name: '', affiliation: '' };
+      return { ...p, authors: [...cur, fresh] };
+    });
+  }
+  function removeAuthor(idx: number) {
+    setPost((p) => ({
+      ...p,
+      authors: (p.authors ?? []).filter((_, i) => i !== idx),
+    }));
+  }
+  function updateAuthor(idx: number, patch: Partial<PostAuthor>) {
+    setPost((p) => {
+      const cur = [...(p.authors ?? [])];
+      cur[idx] = { ...cur[idx], ...patch };
+      return { ...p, authors: cur };
+    });
+  }
+  function moveAuthor(idx: number, delta: -1 | 1) {
+    setPost((p) => {
+      const cur = [...(p.authors ?? [])];
+      const target = idx + delta;
+      if (target < 0 || target >= cur.length) return p;
+      [cur[idx], cur[target]] = [cur[target], cur[idx]];
+      return { ...p, authors: cur };
+    });
+  }
+
+  // Crée un tag à la volée via POST /cms/api/tags, puis l'attache au
+  // billet courant. Le slug est dérivé côté serveur (hook beforeChange).
+  async function createAndAttachTag(name: string) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    // Slug calculé côté client uniquement pour le payload — le serveur
+    // l'écrasera avec sa propre slugify pour rester source de vérité.
+    const slug = trimmed
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-+|-+$)/g, '');
+    try {
+      const res = await fetch('/cms/api/tags', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmed, slug }),
+      });
+      if (!res.ok) {
+        // Si le tag existe déjà (slug unique), on le récupère et on l'attache.
+        if (res.status === 400 || res.status === 409) {
+          const existing = allTags.find((t) => t.slug === slug);
+          if (existing) {
+            attachTag(existing);
+            return;
+          }
+        }
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const json = (await res.json()) as { doc?: Tag } | Tag;
+      const fresh = (json as { doc?: Tag }).doc ?? (json as Tag);
+      setAllTags((prev) =>
+        prev.find((t) => String(t.id) === String(fresh.id)) ? prev : [...prev, fresh],
+      );
+      attachTag(fresh);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue');
+    }
+  }
+
   function toggleBiblio(entryId: number | string) {
     setPost((p) => {
       const cur = (p.bibliography ?? []) as (BibEntry | number | string)[];
@@ -249,21 +476,63 @@ export default function PostEditViewClient({
   }
 
   async function save(opts: { publish?: boolean } = {}) {
+    // Validation client AVANT toute requête. On vérifie tous les champs
+    // déclarés `required: true` côté Posts.ts (title, slug, lede, body)
+    // pour afficher les erreurs en rouge inline plutôt que recevoir un
+    // 400 générique de Payload après l'envoi.
+    const errs: Record<string, string> = {};
+    if (!post.title.trim()) errs.title = 'Champ obligatoire.';
+    if (!post.slug.trim()) errs.slug = 'Champ obligatoire.';
+    if (!post.lede.trim()) errs.lede = 'Champ obligatoire.';
+    if (isLexicalBodyEmpty(post.body ?? null)) errs.body = 'Le corps de l’article est vide.';
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
+      // Focus / scroll au premier champ en erreur pour signal visuel.
+      if (errs.title && titleRef.current) {
+        titleRef.current.focus();
+        titleRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (errs.lede && ledeRef.current) {
+        ledeRef.current.focus();
+        ledeRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+    setFieldErrors({});
     setSaving(true);
     setError(null);
     try {
+      // Pour PATCH (billet existant), on omet `numero` du body s'il
+      // est nul/undefined côté state pour ne pas écraser la valeur DB
+      // avec un null. Pour POST (création), on n'envoie pas numero du
+      // tout : le hook beforeValidate côté Payload l'attribue auto.
       const body: Record<string, unknown> = {
-        numero: post.numero ?? null,
         title: post.title,
         slug: post.slug,
         type: post.type,
         themes: (post.themes ?? []).map((t) => (typeof t === 'object' ? t.id : t)),
+        tags: (post.tags ?? []).map((t) => (typeof t === 'object' ? t.id : t)),
+        // authors : on remappe l'objet user populé en simple ID pour le PATCH
+        // (Payload accepte les deux mais l'ID est plus propre côté wire).
+        authors: (post.authors ?? []).map((a) => ({
+          kind: a.kind ?? 'user',
+          user:
+            a.kind === 'user' && a.user
+              ? typeof a.user === 'object'
+                ? a.user.id
+                : a.user
+              : null,
+          name: a.kind === 'external' ? (a.name ?? '') : '',
+          affiliation: a.kind === 'external' ? (a.affiliation ?? '') : '',
+        })),
         publishedAt: post.publishedAt,
         lede: post.lede,
-        body: post.body,
+        body: normalizeLexicalBody(post.body ?? null),
         bibliography: (post.bibliography ?? []).map((b) => (typeof b === 'object' ? b.id : b)),
         draft: opts.publish ? false : post.draft,
       };
+      if (typeof post.numero === 'number' && post.numero > 0) {
+        body.numero = post.numero;
+      }
       const url =
         post.id != null && post.id !== ''
           ? `${API_POSTS}/${encodeURIComponent(String(post.id))}`
@@ -284,6 +553,8 @@ export default function PostEditViewClient({
       const norm: Post = {
         ...fresh,
         themes: Array.isArray(fresh.themes) ? fresh.themes : [],
+        tags: Array.isArray(fresh.tags) ? fresh.tags : [],
+        authors: Array.isArray(fresh.authors) ? fresh.authors : [],
         bibliography: Array.isArray(fresh.bibliography) ? fresh.bibliography : [],
         body: fresh.body ?? null,
       };
@@ -299,6 +570,28 @@ export default function PostEditViewClient({
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {
       setSaving(false);
+    }
+  }
+
+  // Suppression définitive du billet courant. Sur succès, redirige
+  // vers la liste — le billet n'existe plus, rester sur l'URL d'édit
+  // donnerait un 404. Échec = on garde la modale ouverte avec l'erreur.
+  async function deletePost() {
+    if (post.id == null) return;
+    setDeleteSubmitting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(`${API_POSTS}/${encodeURIComponent(String(post.id))}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (typeof window !== 'undefined') {
+        window.location.href = '/cms/admin/collections/posts';
+      }
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Erreur inconnue');
+      setDeleteSubmitting(false);
     }
   }
 
@@ -355,6 +648,14 @@ export default function PostEditViewClient({
   const savedLabel = savedAt ? `Sauvegardé ${relativeSavedAt(savedAt)}` : '';
 
   const themeIds = (post.themes ?? []).map((t) => (typeof t === 'object' ? t.id : t));
+  const tagIds = (post.tags ?? []).map((t) => (typeof t === 'object' ? t.id : t));
+  const tagsAttached: Tag[] = (post.tags ?? [])
+    .map((t) =>
+      typeof t === 'object'
+        ? (t as Tag)
+        : (allTags.find((x) => String(x.id) === String(t)) as Tag | undefined),
+    )
+    .filter((t): t is Tag => t !== undefined);
   const explicitBiblioIds = (post.bibliography ?? []).map((b) =>
     typeof b === 'object' ? b.id : b,
   );
@@ -376,6 +677,30 @@ export default function PostEditViewClient({
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(explicitBiblioIds), inlineBiblioIds]);
+
+  // Synchro auto : toute ref biblio citée inline dans le corps qui
+  // n'est pas encore dans la liste explicite `post.bibliography` y
+  // est ajoutée. Comme c'est cette liste qui est sérialisée au save
+  // et rendue en pied d'article côté frontend, sans cette synchro la
+  // citation apparaît dans le texte mais pas dans la section
+  // Bibliographie publique.
+  useEffect(() => {
+    if (inlineBiblioIds.length === 0) return;
+    setPost((p) => {
+      const cur = (p.bibliography ?? []) as Array<BibEntry | number | string>;
+      const curIds = new Set(cur.map((b) => String(typeof b === 'object' ? b.id : b)));
+      const toAdd: Array<BibEntry | number | string> = [];
+      for (const id of inlineBiblioIds) {
+        if (!curIds.has(String(id))) {
+          const entry = biblioOptions.find((b) => b.id === id);
+          toAdd.push(entry ?? id);
+        }
+      }
+      if (toAdd.length === 0) return p;
+      return { ...p, bibliography: [...cur, ...toAdd] };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inlineBiblioIds, biblioOptions]);
 
   return (
     <div className="carnet-postedit">
@@ -469,7 +794,7 @@ export default function PostEditViewClient({
               </div>
               <textarea
                 ref={titleRef}
-                className="ed-title"
+                className={`ed-title${fieldErrors.title ? ' ed-title--invalid' : ''}`}
                 rows={1}
                 value={post.title}
                 placeholder="Titre du billet"
@@ -481,20 +806,60 @@ export default function PostEditViewClient({
                     ledeRef.current?.focus();
                   }
                 }}
-                onChange={(e) => patch('title', e.target.value)}
+                onChange={(e) => {
+                  patch('title', e.target.value);
+                  // Efface l'erreur dès que l'utilisatrice tape.
+                  if (fieldErrors.title) {
+                    setFieldErrors((prev) => {
+                      const { title: _omit, ...rest } = prev;
+                      return rest;
+                    });
+                  }
+                }}
               />
+              {fieldErrors.title && (
+                <div className="ed-title__error" role="alert">
+                  {fieldErrors.title}
+                </div>
+              )}
               <textarea
                 ref={ledeRef}
-                className="ed-lede"
+                className={`ed-lede${fieldErrors.lede ? ' ed-lede--invalid' : ''}`}
                 rows={1}
                 value={post.lede}
                 placeholder="Chapô — 2 à 3 phrases."
-                onChange={(e) => patch('lede', e.target.value)}
+                onChange={(e) => {
+                  patch('lede', e.target.value);
+                  if (fieldErrors.lede) {
+                    setFieldErrors((prev) => {
+                      const { lede: _omit, ...rest } = prev;
+                      return rest;
+                    });
+                  }
+                }}
               />
+              {fieldErrors.lede && (
+                <div className="ed-lede__error" role="alert">
+                  {fieldErrors.lede}
+                </div>
+              )}
               <hr className="ed-divider" />
+              {fieldErrors.body && (
+                <div className="ed-body__error" role="alert">
+                  {fieldErrors.body}
+                </div>
+              )}
               <PostBodyEditor
                 value={post.body ?? null}
-                onChange={(v) => patch('body', v)}
+                onChange={(v) => {
+                  patch('body', v);
+                  if (fieldErrors.body) {
+                    setFieldErrors((prev) => {
+                      const { body: _omit, ...rest } = prev;
+                      return rest;
+                    });
+                  }
+                }}
                 biblioOptions={biblioOptions}
                 onEditor={(editor) => {
                   editorRef.current = editor;
@@ -505,14 +870,27 @@ export default function PostEditViewClient({
             <div className="fn-block">
               <div className="fn-block__h">
                 <span>Notes de bas de page ({footnotes.length})</span>
+                <button
+                  type="button"
+                  className="fn-block__help-toggle"
+                  onClick={() => setFnHelpOpen((o) => !o)}
+                  aria-expanded={fnHelpOpen}
+                >
+                  Tutoriel
+                  <span className="caret" aria-hidden="true">
+                    {fnHelpOpen ? '▴' : '▾'}
+                  </span>
+                </button>
               </div>
-              <div className="fn-block__help">
-                Pour ajouter une note dans le corps : tape <kbd>/</kbd> puis
-                « Note de bas de page » — écris le contenu dans le panneau
-                qui s’ouvre.
-                <br />
-                Les notes apparaissent ici, numérotées automatiquement.
-              </div>
+              {fnHelpOpen && (
+                <div className="fn-block__help">
+                  Pour ajouter une note dans le corps : tapez <kbd>/</kbd> puis
+                  « Note de bas de page » — écrivez le contenu dans le panneau
+                  qui s’ouvre.
+                  <br />
+                  Les notes apparaissent ici, numérotées automatiquement.
+                </div>
+              )}
               {footnotes.length === 0 ? (
                 <div className="fn-block__empty">Aucune note pour le moment.</div>
               ) : (
@@ -537,15 +915,33 @@ export default function PostEditViewClient({
             <div className="bib-block">
               <div className="bib-block__h">
                 <span>Bibliographie liée ({biblioIds.length})</span>
+                <button
+                  type="button"
+                  className="bib-block__help-toggle"
+                  onClick={() => setBibHelpOpen((o) => !o)}
+                  aria-expanded={bibHelpOpen}
+                >
+                  Tutoriel
+                  <span className="caret" aria-hidden="true">
+                    {bibHelpOpen ? '▴' : '▾'}
+                  </span>
+                </button>
               </div>
-              <div className="bib-block__help">
-                Pour <em>citer</em> une référence dans le corps : tape <kbd>/</kbd>{' '}
-                puis « Bibliographie inline » — choisis-la dans le panneau qui
-                s’ouvre.
-                <br />
-                Pour <em>lister</em> une référence sans la citer dans le corps :
-                ajoute-la directement ci-dessous.
-              </div>
+              {bibHelpOpen && (
+                <div className="bib-block__help">
+                  Pour <em>citer</em> une référence dans le corps : tapez <kbd>/</kbd>{' '}
+                  puis « Bibliographie inline » — choisissez-la dans le panneau qui
+                  s’ouvre.
+                  <br />
+                  Pour <em>lister</em> une référence sans la citer dans le corps :
+                  ajoutez-la directement ci-dessous.
+                </div>
+              )}
+              <BiblioSearchPicker
+                options={biblioOptions}
+                attachedIds={biblioIds}
+                onPick={(id) => toggleBiblio(id)}
+              />
               <div className="biblio-list">
                 {biblioIds.length === 0 && (
                   <div className="b-row b-row--empty">Aucune référence liée.</div>
@@ -583,7 +979,7 @@ export default function PostEditViewClient({
                     <div key={String(id)} className="b-row">
                       <div className="n">[{i + 1}]</div>
                       <div className="body">
-                        <span className="au">{e.author ?? '—'}</span>
+                        <span className="au">{e.authorLabel || '—'}</span>
                         {e.year && <> ({e.year})</>}
                         {e.title && (
                           <>
@@ -605,26 +1001,6 @@ export default function PostEditViewClient({
                   );
                 })}
               </div>
-              <details className="add-rel-wrap">
-                <summary className="add-rel">+ Ajouter une référence…</summary>
-                <div className="add-rel-list">
-                  {biblioOptions
-                    .filter((b) => !biblioIds.includes(b.id))
-                    .slice(0, 50)
-                    .map((b) => (
-                      <button
-                        key={b.id}
-                        type="button"
-                        className="add-rel-item"
-                        onClick={() => toggleBiblio(b.id)}
-                      >
-                        <span className="au">{b.author ?? '—'}</span>
-                        {b.year && <> ({b.year})</>}
-                        {b.title && <> · <span className="ti">{b.title}</span></>}
-                      </button>
-                    ))}
-                </div>
-              </details>
             </div>
           </div>
 
@@ -633,13 +1009,9 @@ export default function PostEditViewClient({
             <div className="row">
               <div className="field">
                 <label>Numéro de billet</label>
-                <input
-                  type="number"
-                  value={post.numero ?? ''}
-                  onChange={(e) =>
-                    patch('numero', e.target.value === '' ? null : Number(e.target.value))
-                  }
-                />
+                <div className="auto" title="Attribué automatiquement à la création">
+                  {post.numero != null ? `n° ${pad3(post.numero)}` : 'auto'}
+                </div>
               </div>
               <div className="field">
                 <label>Type</label>
@@ -655,14 +1027,27 @@ export default function PostEditViewClient({
                 </select>
               </div>
             </div>
-            <div className="field">
+            <div className={`field${fieldErrors.slug ? ' field--invalid' : ''}`}>
               <label>Slug</label>
               <input
                 type="text"
                 value={post.slug}
-                onChange={(e) => patch('slug', e.target.value)}
+                onChange={(e) => {
+                  patch('slug', e.target.value);
+                  if (fieldErrors.slug) {
+                    setFieldErrors((prev) => {
+                      const { slug: _omit, ...rest } = prev;
+                      return rest;
+                    });
+                  }
+                }}
               />
-              {post.slug && post.publishedAt && (
+              {fieldErrors.slug && (
+                <div className="field__error" role="alert">
+                  {fieldErrors.slug}
+                </div>
+              )}
+              {!fieldErrors.slug && post.slug && post.publishedAt && (
                 <div className="help">
                   URL :{' '}
                   <span className="mono">
@@ -715,6 +1100,123 @@ export default function PostEditViewClient({
                   Retrait d'un thème = ouvrir le multi-select et décocher. */}
             </div>
 
+            <div className="field">
+              <label>Tags</label>
+              <TagsPicker
+                allTags={allTags}
+                attached={tagsAttached}
+                onAttach={attachTag}
+                onDetach={detachTag}
+                onCreate={createAndAttachTag}
+              />
+            </div>
+
+            <div className="field">
+              <label>Auteur·ices</label>
+              <div className="authors-list">
+                {(post.authors ?? []).length === 0 && (
+                  <div className="authors-list__empty">
+                    Aucun·e signataire — sera auto-rempli·e à la sauvegarde.
+                  </div>
+                )}
+                {(post.authors ?? []).map((a, i) => {
+                  const k = a.kind ?? 'user';
+                  const userId =
+                    a.user && typeof a.user === 'object' ? a.user.id : (a.user ?? null);
+                  return (
+                    <div key={i} className="authors-list__row">
+                      <div className="authors-list__head">
+                        <select
+                          value={k}
+                          onChange={(e) =>
+                            updateAuthor(i, {
+                              kind: e.target.value as 'user' | 'external',
+                              // Reset des champs de l'autre kind pour pas
+                              // garder de données fantômes en BDD.
+                              ...(e.target.value === 'user'
+                                ? { name: '', affiliation: '' }
+                                : { user: null }),
+                            })
+                          }
+                        >
+                          <option value="user">Interne</option>
+                          <option value="external">Externe</option>
+                        </select>
+                        <div className="authors-list__moves">
+                          <button
+                            type="button"
+                            disabled={i === 0}
+                            onClick={() => moveAuthor(i, -1)}
+                            aria-label="Monter"
+                          >
+                            ↑
+                          </button>
+                          <button
+                            type="button"
+                            disabled={i === (post.authors ?? []).length - 1}
+                            onClick={() => moveAuthor(i, 1)}
+                            aria-label="Descendre"
+                          >
+                            ↓
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeAuthor(i)}
+                            aria-label="Retirer"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+                      {k === 'user' ? (
+                        <select
+                          value={userId == null ? '' : String(userId)}
+                          onChange={(e) =>
+                            updateAuthor(i, {
+                              user:
+                                e.target.value === ''
+                                  ? null
+                                  : (Number(e.target.value) || e.target.value),
+                            })
+                          }
+                        >
+                          <option value="">— choisir un·e membre —</option>
+                          {allUsers.map((u) => (
+                            <option key={u.id} value={String(u.id)}>
+                              {u.displayName ?? u.email ?? `User #${u.id}`}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <>
+                          <input
+                            type="text"
+                            placeholder="Nom complet (ex. Aïcha Touré)"
+                            value={a.name ?? ''}
+                            onChange={(e) => updateAuthor(i, { name: e.target.value })}
+                          />
+                          <input
+                            type="text"
+                            placeholder="Rattachement (optionnel, ex. LATTS)"
+                            value={a.affiliation ?? ''}
+                            onChange={(e) => updateAuthor(i, { affiliation: e.target.value })}
+                          />
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+                <div className="authors-list__add">
+                  <button type="button" onClick={() => addAuthor('user')}>
+                    + Interne
+                  </button>
+                  <button type="button" onClick={() => addAuthor('external')}>
+                    + Externe
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <hr />
             <h3>Calendrier</h3>
             <div className="field">
@@ -744,7 +1246,320 @@ export default function PostEditViewClient({
                 {post.readingTime ? `≈ ${post.readingTime} min` : '— (calculé au save)'}
               </div>
             </div>
+
+            {post.id != null && (
+              <>
+                <hr />
+                <div className="field">
+                  <button
+                    type="button"
+                    className="carnet-postedit__delete"
+                    onClick={() => {
+                      setDeleteOpen(true);
+                      setDeleteError(null);
+                    }}
+                  >
+                    Supprimer ce billet
+                  </button>
+                </div>
+              </>
+            )}
           </aside>
+        </div>
+      )}
+
+      {deleteOpen && (
+        <div
+          className="carnet-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !deleteSubmitting) {
+              setDeleteOpen(false);
+              setDeleteError(null);
+            }
+          }}
+        >
+          <div className="carnet-modal" role="dialog" aria-modal="true">
+            <header className="carnet-modal__header">
+              <h2>Supprimer ce billet ?</h2>
+              <button
+                type="button"
+                className="carnet-modal__close"
+                onClick={() => {
+                  if (deleteSubmitting) return;
+                  setDeleteOpen(false);
+                  setDeleteError(null);
+                }}
+                aria-label="Fermer"
+              >
+                ×
+              </button>
+            </header>
+
+            {deleteError && (
+              <div className="carnet-modal__error">Erreur : {deleteError}</div>
+            )}
+
+            <div className="carnet-modal__body">
+              <p>
+                «&nbsp;{post.title || 'Sans titre'}&nbsp;» sera définitivement supprimé. Cette action est irréversible.
+              </p>
+            </div>
+
+            <footer className="carnet-modal__footer">
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--ghost"
+                onClick={() => {
+                  setDeleteOpen(false);
+                  setDeleteError(null);
+                }}
+                disabled={deleteSubmitting}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--danger"
+                onClick={() => void deletePost()}
+                disabled={deleteSubmitting}
+              >
+                {deleteSubmitting ? 'Suppression…' : 'Supprimer'}
+              </button>
+            </footer>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── BiblioSearchPicker ─────────────────────────────────────────
+// Recherche live dans la bibliographie. Filtre sur authorLabel,
+// firstName / lastName, title, year, publisher, journal, slug.
+// Affiche jusqu'à 30 résultats sous l'input. Pas de saisie → pas
+// de liste affichée (sinon à 500 entrées on dérouler à l'infini).
+
+function BiblioSearchPicker({
+  options,
+  attachedIds,
+  onPick,
+}: {
+  options: BibEntry[];
+  attachedIds: Array<number | string>;
+  onPick: (id: number | string) => void;
+}): React.ReactElement {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onDoc(e: MouseEvent) {
+      if (!ref.current) return;
+      if (!ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  const attached = new Set(attachedIds.map(String));
+  const q = query.trim().toLowerCase();
+  const matches = q
+    ? options
+        .filter((b) => !attached.has(String(b.id)))
+        .filter((b) => {
+          const haystack = [
+            b.authorLabel ?? '',
+            ...(b.authors ?? []).flatMap((a) => [
+              a.firstName ?? '',
+              a.lastName ?? '',
+            ]),
+            b.title ?? '',
+            b.year != null ? String(b.year) : '',
+            (b as { publisher?: string }).publisher ?? '',
+            (b as { journal?: string }).journal ?? '',
+            b.slug ?? '',
+          ]
+            .join(' ')
+            .toLowerCase();
+          return haystack.includes(q);
+        })
+        .slice(0, 30)
+    : [];
+
+  return (
+    <div ref={ref} className="bib-picker">
+      <input
+        type="text"
+        className="bib-picker__input"
+        value={query}
+        placeholder="Chercher une référence (auteur·ice, titre, éditeur…)"
+        onFocus={() => setOpen(true)}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') setOpen(false);
+          if (e.key === 'Enter' && matches.length > 0) {
+            e.preventDefault();
+            onPick(matches[0].id);
+            setQuery('');
+          }
+        }}
+      />
+      {open && q.length > 0 && (
+        <div className="bib-picker__menu">
+          {matches.length === 0 && (
+            <div className="bib-picker__empty">Aucune référence ne matche.</div>
+          )}
+          {matches.map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              className="bib-picker__opt"
+              onMouseDown={(e) => {
+                // mousedown — pour ne pas perdre le focus avant le click
+                e.preventDefault();
+                onPick(b.id);
+                setQuery('');
+              }}
+            >
+              <span className="au">{b.authorLabel || '—'}</span>
+              {b.year != null && <> ({b.year})</>}
+              {b.title && (
+                <>
+                  {' · '}
+                  <span className="ti">{b.title}</span>
+                </>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── TagsPicker ─────────────────────────────────────────────────
+// Petit composant : input qui filtre les tags existants en
+// autocomplétion + propose « Créer ce tag » si la saisie ne matche
+// aucun tag. Les tags attachés sont rendus sous l'input en chips
+// muted avec × pour détacher.
+
+function TagsPicker({
+  allTags,
+  attached,
+  onAttach,
+  onDetach,
+  onCreate,
+}: {
+  allTags: Tag[];
+  attached: Tag[];
+  onAttach: (tag: Tag) => void;
+  onDetach: (id: number | string) => void;
+  onCreate: (name: string) => void | Promise<void>;
+}): React.ReactElement {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onDoc(e: MouseEvent) {
+      if (!ref.current) return;
+      if (!ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  const attachedIds = new Set(attached.map((t) => String(t.id)));
+  const q = query.trim().toLowerCase();
+  // Pas de q → on n'affiche rien : à 150 tags, dérouler la liste entière
+  // au focus ne sert à rien. Le menu n'apparaît que dès la première lettre.
+  const matches = q
+    ? allTags
+        .filter((t) => !attachedIds.has(String(t.id)))
+        .filter((t) => t.name.toLowerCase().includes(q) || t.slug.includes(q))
+        .slice(0, 30)
+    : [];
+  const exact = q && allTags.find((t) => t.name.toLowerCase() === q);
+
+  function pickFirst() {
+    if (matches.length > 0) {
+      onAttach(matches[0]);
+      setQuery('');
+      return;
+    }
+    if (q && !exact) {
+      void onCreate(query);
+      setQuery('');
+    }
+  }
+
+  return (
+    <div ref={ref} className="tags-picker">
+      <input
+        type="text"
+        className="tags-picker__input"
+        value={query}
+        placeholder="Tapez un tag, Entrée pour ajouter…"
+        onFocus={() => setOpen(true)}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            pickFirst();
+          }
+          if (e.key === 'Escape') setOpen(false);
+        }}
+      />
+      {open && q.length > 0 && (
+        <div className="tags-picker__menu">
+          {matches.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className="tags-picker__opt"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onAttach(t);
+                setQuery('');
+              }}
+            >
+              {t.name}
+            </button>
+          ))}
+          {q && !exact && matches.length === 0 && (
+            <button
+              type="button"
+              className="tags-picker__opt tags-picker__opt--create"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                void onCreate(query);
+                setQuery('');
+              }}
+            >
+              + Créer le tag « {query.trim()} »
+            </button>
+          )}
+        </div>
+      )}
+      {attached.length > 0 && (
+        <div className="tags-picker__attached">
+          {attached.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className="tag-chip"
+              onClick={() => onDetach(t.id)}
+              title="Retirer ce tag"
+            >
+              {t.name} <span aria-hidden="true">×</span>
+            </button>
+          ))}
         </div>
       )}
     </div>

@@ -6,6 +6,12 @@
 //   - citation_bloc   (block)  : citation longue avec source
 //   - figure          (block)  : image + légende + crédit
 //
+// Plus un container ElementNode :
+//   - draft_container (block, container) : zone brouillon — encapsule
+//     des paragraphes/headings/etc. encore inachevés. Visible dans le
+//     billet publié avec un bandeau « brouillon ». Édition normale en
+//     dedans, pas de champ raison (cf issue #1).
+//
 // Format JSON aligné sur celui généré par Payload BlocksFeature
 // (`type: 'block'` ou `'inlineBlock'`, `fields.blockType`, `fields.*`),
 // pour que les posts existants se chargent sans migration et que le
@@ -14,18 +20,20 @@
 // Edition : chaque block rend un petit form inline (textareas + selects)
 // dans son propre DOM — pas de drawer Payload, pas de modal.
 
-import React, { useEffect, useRef, useState } from 'react';
-import { $getNodeByKey, DecoratorNode } from 'lexical';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { $getNodeByKey, DecoratorNode, ElementNode } from 'lexical';
 import type {
   EditorConfig,
   LexicalEditor,
   LexicalNode,
   NodeKey,
+  SerializedElementNode,
   SerializedLexicalNode,
   Spread,
 } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 
+import { formatAuthorsShort } from '@/lib/format-authors';
 import { useBiblioOptions } from './context';
 
 // ─── Types ────────────────────────────────────────────────────────
@@ -34,6 +42,7 @@ export type FootnoteFields = { content: string };
 export type BiblioInlineFields = {
   entry: number | string | null;
   prefix?: string;
+  pages?: string;
   suffix?: string;
 };
 export type CitationBlocFields = { text: string; source?: string };
@@ -165,6 +174,7 @@ function BiblioInlineRenderer({
 }) {
   const [local, patch] = useNodeFields<BiblioInlineFields>(nodeKey, fields);
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const ref = useRef<HTMLSpanElement>(null);
   const biblioOptions = useBiblioOptions();
 
@@ -182,9 +192,35 @@ function BiblioInlineRenderer({
   const selected = local.entry
     ? biblioOptions.find((b) => String(b.id) === String(local.entry))
     : null;
+  const shortAuthors = selected ? formatAuthorsShort(selected.authors) : '';
   const label = selected
-    ? `(${selected.author ?? '—'}${selected.year ? `, ${selected.year}` : ''})`
+    ? `(${shortAuthors || '—'}${selected.year ? `, ${selected.year}` : ''})`
     : '(réf. à choisir)';
+
+  // Liste filtrée par la recherche : substring match insensible à la
+  // casse sur authorLabel, year, title. Cap à 30 résultats pour éviter
+  // un dropdown gigantesque. Tant que la requête est vide, on n'affiche
+  // rien — pas d'avalanche au clic d'ouverture du popover.
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return [];
+    return biblioOptions
+      .filter((b) => {
+        const hay = `${b.authorLabel ?? ''} ${b.year ?? ''} ${b.title ?? ''}`.toLowerCase();
+        return hay.includes(q);
+      })
+      .slice(0, 30);
+  }, [biblioOptions, search]);
+
+  function pickEntry(id: number | string) {
+    patch({ entry: id });
+    setSearch('');
+  }
+
+  function clearEntry() {
+    patch({ entry: null });
+    setSearch('');
+  }
 
   return (
     <span ref={ref} className="ed-bi">
@@ -205,33 +241,82 @@ function BiblioInlineRenderer({
       {open && (
         <span className="ed-bi__pop">
           <span className="lbl">Référence bibliographique</span>
-          <select
-            value={local.entry == null ? '' : String(local.entry)}
-            onChange={(e) =>
-              patch({ entry: e.target.value === '' ? null : Number(e.target.value) || e.target.value })
-            }
-          >
-            <option value="">— aucune —</option>
-            {biblioOptions.map((b) => (
-              <option key={b.id} value={String(b.id)}>
-                {b.author ?? '—'}
-                {b.year ? ` (${b.year})` : ''}
-                {b.title ? ` · ${b.title}` : ''}
-              </option>
-            ))}
-          </select>
-          <span className="lbl">Préfixe</span>
-          <input
-            type="text"
-            value={local.prefix ?? ''}
-            placeholder="cf., voir…"
-            onChange={(e) => patch({ prefix: e.target.value })}
-          />
+          {selected ? (
+            <span className="ed-bi__selected">
+              <span className="ed-bi__selected-label">
+                {selected.authorLabel || '—'}
+                {selected.year ? ` (${selected.year})` : ''}
+                {selected.title ? ` · ${selected.title}` : ''}
+              </span>
+              <button
+                type="button"
+                className="ed-bi__selected-clear"
+                onClick={clearEntry}
+                aria-label="Retirer la référence"
+                title="Retirer"
+              >
+                ×
+              </button>
+            </span>
+          ) : (
+            <>
+              <input
+                type="text"
+                className="ed-bi__search"
+                value={search}
+                placeholder="Rechercher (auteur, année, titre)…"
+                onChange={(e) => setSearch(e.target.value)}
+                autoFocus
+              />
+              {search.trim() && (
+                <span className="ed-bi__results">
+                  {filtered.length === 0 ? (
+                    <span className="ed-bi__empty">Aucune référence trouvée.</span>
+                  ) : (
+                    filtered.map((b) => (
+                      <button
+                        key={b.id}
+                        type="button"
+                        className="ed-bi__result"
+                        onClick={() => pickEntry(b.id)}
+                      >
+                        <span className="author">{b.authorLabel || '—'}</span>
+                        {b.year ? <span className="year"> ({b.year})</span> : null}
+                        {b.title ? <span className="title"> · {b.title}</span> : null}
+                      </button>
+                    ))
+                  )}
+                </span>
+              )}
+            </>
+          )}
+
+          <span className="ed-bi__row">
+            <span className="ed-bi__col">
+              <span className="lbl">Préfixe</span>
+              <input
+                type="text"
+                value={local.prefix ?? ''}
+                placeholder="cf., voir…"
+                onChange={(e) => patch({ prefix: e.target.value })}
+              />
+            </span>
+            <span className="ed-bi__col">
+              <span className="lbl">Page(s)</span>
+              <input
+                type="text"
+                value={local.pages ?? ''}
+                placeholder="47, 47-52…"
+                onChange={(e) => patch({ pages: e.target.value })}
+              />
+            </span>
+          </span>
+
           <span className="lbl">Suffixe</span>
           <input
             type="text"
             value={local.suffix ?? ''}
-            placeholder=", p. 47"
+            placeholder="chap. 3, tableau 4…"
             onChange={(e) => patch({ suffix: e.target.value })}
           />
         </span>
@@ -477,6 +562,7 @@ export class CarnetInlineBlockNode extends DecoratorNode<React.ReactElement> {
           fields={{
             entry: (fields.entry as number | string | null) ?? null,
             prefix: String(fields.prefix ?? ''),
+            pages: String(fields.pages ?? ''),
             suffix: String(fields.suffix ?? ''),
           }}
         />
@@ -496,4 +582,110 @@ export function $isCarnetInlineBlockNode(
   node: LexicalNode | null | undefined,
 ): node is CarnetInlineBlockNode {
   return node instanceof CarnetInlineBlockNode;
+}
+
+// ─── Draft container ──────────────────────────────────────────────
+//
+// Zone brouillon : un ElementNode qui wrappe N children Lexical
+// (paragraphes, headings, citations…) en gardant l'édition fluide
+// dans le flux principal. Round-trip JSON via `type: 'draft_container'`,
+// pas de Block Payload (pas de migration pgsql à faire — body est
+// déjà jsonb). Le rendu admin (createDOM) pose une className `ed-draft`
+// sur un <div>, le bandeau visuel est en CSS pseudo-element. Pas de
+// champ `reason` (cf issue #1, drop décidé en cours d'implé).
+
+type SerializedDraftContainerNode = Spread<
+  {
+    type: 'draft_container';
+    version: 1;
+  },
+  SerializedElementNode
+>;
+
+export class DraftContainerNode extends ElementNode {
+  static getType(): string {
+    return 'draft_container';
+  }
+
+  static clone(node: DraftContainerNode): DraftContainerNode {
+    return new DraftContainerNode(node.__key);
+  }
+
+  static importJSON(_json: SerializedDraftContainerNode): DraftContainerNode {
+    return $createDraftContainerNode();
+  }
+
+  exportJSON(): SerializedDraftContainerNode {
+    return {
+      ...super.exportJSON(),
+      type: 'draft_container',
+      version: 1,
+    };
+  }
+
+  createDOM(_config: EditorConfig): HTMLElement {
+    const el = document.createElement('div');
+    el.className = 'ed-draft';
+
+    // Bouton « valider la zone » : retire les marqueurs en gardant le
+    // contenu (cf $unwrapDraftContainer). Non éditable (Lexical
+    // ignore les enfants `contenteditable=false` non-Lexical), absolute-
+    // positionné hors flux. Click → custom event bubble jusqu'au
+    // document, où DraftValidatePlugin (Editor.tsx) le capte et lance
+    // l'unwrap dans editor.update() — on ne peut pas appeler
+    // directement editor.update ici, createDOM n'a pas l'editor.
+    const btn = document.createElement('button');
+    btn.className = 'ed-draft__validate';
+    btn.type = 'button';
+    btn.contentEditable = 'false';
+    btn.setAttribute('aria-label', 'Publier la zone — sortir du brouillon');
+    btn.title = 'Publier la zone — sortir du brouillon';
+    btn.textContent = '✓ publier';
+    const nodeKey = this.__key;
+    btn.addEventListener('mousedown', (e) => {
+      // mousedown (et pas click) pour ne pas perdre le focus de
+      // l'éditeur entre l'event et l'update — l'unwrap doit pouvoir
+      // remonter le node depuis sa key sans que la sélection ait dérivé.
+      e.preventDefault();
+      e.stopPropagation();
+      btn.dispatchEvent(
+        new CustomEvent('carnet:validate-draft', {
+          detail: { nodeKey },
+          bubbles: true,
+        }),
+      );
+    });
+    el.appendChild(btn);
+
+    return el;
+  }
+
+  updateDOM(): false {
+    return false;
+  }
+}
+
+export function $createDraftContainerNode(): DraftContainerNode {
+  return new DraftContainerNode();
+}
+
+export function $isDraftContainerNode(
+  node: LexicalNode | null | undefined,
+): node is DraftContainerNode {
+  return node instanceof DraftContainerNode;
+}
+
+/**
+ * Retire un DraftContainerNode en remontant ses children comme frères
+ * directs du parent — l'utilisatrice valide la zone, le contenu reste
+ * mais les marqueurs disparaissent. À appeler dans un editor.update().
+ */
+export function $unwrapDraftContainer(node: DraftContainerNode): void {
+  const children = [...node.getChildren()];
+  let cursor: LexicalNode = node;
+  for (const child of children) {
+    cursor.insertAfter(child);
+    cursor = child;
+  }
+  node.remove();
 }

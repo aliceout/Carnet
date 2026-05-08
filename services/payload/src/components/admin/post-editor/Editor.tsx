@@ -26,6 +26,8 @@ import { HeadingNode, QuoteNode, $createHeadingNode, $createQuoteNode } from '@l
 import { LinkNode } from '@lexical/link';
 import { ListNode, ListItemNode } from '@lexical/list';
 import {
+  $createParagraphNode,
+  $getNodeByKey,
   $getRoot,
   $getSelection,
   $isElementNode,
@@ -47,6 +49,10 @@ import {
   CarnetInlineBlockNode,
   $createCarnetInlineBlockNode,
   $isCarnetInlineBlockNode,
+  DraftContainerNode,
+  $createDraftContainerNode,
+  $isDraftContainerNode,
+  $unwrapDraftContainer,
   type CarnetBlockData,
   type CarnetInlineBlockData,
 } from './nodes';
@@ -326,6 +332,21 @@ const SLASH_ITEMS: SlashItem[] = [
           fields: { image: null, legende: '', credit: '', align: 'corps' },
         }),
       ]);
+    },
+  },
+  {
+    id: 'draft',
+    group: 'Blocs Carnet',
+    ic: '⚠',
+    label: 'Zone brouillon',
+    desc: 'Marque une zone du billet comme inachevée',
+    doInsert: () => {
+      // Container vide avec un paragraphe enfant pour pouvoir taper
+      // dedans tout de suite. Sans children, le node serait dégénéré
+      // et Lexical le re-supprimerait au prochain reconciliate.
+      const draft = $createDraftContainerNode();
+      draft.append($createParagraphNode());
+      $insertNodes([draft]);
     },
   },
   {
@@ -624,6 +645,33 @@ function EditorRefPlugin({ onMount }: { onMount: (editor: LexicalEditor) => void
   return null;
 }
 
+// ─── Plugin : validation d'une zone brouillon ────────────────────
+// Le bouton « ✓ valider » rendu par DraftContainerNode.createDOM
+// dispatch un CustomEvent `carnet:validate-draft` qui bubble jusqu'au
+// document. Ce plugin l'écoute et lance l'unwrap dans editor.update().
+// Pourquoi pas un click direct dans createDOM : createDOM n'a pas
+// accès à l'editor, et le click sortirait du contexte Lexical.
+
+function DraftValidatePlugin() {
+  const [editor] = useLexicalComposerContext();
+  useEffect(() => {
+    function handler(e: Event) {
+      const ce = e as CustomEvent<{ nodeKey?: string }>;
+      const nodeKey = ce.detail?.nodeKey;
+      if (!nodeKey) return;
+      editor.update(() => {
+        const node = $getNodeByKey(nodeKey);
+        if (node && $isDraftContainerNode(node)) {
+          $unwrapDraftContainer(node);
+        }
+      });
+    }
+    document.addEventListener('carnet:validate-draft', handler as EventListener);
+    return () => document.removeEventListener('carnet:validate-draft', handler as EventListener);
+  }, [editor]);
+  return null;
+}
+
 // ─── Editor principal ────────────────────────────────────────────
 
 export default function PostBodyEditor({
@@ -656,6 +704,7 @@ export default function PostBodyEditor({
         ListItemNode,
         CarnetBlockNode,
         CarnetInlineBlockNode,
+        DraftContainerNode,
       ],
       editorState: initialJsonRef.current,
     }),
@@ -688,7 +737,10 @@ export default function PostBodyEditor({
             contentEditable={<ContentEditable className="ed-body__ce" spellCheck />}
             placeholder={
               <div className="ed-body__placeholder">
-                Commence à taper, ou tape « / » pour insérer un bloc Carnet…
+                Commencez à écrire votre billet. Tapez{' '}
+                <kbd>/</kbd> pour ouvrir le menu d’insertion (note de bas de
+                page, citation, référence bibliographique, figure, titre de
+                section…).
               </div>
             }
             ErrorBoundary={LexicalErrorBoundary}
@@ -697,6 +749,7 @@ export default function PostBodyEditor({
           <OnChangePlugin onChange={handleChange} />
           <KeyboardPlugin />
           <SlashMenuPlugin biblioOptions={biblioOptions} />
+          <DraftValidatePlugin />
           {onEditor && <EditorRefPlugin onMount={onEditor} />}
         </LexicalComposer>
       </div>

@@ -69,6 +69,7 @@ export interface Config {
   collections: {
     posts: Post;
     themes: Theme;
+    tags: Tag;
     bibliography: Bibliography;
     pages: Page;
     users: User;
@@ -82,6 +83,7 @@ export interface Config {
   collectionsSelect: {
     posts: PostsSelect<false> | PostsSelect<true>;
     themes: ThemesSelect<false> | ThemesSelect<true>;
+    tags: TagsSelect<false> | TagsSelect<true>;
     bibliography: BibliographySelect<false> | BibliographySelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -149,6 +151,28 @@ export interface Post {
    * Taxonomie multivaluée — un billet peut appartenir à plusieurs thèmes.
    */
   themes?: (number | Theme)[] | null;
+  /**
+   * Mots-clés libres, ajoutés à la volée depuis l’édition du billet. Différents des thèmes (qui sont structurants).
+   */
+  tags?: (number | Tag)[] | null;
+  /**
+   * Au moins un·e. La première entrée est auto-remplie au create avec l’utilisateur·rice connecté·e. Pour les externes (collègues hors Carnet), choisir « Externe » et saisir le nom + rattachement.
+   */
+  authors?:
+    | {
+        kind: 'user' | 'external';
+        user?: (number | null) | User;
+        /**
+         * Ex. « Aïcha Touré »
+         */
+        name?: string | null;
+        /**
+         * Optionnel, ex. « LATTS ».
+         */
+        affiliation?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   publishedAt: string;
   /**
    * ~2-3 phrases — affichées en deck sous le titre.
@@ -185,6 +209,10 @@ export interface Post {
    */
   idCarnet?: string | null;
   draft?: boolean | null;
+  /**
+   * Calculé automatiquement — vrai si le corps contient au moins une zone marquée brouillon. Filtrable depuis la liste des billets.
+   */
+  hasDraftZones?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -211,6 +239,98 @@ export interface Theme {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tags".
+ */
+export interface Tag {
+  id: number;
+  /**
+   * Mot-clé libre, ex : « Russie », « pinkwashing », « Conseil des droits de l’homme ».
+   */
+  name: string;
+  /**
+   * Auto-dérivé du nom (slugify). Sert d’ancre URL `/tag/<slug>/`.
+   */
+  slug: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: number;
+  displayName?: string | null;
+  /**
+   * Format Chicago author-date « Nom, P. » utilisé pour vous dans le bloc « Pour citer » des billets que vous co-signez. Si vide, la signature est dérivée automatiquement du nom affiché.
+   */
+  citationFormat?: string | null;
+  /**
+   * Root = compte propriétaire (1 seul, non supprimable). Admin = peut gérer les comptes. Éditeur·ice = édite le contenu.
+   */
+  role: 'root' | 'admin' | 'editor';
+  /**
+   * Géré automatiquement par le système d'invitation.
+   */
+  status?: ('pending' | 'active' | 'disabled') | null;
+  invitation?: {
+    tokenHash?: string | null;
+    expiresAt?: string | null;
+    invitedBy?: (number | null) | User;
+    invitedAt?: string | null;
+  };
+  twoFactor?: {
+    emailCodeHash?: string | null;
+    emailCodeExpiresAt?: string | null;
+    emailCodeAttempts?: number | null;
+  };
+  lastActivityAt?: string | null;
+  lastLoginAt?: string | null;
+  zotero?: {
+    apiKey?: string | null;
+    /**
+     * Identifiant numérique — visible dans l’URL https://www.zotero.org/<userId>/library.
+     */
+    libraryId?: string | null;
+    libraryType?: ('user' | 'group') | null;
+    /**
+     * Mis à jour automatiquement à chaque synchronisation.
+     */
+    lastSyncAt?: string | null;
+    /**
+     * Sert au diff incrémental côté Zotero (param `since`).
+     */
+    lastSyncVersion?: number | null;
+    lastSyncAdded?: number | null;
+    lastSyncUpdated?: number | null;
+    lastSyncError?: string | null;
+  };
+  trustedDevices?:
+    | {
+        deviceId: string;
+        fingerprintHash: string;
+        label?: string | null;
+        userAgent?: string | null;
+        ip?: string | null;
+        createdAt: string;
+        expiresAt: string;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  password?: string | null;
+  collection: 'users';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "bibliography".
  */
 export interface Bibliography {
@@ -220,11 +340,16 @@ export interface Bibliography {
    */
   slug: string;
   type: 'book' | 'chapter' | 'article' | 'paper' | 'web' | 'other';
-  /**
-   * Format Chicago : « Nom, Prénom » ; plusieurs auteurs séparés par « ; ».
-   */
-  author: string;
   year: number;
+  /**
+   * Une ligne par personne (1er = auteur·ice principal·e, utilisé pour le tri et la citation courte). `firstName` peut rester vide pour les auteurs corporatifs (UNESCO, Conseil de l’Europe…).
+   */
+  authors: {
+    lastName: string;
+    firstName?: string | null;
+    role: 'author' | 'editor' | 'translator';
+    id?: string | null;
+  }[];
   title: string;
   /**
    * Pour les livres : éditeur. Pour les articles : revue.
@@ -246,6 +371,23 @@ export interface Bibliography {
    * Optionnel — note de lecture, raison de l'inclusion, mémo de contexte. Non publié.
    */
   annotation?: string | null;
+  /**
+   * Posée à la création — détermine si la ref est éditable au Carnet ou pilotée par Zotero.
+   */
+  source: 'manual' | 'zotero';
+  /**
+   * Identifiant interne Zotero — sert de pivot pour le sync.
+   */
+  zoteroKey?: string | null;
+  /**
+   * Numéro de version Zotero — sert au diff incrémental.
+   */
+  zoteroVersion?: number | null;
+  /**
+   * Renseigné pour les refs synchronisées — l'auteur du sync. Sert à scoper le picker biblio par user (cf v2).
+   */
+  owner?: (number | null) | User;
+  authorLabel?: string | null;
   displayLabel?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -339,6 +481,10 @@ export interface Page {
  */
 export interface Media {
   id: number;
+  /**
+   * Optionnel. Si vide à la sauvegarde, le texte alternatif est utilisé.
+   */
+  title?: string | null;
   alt: string;
   updatedAt: string;
   createdAt: string;
@@ -351,58 +497,6 @@ export interface Media {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
- */
-export interface User {
-  id: number;
-  displayName?: string | null;
-  /**
-   * Root = compte propriétaire (1 seul, non supprimable). Admin = peut gérer les comptes. Éditeur·ice = édite le contenu.
-   */
-  role: 'root' | 'admin' | 'editor';
-  /**
-   * Géré automatiquement par le système d'invitation.
-   */
-  status: 'pending' | 'active' | 'disabled';
-  invitation?: {
-    tokenHash?: string | null;
-    expiresAt?: string | null;
-    invitedBy?: (number | null) | User;
-    invitedAt?: string | null;
-  };
-  twoFactor?: {
-    emailCodeHash?: string | null;
-    emailCodeExpiresAt?: string | null;
-    emailCodeAttempts?: number | null;
-  };
-  lastActivityAt?: string | null;
-  lastLoginAt?: string | null;
-  trustedDevices?:
-    | {
-        deviceId: string;
-        fingerprintHash: string;
-        label?: string | null;
-        userAgent?: string | null;
-        ip?: string | null;
-        createdAt: string;
-        expiresAt: string;
-        id?: string | null;
-      }[]
-    | null;
-  updatedAt: string;
-  createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  password?: string | null;
-  collection: 'users';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -435,6 +529,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'themes';
         value: number | Theme;
+      } | null)
+    | ({
+        relationTo: 'tags';
+        value: number | Tag;
       } | null)
     | ({
         relationTo: 'bibliography';
@@ -504,6 +602,16 @@ export interface PostsSelect<T extends boolean = true> {
   slug?: T;
   type?: T;
   themes?: T;
+  tags?: T;
+  authors?:
+    | T
+    | {
+        kind?: T;
+        user?: T;
+        name?: T;
+        affiliation?: T;
+        id?: T;
+      };
   publishedAt?: T;
   lede?: T;
   body?: T;
@@ -511,6 +619,7 @@ export interface PostsSelect<T extends boolean = true> {
   readingTime?: T;
   idCarnet?: T;
   draft?: T;
+  hasDraftZones?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -527,13 +636,30 @@ export interface ThemesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tags_select".
+ */
+export interface TagsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "bibliography_select".
  */
 export interface BibliographySelect<T extends boolean = true> {
   slug?: T;
   type?: T;
-  author?: T;
   year?: T;
+  authors?:
+    | T
+    | {
+        lastName?: T;
+        firstName?: T;
+        role?: T;
+        id?: T;
+      };
   title?: T;
   publisher?: T;
   place?: T;
@@ -543,6 +669,11 @@ export interface BibliographySelect<T extends boolean = true> {
   url?: T;
   doi?: T;
   annotation?: T;
+  source?: T;
+  zoteroKey?: T;
+  zoteroVersion?: T;
+  owner?: T;
+  authorLabel?: T;
   displayLabel?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -597,6 +728,7 @@ export interface PagesSelect<T extends boolean = true> {
  */
 export interface UsersSelect<T extends boolean = true> {
   displayName?: T;
+  citationFormat?: T;
   role?: T;
   status?: T;
   invitation?:
@@ -616,6 +748,18 @@ export interface UsersSelect<T extends boolean = true> {
       };
   lastActivityAt?: T;
   lastLoginAt?: T;
+  zotero?:
+    | T
+    | {
+        apiKey?: T;
+        libraryId?: T;
+        libraryType?: T;
+        lastSyncAt?: T;
+        lastSyncVersion?: T;
+        lastSyncAdded?: T;
+        lastSyncUpdated?: T;
+        lastSyncError?: T;
+      };
   trustedDevices?:
     | T
     | {
@@ -643,6 +787,7 @@ export interface UsersSelect<T extends boolean = true> {
  * via the `definition` "media_select".
  */
 export interface MediaSelect<T extends boolean = true> {
+  title?: T;
   alt?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -704,13 +849,9 @@ export interface Site {
   id: number;
   identity?: {
     /**
-     * Affiché en signature dans la baseline du footer et la description meta (ex. « Marie Dupont »).
+     * Nom du laboratoire de recherche, de la personne, du collectif… selon l'utilisation du carnet. Affiché en signature dans la baseline du footer et la description meta.
      */
     authorName?: string | null;
-    /**
-     * Format Chicago author-date « Nom, Prénom » utilisé dans la citation des billets (« Pour citer cet article »).
-     */
-    authorCitation?: string | null;
   };
   branding?: {
     /**
@@ -722,9 +863,15 @@ export interface Site {
      */
     backgroundColor?: ('#f6f5f1' | '#fdfcf8' | '#ffffff' | '#f1efe8' | '#eee9dd' | '#e9eaec') | null;
   };
+  reading?: {
+    /**
+     * Le mode classique empile les notes en bas du billet (style académique). Le mode en marge les place dans une colonne à droite, alignée sur le paragraphe qui les appelle (style « Tufte »). S'applique uniformément à tous les billets du Carnet. Cf issue #6.
+     */
+    notesMode?: ('classic' | 'sidenotes') | null;
+  };
   home?: {
     /**
-     * H1 de la page d'accueil. Entourer une portion de "*" pour la mettre en italique (ex. *études de genre*).
+     * H1 de la page d'accueil. Entourer une portion de "*" pour la mettre en italique.
      */
     heroTitle?: string | null;
     /**
@@ -798,13 +945,17 @@ export interface SiteSelect<T extends boolean = true> {
     | T
     | {
         authorName?: T;
-        authorCitation?: T;
       };
   branding?:
     | T
     | {
         accentColor?: T;
         backgroundColor?: T;
+      };
+  reading?:
+    | T
+    | {
+        notesMode?: T;
       };
   home?:
     | T

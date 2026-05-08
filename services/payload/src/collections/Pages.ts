@@ -28,6 +28,11 @@ export const Pages: CollectionConfig = {
     listSearchableFields: ['title', 'slug'],
     components: {
       views: {
+        edit: {
+          root: {
+            Component: '@/components/admin/PageEditView#default',
+          },
+        },
         list: {
           Component: '@/components/admin/PagesListView#default',
         },

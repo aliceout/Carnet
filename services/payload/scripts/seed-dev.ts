@@ -44,9 +44,15 @@ const THEMES = [
 // payload-types.ts → interface Bibliography). Sans cette annotation, TS
 // élargit `type: 'book'` en `string` et payload.create({ data: entry })
 // rejette à la compilation.
+type BibAuthorSeed = {
+  lastName: string;
+  firstName?: string;
+  role: 'author' | 'editor' | 'translator';
+};
+
 type BiblioSeed = {
   slug: string;
-  author: string;
+  authors: BibAuthorSeed[];
   year: number;
   title: string;
   type: 'book' | 'chapter' | 'article' | 'paper' | 'web' | 'other';
@@ -60,7 +66,7 @@ type BiblioSeed = {
 const BIBLIOGRAPHY: BiblioSeed[] = [
   {
     slug: 'farris-2017',
-    author: 'Farris, Sara R.',
+    authors: [{ lastName: 'Farris', firstName: 'Sara R.', role: 'author' }],
     year: 2017,
     title: "In the Name of Women's Rights. The Rise of Femonationalism",
     type: 'book',
@@ -69,7 +75,7 @@ const BIBLIOGRAPHY: BiblioSeed[] = [
   },
   {
     slug: 'massad-2007',
-    author: 'Massad, Joseph',
+    authors: [{ lastName: 'Massad', firstName: 'Joseph', role: 'author' }],
     year: 2007,
     title: 'Desiring Arabs',
     type: 'book',
@@ -78,7 +84,7 @@ const BIBLIOGRAPHY: BiblioSeed[] = [
   },
   {
     slug: 'puar-2007',
-    author: 'Puar, Jasbir K.',
+    authors: [{ lastName: 'Puar', firstName: 'Jasbir K.', role: 'author' }],
     year: 2007,
     title: 'Terrorist Assemblages. Homonationalism in Queer Times',
     type: 'book',
@@ -87,7 +93,7 @@ const BIBLIOGRAPHY: BiblioSeed[] = [
   },
   {
     slug: 'saiz-2014',
-    author: 'Saiz, Ignacio',
+    authors: [{ lastName: 'Saiz', firstName: 'Ignacio', role: 'author' }],
     year: 2014,
     title: 'Bracketing Sexuality',
     type: 'article',
@@ -458,7 +464,6 @@ const ABOUT_PAGE = {
 const SITE_GLOBAL = {
   identity: {
     authorName: 'Michel Rose',
-    authorCitation: 'Rose, Michel',
   },
   baseline:
     'Carnet de recherche de Michel Rose. Genre, géopolitique, droits LGBTQI+, humanitaire, migrations. Auto-hébergé. Sans pisteur.',

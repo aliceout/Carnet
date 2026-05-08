@@ -17,6 +17,13 @@ permissions:
   contents: read
   packages: write
 
+# Force toutes les actions JavaScript déclarant `node20` à tourner sur
+# le runtime Node 24 du runner. Workaround officiel GitHub pour la
+# transition node20 → node24 (déprécié juin 2026, retiré sept. 2026).
+# Cf https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   # ─── Test : type-check + build smoke-test ──────────────────────
   # Tourne sur push ET PR. Les jobs build / deploy sont gated sur
@@ -25,16 +32,16 @@ jobs:
     name: Type check + Astro build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Pas de `version:` ici — la version pnpm est portée par le champ
       # `packageManager` dans package.json (pnpm@10.33.0). Spécifier les
       # deux fait planter l'action avec ERR_PNPM_BAD_PM_VERSION.
       - uses: pnpm/action-setup@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
 
       - name: Install dependencies
@@ -60,7 +67,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -72,16 +79,38 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Récupère les secrets build-time depuis Infisical (ADDRESS surtout —
-      # nécessaire au build Astro pour `Astro.site` qui alimente sitemap,
-      # RSS, canonical URLs, JSON-LD). Auth Universal Auth via Machine
-      # Identity dédiée CI.
+      # ─── Build-time secrets ──────────────────────────────────
+      # Deux modes mutuellement exclusifs détectés à l'exécution :
+      #   • Infisical (notre setup) : si INFISICAL_API_URL est défini
+      #     en GH secret, on fetch tout depuis Infisical cloud.
+      #   • Fallback GH secret (forks) : sinon, on lit ADDRESS depuis
+      #     un GH secret nommé ADDRESS. Suffit pour build une image
+      #     Docker out-of-the-box.
       #
-      # ⚠ Cet Infisical est l'instance *cloud* utilisée par la CI (pas
-      # l'Infisical self-hosted qui alimente le runtime VPS via deploy.sh).
-      # Le path /services/carnet diffère donc de l'arbo /web qu'on retrouve
-      # côté self-hosted.
+      # La détection passe par un step `run:` qui set un output
+      # booléen — on ne peut pas comparer un secret directement
+      # dans une condition `if:` (les secrets sont masqués).
+      # Cf issue #19.
+      - name: Detect secrets backend
+        id: detect
+        env:
+          INFISICAL_URL: ${{ secrets.INFISICAL_API_URL }}
+        run: |
+          if [ -n "$INFISICAL_URL" ]; then
+            echo "use_infisical=true" >> "$GITHUB_OUTPUT"
+            echo "→ Mode Infisical (INFISICAL_API_URL détecté)"
+          else
+            echo "use_infisical=false" >> "$GITHUB_OUTPUT"
+            echo "→ Mode GH secret (pas d'Infisical configuré)"
+          fi
+
+      # Mode Infisical — Auth Universal Auth via Machine Identity dédiée
+      # CI. ⚠ Cet Infisical est l'instance *cloud* utilisée par la CI
+      # (pas l'Infisical self-hosted qui alimente le runtime VPS via
+      # deploy.sh). Le path /services/carnet diffère donc de l'arbo
+      # /web qu'on retrouve côté self-hosted.
       - name: Fetch build-time secrets from Infisical
+        if: steps.detect.outputs.use_infisical == 'true'
         uses: Infisical/secrets-action@v1.0.7
         with:
           method: universal
@@ -96,6 +125,21 @@ jobs:
           env-slug: prod
           secret-path: /services/carnet
           export-type: env
+
+      # Fallback fork — récupère ADDRESS depuis un GH secret unique.
+      # Si quelqu'un fork le repo, il lui suffit d'ajouter un secret
+      # nommé ADDRESS pour que le build de l'image web passe (cf README,
+      # section « Forker sans Infisical »).
+      - name: Read ADDRESS from GH secret (fallback)
+        if: steps.detect.outputs.use_infisical == 'false'
+        env:
+          ADDRESS_FROM_SECRET: ${{ secrets.ADDRESS }}
+        run: |
+          if [ -z "$ADDRESS_FROM_SECRET" ]; then
+            echo "::error::Pas d'Infisical configuré ET pas de GH secret ADDRESS — l'image Docker ne peut pas se build sans Astro.site valide."
+            exit 1
+          fi
+          echo "ADDRESS=$ADDRESS_FROM_SECRET" >> "$GITHUB_ENV"
 
       - name: Build and push web
         uses: docker/build-push-action@v6
@@ -120,7 +164,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

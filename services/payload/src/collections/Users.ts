@@ -2,6 +2,7 @@ import type { CollectionConfig, FieldHook } from 'payload';
 
 import { canMutateRole, isAdminOrRoot, isSelfOrAdmin, userRole } from '../access/roles';
 import { AUTH_CONFIG } from '../auth/config';
+import { encrypt, isEncrypted } from '../lib/crypto';
 
 // Collection users — étendue pour supporter :
 //  - rôles (root unique / admin / editor)
@@ -50,11 +51,21 @@ export const Users: CollectionConfig = {
         list: {
           Component: '@/components/admin/UsersListView#default',
         },
+        // Vue d'édition entièrement custom — remplace le rendu natif
+        // Payload (form stacked + Change Password modal) par le layout
+        // Carnet (CarnetTopbar + sections + sidebar + modale danger).
+        // Cf UserEditView.client.tsx.
+        edit: {
+          root: {
+            Component: '@/components/admin/UserEditView#default',
+          },
+        },
       },
-      // Header custom (crumbs Carnet / Mon compte ou Carnet /
-      // Utilisateurs / [email]) au-dessus de la barre d'actions
-      // native pour /cms/admin/account et /cms/admin/collections/
-      // users/[id].
+      // Header custom (crumbs Carnet / Mon compte) au-dessus de la
+      // barre d'actions native pour /cms/admin/account. Sur
+      // /cms/admin/collections/users/[id] on a maintenant la vue
+      // entièrement custom (cf views.edit.root) — beforeDocumentControls
+      // n'est donc jamais rendu là.
       edit: {
         beforeDocumentControls: ['@/components/admin/AccountEditHeader#default'],
       },
@@ -121,6 +132,21 @@ export const Users: CollectionConfig = {
       type: 'text',
       label: 'Nom affiché',
       required: false,
+    },
+    {
+      // Format Chicago author-date personnel — affiché dans le bloc
+      // « Pour citer » des billets que ce user co-signe. Si vide, la
+      // signature est dérivée du displayName via une heuristique
+      // (cf src/lib/site.ts → formatPostCitationChicago). Utile pour
+      // les noms à particules ou les cas où l'heuristique se trompe.
+      name: 'citationFormat',
+      type: 'text',
+      label: 'Format citation (Chicago)',
+      required: false,
+      admin: {
+        description:
+          'Format Chicago author-date « Nom, P. » utilisé pour vous dans le bloc « Pour citer » des billets que vous co-signez. Si vide, la signature est dérivée automatiquement du nom affiché.',
+      },
     },
     {
       name: 'role',
@@ -261,6 +287,117 @@ export const Users: CollectionConfig = {
         position: 'sidebar',
         condition: (data) => Boolean(data?.id),
       },
+    },
+
+    // ─── Intégration Zotero (par-user) ───────────────────────────────
+    // Chaque user peut connecter sa bibliothèque Zotero personnelle.
+    // La clé API est chiffrée applicativement (PAYLOAD_SECRET) et n'est
+    // jamais exposée par l'API REST : `apiKey.access.read` retourne
+    // false, donc le champ est strictement omis des réponses.
+    //
+    // L'UI obtient un état sanitisé (configured + last4 + libraryId +
+    // lastSync*) via GET /cms/api/users/me/zotero-status. Les endpoints
+    // serveur qui ont besoin de la valeur claire (test, sync) lisent
+    // avec `overrideAccess: true` et appellent decrypt() explicitement.
+    {
+      name: 'zotero',
+      type: 'group',
+      label: 'Intégration Zotero',
+      access: {
+        read: isSelfOrAdmin,
+      },
+      admin: {
+        // Masqué dans l'UI native Payload — la saisie se fait depuis
+        // le panneau « Zotero » de la vue Compte custom.
+        hidden: true,
+        condition: (data) => Boolean(data?.id),
+      },
+      fields: [
+        {
+          name: 'apiKey',
+          type: 'text',
+          label: 'Clé API Zotero',
+          // Lecture interdite à tous les clients : la clé chiffrée n'est
+          // jamais exposée par l'API REST. Les endpoints serveur qui en
+          // ont besoin (test, sync) lisent avec `overrideAccess: true`,
+          // ce qui passe outre cette restriction. L'UI obtient un indice
+          // de présence (configured + last4) via GET /me/zotero-status.
+          access: {
+            read: () => false,
+          },
+          hooks: {
+            // Idempotent : si la valeur arrive déjà sous forme `zenc:…`
+            // on ne re-chiffre pas. Vide ou null laisse passer (efface
+            // la clé). Sinon on chiffre avant d'écrire en DB.
+            beforeChange: [
+              ({ value }) => {
+                if (value === null || value === undefined || value === '') return value;
+                if (typeof value !== 'string') return value;
+                if (isEncrypted(value)) return value;
+                return encrypt(value);
+              },
+            ],
+          },
+        },
+        {
+          name: 'libraryId',
+          type: 'text',
+          label: 'ID utilisateur Zotero',
+          admin: {
+            description:
+              'Identifiant numérique — visible dans l’URL https://www.zotero.org/<userId>/library.',
+          },
+        },
+        {
+          name: 'libraryType',
+          type: 'select',
+          required: false,
+          defaultValue: 'user',
+          label: 'Type de bibliothèque',
+          options: [
+            { label: 'Personnelle', value: 'user' },
+            { label: 'Groupe', value: 'group' },
+          ],
+        },
+        {
+          name: 'lastSyncAt',
+          type: 'date',
+          label: 'Dernier sync',
+          admin: {
+            readOnly: true,
+            description: 'Mis à jour automatiquement à chaque synchronisation.',
+          },
+          access: { update: () => false },
+        },
+        {
+          name: 'lastSyncVersion',
+          type: 'number',
+          label: 'Version Zotero du dernier sync',
+          admin: {
+            readOnly: true,
+            description: 'Sert au diff incrémental côté Zotero (param `since`).',
+          },
+          access: { update: () => false },
+        },
+        {
+          name: 'lastSyncAdded',
+          type: 'number',
+          admin: { readOnly: true, hidden: true },
+          access: { update: () => false },
+        },
+        {
+          name: 'lastSyncUpdated',
+          type: 'number',
+          admin: { readOnly: true, hidden: true },
+          access: { update: () => false },
+        },
+        {
+          name: 'lastSyncError',
+          type: 'text',
+          admin: { readOnly: true, hidden: true },
+          access: { update: () => false },
+        },
+      ],
     },
 
     // ─── Trusted devices (post-OTP, 7 jours) ─────────────────────────

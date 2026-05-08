@@ -7,7 +7,7 @@
 //   - Header : crumbs « Carnet / Site (global) », actions à droite (Save
 //     accent + indicateur de modifications)
 //   - Section Identité éditoriale : baseline (textarea), ligne copyright
-//   - Section Réseaux sociaux : mastodon, bluesky, orcid, hal
+//   - Section Être suivi : mastodon, bluesky, orcid, hal
 //   - Section Liens du footer (col 2 « Naviguer ») : array {label, href,
 //     external}, ajout/suppression/réordonnancement
 //
@@ -31,11 +31,13 @@ type NavLink = {
 type SiteData = {
   identity?: {
     authorName?: string;
-    authorCitation?: string;
   };
   branding?: {
     accentColor?: string;
     backgroundColor?: string;
+  };
+  reading?: {
+    notesMode?: 'classic' | 'sidenotes';
   };
   home?: {
     heroTitle?: string;
@@ -81,8 +83,9 @@ const BG_OPTIONS: { label: string; value: string }[] = [
 const DEFAULT_BG = BG_OPTIONS[0].value;
 
 const EMPTY: SiteData = {
-  identity: { authorName: '', authorCitation: '' },
+  identity: { authorName: '' },
   branding: { accentColor: DEFAULT_ACCENT, backgroundColor: DEFAULT_BG },
+  reading: { notesMode: 'classic' },
   home: { heroTitle: '', heroLede: '' },
   archives: { heroTitle: '', heroLede: '' },
   themes: { heroTitle: '', heroLede: '' },
@@ -113,11 +116,13 @@ export default function SiteEditViewClient(): React.ReactElement {
         const normalized: SiteData = {
           identity: {
             authorName: doc.identity?.authorName ?? '',
-            authorCitation: doc.identity?.authorCitation ?? '',
           },
           branding: {
             accentColor: doc.branding?.accentColor || DEFAULT_ACCENT,
             backgroundColor: doc.branding?.backgroundColor || DEFAULT_BG,
+          },
+          reading: {
+            notesMode: doc.reading?.notesMode === 'sidenotes' ? 'sidenotes' : 'classic',
           },
           home: {
             heroTitle: doc.home?.heroTitle ?? '',
@@ -246,7 +251,6 @@ export default function SiteEditViewClient(): React.ReactElement {
       const normalized: SiteData = {
         identity: {
           authorName: fresh.identity?.authorName ?? '',
-          authorCitation: fresh.identity?.authorCitation ?? '',
         },
         branding: {
           accentColor: fresh.branding?.accentColor || DEFAULT_ACCENT,
@@ -326,13 +330,13 @@ export default function SiteEditViewClient(): React.ReactElement {
           }}
         >
           <section className="carnet-editview__section">
-            <h2 className="carnet-editview__section-title">
-              Identité de l&apos;auteur·ice
-            </h2>
+            <h2 className="carnet-editview__section-title">Identité du carnet</h2>
             <p className="carnet-editview__section-help">
-              Le nom complet apparaît dans la baseline du footer et la
-              description meta. Le format citation (« Nom, Prénom ») est
-              utilisé dans le bloc « Pour citer cet article » des billets.
+              Nom global du carnet, affiché dans la baseline du footer et la
+              description meta.
+              <br />
+              Le format citation par auteur·ice (Chicago) se règle
+              individuellement dans Mon compte.
             </p>
 
             <label className="carnet-editview__field">
@@ -341,22 +345,14 @@ export default function SiteEditViewClient(): React.ReactElement {
                 type="text"
                 value={data.identity?.authorName ?? ''}
                 onChange={(e) => updateIdentity('authorName', e.target.value)}
-                placeholder="ex. Marie Dupont"
-              />
-            </label>
-
-            <label className="carnet-editview__field">
-              <span className="lbl">Format citation (Chicago)</span>
-              <input
-                type="text"
-                value={data.identity?.authorCitation ?? ''}
-                onChange={(e) => updateIdentity('authorCitation', e.target.value)}
-                placeholder="ex. Dupont, Marie"
+                placeholder="ex. Marie Dupont, LATTS, Collectif…"
               />
               <span className="hint">
-                Format « Nom, Prénom » — affiché dans la citation de chaque billet.
+                Nom du laboratoire de recherche, de la personne, du
+                collectif… selon l&apos;utilisation du carnet.
               </span>
             </label>
+
           </section>
 
           <section className="carnet-editview__section">
@@ -407,6 +403,34 @@ export default function SiteEditViewClient(): React.ReactElement {
                   ))}
                 </select>
               </div>
+            </label>
+          </section>
+
+          <section className="carnet-editview__section">
+            <h2 className="carnet-editview__section-title">Lecture des billets</h2>
+            <p className="carnet-editview__section-help">
+              Choix typographique pour les notes de bas de page. S&apos;applique à
+              tous les billets du Carnet.
+            </p>
+
+            <label className="carnet-editview__field">
+              <span className="lbl">Affichage des notes</span>
+              <select
+                value={data.reading?.notesMode ?? 'classic'}
+                onChange={(e) =>
+                  setData((d) => ({
+                    ...d,
+                    reading: { notesMode: e.target.value as 'classic' | 'sidenotes' },
+                  }))
+                }
+              >
+                <option value="classic">
+                  Classique — toutes les notes en pied d&apos;article
+                </option>
+                <option value="sidenotes">
+                  En marge — notes alignées à droite du paragraphe
+                </option>
+              </select>
             </label>
           </section>
 
@@ -514,7 +538,7 @@ export default function SiteEditViewClient(): React.ReactElement {
           </section>
 
           <section className="carnet-editview__section">
-            <h2 className="carnet-editview__section-title">Réseaux sociaux</h2>
+            <h2 className="carnet-editview__section-title">Être suivi</h2>
             <p className="carnet-editview__section-help">
               URLs complètes — laisser vide pour masquer.
             </p>
@@ -545,7 +569,7 @@ export default function SiteEditViewClient(): React.ReactElement {
                 <div className="carnet-editview__empty">Aucun lien.</div>
               )}
               {(data.navFooter ?? []).map((row, idx) => (
-                <div key={idx} className="carnet-editview__row">
+                <div key={idx} className="carnet-editview__rowitem">
                   <label className="carnet-editview__field carnet-editview__field--inline">
                     <span className="lbl">Label</span>
                     <input
@@ -570,7 +594,7 @@ export default function SiteEditViewClient(): React.ReactElement {
                     />
                     <span className="lbl">Externe</span>
                   </label>
-                  <div className="carnet-editview__row-actions">
+                  <div className="carnet-editview__rowitem-actions">
                     <button
                       type="button"
                       className="carnet-btn carnet-btn--ghost"

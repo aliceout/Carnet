@@ -20,14 +20,32 @@
  */
 import Layout from '../../layouts/Layout.astro';
 import { fetchBySlug, fetchCollection, fetchSite } from '../../lib/payload';
-import { renderLexicalWithFootnotes, extractToc } from '../../lib/lexical';
-import { formatDateFr, formatNumero } from '../../lib/site';
+import {
+  extractToc,
+  renderLexicalSidenotes,
+  renderLexicalWithFootnotes,
+} from '../../lib/lexical';
+import {
+  formatDateFr,
+  formatNumero,
+  formatPostByline,
+  formatPostCitationChicago,
+  type PostAuthorEntry,
+} from '../../lib/site';
+import { formatAuthorsChicago, formatTranslators } from '../../lib/format-authors';
 
 type Theme = { id: number | string; slug: string; name: string };
+type Tag = { id: number | string; slug: string; name: string };
+type BibAuthor = {
+  firstName?: string | null;
+  lastName: string;
+  role?: 'author' | 'editor' | 'translator';
+};
 type BiblioEntry = {
   id: number | string;
   slug: string;
-  author: string;
+  authors?: BibAuthor[] | null;
+  authorLabel?: string | null;
   year: number;
   title: string;
   type?: string;
@@ -47,6 +65,8 @@ type Post = {
   title: string;
   type: 'analyse' | 'note' | 'fiche';
   themes?: Theme[] | null;
+  tags?: Tag[] | null;
+  authors?: PostAuthorEntry[] | null;
   publishedAt: string;
   updatedAt?: string;
   lede: string;
@@ -84,9 +104,30 @@ const readingLabel = post.readingTime
     : `≈ ${post.readingTime} min`
   : null;
 
-// Body HTML rendu côté serveur depuis Lexical, plus la liste des
-// footnotes collectées (vide si pas de blocks Footnote dans le body).
-const { bodyHtml, footnotesHtml } = renderLexicalWithFootnotes(post.body);
+// Site global — fournit l'identité (citation Chicago) et le mode
+// d'affichage des notes (classique en pied / sidenotes en marge).
+type SiteData = {
+  reading?: { notesMode?: 'classic' | 'sidenotes' };
+};
+let site: SiteData = {};
+try {
+  site = await fetchSite<SiteData>();
+} catch (err) {
+  console.warn('[article] fetchSite failed:', (err as Error).message);
+}
+const notesMode: 'classic' | 'sidenotes' =
+  site.reading?.notesMode === 'sidenotes' ? 'sidenotes' : 'classic';
+
+// Body HTML rendu côté serveur depuis Lexical. En mode classique, on
+// récupère bodyHtml + footnotesHtml (notes empilées en pied). En mode
+// sidenotes, le rendu interleave les <aside class="marg"> juste après
+// chaque bloc concerné — pas de footnotesHtml séparé.
+const bodyHtml =
+  notesMode === 'sidenotes'
+    ? renderLexicalSidenotes(post.body)
+    : renderLexicalWithFootnotes(post.body).bodyHtml;
+const footnotesHtml =
+  notesMode === 'classic' ? renderLexicalWithFootnotes(post.body).footnotesHtml : '';
 const tocEntries = extractToc(post.body);
 
 // Bibliographie
@@ -119,19 +160,17 @@ if (primaryTheme) {
 
 const numLabel = formatNumero(post.numero);
 
-// Identité de l'auteur·ice — citation Chicago author-date depuis le
-// global Site Payload (champ identity.authorCitation, format « Nom,
-// Prénom »). Fallback générique si non renseigné.
-type SiteIdentity = { identity?: { authorCitation?: string } };
-let authorCitation = 'Auteur·ice';
-try {
-  const site = await fetchSite<SiteIdentity>();
-  if (site.identity?.authorCitation?.trim()) {
-    authorCitation = site.identity.authorCitation.trim();
-  }
-} catch (err) {
-  console.warn('[article] fetchSite (identity) failed:', (err as Error).message);
-}
+// Auteur·ices du billet — byline lisible sous le titre et signature
+// Chicago dans le bloc « Pour citer ». Cf issue #2.
+const postAuthors = (post.authors ?? []) as PostAuthorEntry[];
+const byline = formatPostByline(postAuthors);
+const postCitation = formatPostCitationChicago(postAuthors);
+
+// Si le billet n'a aucun·e auteur·ice renseigné·e (cas legacy ou
+// ratage), on tombe sur un placeholder neutre. Chaque user a son
+// propre `citationFormat` (cf Mon compte) qui surcharge l'heuristique
+// dans formatPostCitationChicago.
+const authorCitation = postCitation || 'Auteur·ice';
 
 // Citation bibliographique du billet (Chicago author-date façon Carnet)
 const articleUrl = new URL(Astro.url.pathname, Astro.site).toString();
@@ -142,7 +181,7 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
   title={post.title + ' — Carnet'}
   description={post.lede}
   progressBar={true}
-  bodyClass="justify notes-classic"
+  bodyClass={`justify notes-${notesMode}`}
 >
   <!-- TOC flottant -->
   {tocEntries.length > 0 && (
@@ -160,7 +199,9 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
       ))}
       {footnotesHtml && <a href="#notes" data-toc="notes">Notes</a>}
       {biblio.length > 0 && <a href="#biblio" data-toc="biblio">Bibliographie</a>}
-      <a href="#cite" data-toc="cite">Pour citer</a>
+      {post.type === 'analyse' && (
+        <a href="#cite" data-toc="cite">Pour citer</a>
+      )}
     </aside>
   )}
 
@@ -172,6 +213,7 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
     </div>
 
     <h1>{post.title}</h1>
+    {byline && <p class="byline">par {byline}</p>}
     <p class="deck">{post.lede}</p>
 
     <div class="meta-strip">
@@ -212,9 +254,10 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
           <ul class="biblio">
             {biblio.map((b) => (
               <li id={`bib-${b.slug}`}>
-                <span class="ba">{b.author}</span>
+                <span class="ba">{formatAuthorsChicago(b.authors)}</span>
                 {`, ${b.year}, `}
                 <em>{b.title}</em>
+                {formatTranslators(b.authors) && `, ${formatTranslators(b.authors)}`}
                 {b.publisher && `, ${b.place ? b.place + ', ' : ''}${b.publisher}`}
                 {b.journal && `, ${b.journal}`}
                 {b.volume && `, ${b.volume}`}
@@ -240,26 +283,40 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
         </section>
       )}
 
-      <section class="citation" id="cite">
-        <div class="lbl">Pour citer cet article</div>
-        <div class="body">
-          {authorCitation}. « {post.title} », <em>Carnet</em>, {numLabel}, {publishedFr},
-          <span class="url">{' '}{articleUrl}</span>.
-        </div>
-        <div class="acts">
-          <button
-            type="button"
-            class="copy-btn"
-            data-citation={citationText}
-            aria-label="Copier la citation"
-          >
-            Copier
-          </button>
-          <span class="placeholder" title="Téléchargement BibTeX prévu (issue #5)">BibTeX</span>
-          <span class="placeholder" title="Téléchargement RIS prévu (issue #5)">RIS</span>
-          <span class="placeholder" title="Export Zotero prévu (issue #5)">Zotero</span>
-        </div>
-      </section>
+      {post.tags && post.tags.length > 0 && (
+        <section class="post-tags" aria-label="Tags">
+          {post.tags
+            .filter((t): t is Tag => typeof t === 'object' && t !== null)
+            .map((t) => (
+              <a class="post-tag" href={`/tag/${t.slug}/`}>
+                #{t.slug}
+              </a>
+            ))}
+        </section>
+      )}
+
+      {post.type === 'analyse' && (
+        <section class="citation" id="cite">
+          <div class="lbl">Pour citer cet article</div>
+          <div class="body">
+            {authorCitation}. « {post.title} », <em>Carnet</em>, {numLabel}, {publishedFr},
+            <span class="url">{' '}{articleUrl}</span>.
+          </div>
+          <div class="acts">
+            <button
+              type="button"
+              class="copy-btn"
+              data-citation={citationText}
+              aria-label="Copier la citation"
+            >
+              Copier
+            </button>
+            <span class="placeholder" title="Téléchargement BibTeX prévu (issue #5)">BibTeX</span>
+            <span class="placeholder" title="Téléchargement RIS prévu (issue #5)">RIS</span>
+            <span class="placeholder" title="Export Zotero prévu (issue #5)">Zotero</span>
+          </div>
+        </section>
+      )}
 
       {related.length > 0 && primaryTheme && (
         <section class="related">
@@ -289,6 +346,17 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
   article.post {
     padding: 48px 80px 0;
   }
+  /* Cibles d'ancres du Sommaire : on offre une marge de scroll pour
+     que l'élément cliqué arrive ~1/3 du haut de la fenêtre, plutôt
+     que collé sous la topbar sticky. */
+  article.post :global(h2),
+  article.post :global(h3),
+  article.post #intro,
+  article.post #notes,
+  article.post #biblio,
+  article.post #cite {
+    scroll-margin-top: 33vh;
+  }
   article.post .crumbs {
     font-family: var(--font-sans);
     font-size: 11px;
@@ -309,11 +377,20 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
     line-height: 1.08;
     font-weight: 600;
     letter-spacing: -0.7px;
-    margin: 0 0 20px;
+    margin: 0 0 12px;
   }
   article.post h1 em {
     font-weight: 500;
     color: var(--color-accent);
+  }
+  /* Byline « par X et Y » entre le titre et le chapô. Style sobre,
+     italique muted. Cf issue #2. */
+  article.post .byline {
+    font-family: var(--font-serif);
+    font-size: 16px;
+    font-style: italic;
+    color: var(--color-muted);
+    margin: 0 0 20px;
   }
   article.post .deck {
     font-family: var(--font-serif);
@@ -496,10 +573,62 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
     font-size: 11px;
   }
 
+  /* Mode sidenotes — notes en marge à droite (cf issue #6).
+     Activé par body.notes-sidenotes. La <aside class="marg"> est
+     rendue inline juste après le bloc qui l'appelle, et flotte à
+     droite via margin-right négatif pour sortir dans la gouttière. */
+  body.notes-sidenotes .body-grid .col {
+    padding-right: 240px;
+    position: relative;
+  }
+  body.notes-sidenotes .body-grid .col :global(.marg) {
+    float: right;
+    clear: right;
+    width: 200px;
+    margin: 4px -240px 1.4em 16px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--color-muted);
+    text-align: left;
+  }
+  body.notes-sidenotes .body-grid .col :global(.marg-num) {
+    display: inline-block;
+    margin-right: 6px;
+    color: var(--color-accent);
+    font-weight: 600;
+    font-size: 11px;
+  }
+  body.notes-sidenotes .body-grid .col :global(.marg .fn-back) {
+    display: inline-block;
+    margin-left: 6px;
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    text-decoration: none;
+  }
+  body.notes-sidenotes .body-grid .col :global(.marg .fn-back:hover) {
+    text-decoration: underline;
+  }
+  /* Sous 1100px, plus la place pour la gouttière — fallback en bloc
+     intercalé, encadré accent à gauche pour distinguer le contenu. */
+  @media (max-width: 1100px) {
+    body.notes-sidenotes .body-grid .col {
+      padding-right: 0;
+    }
+    body.notes-sidenotes .body-grid .col :global(.marg) {
+      float: none;
+      width: auto;
+      margin: 16px 0;
+      padding: 10px 14px;
+      border-left: 2px solid var(--color-accent);
+      background: var(--color-citation-bg);
+    }
+  }
+
   /* Notes en pied d'article (style classique) */
   .footnotes-wrap {
-    max-width: 720px;
-    margin: 48px auto 0;
+    margin: 48px 0 0;
   }
   .footnotes-wrap :global(.footnotes-classic) {
     border-top: 1px solid var(--color-rule);
@@ -568,8 +697,30 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
     border-bottom: 1px solid var(--color-accent);
     color: inherit;
   }
+  /* Tags discrets en pied de billet — mono muted, plus discrets que
+     les chips de thèmes en couleur accent. Hover = accent. */
+  .post-tags {
+    margin-top: 32px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .post-tag {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--color-muted);
+    text-decoration: none;
+    padding: 2px 6px;
+    border: 1px solid var(--color-rule);
+    transition: color 0.12s, border-color 0.12s;
+  }
+  .post-tag:hover {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
   .citation {
-    background: #ece9e0;
+    background: var(--color-citation-bg);
     padding: 24px 28px;
     margin-top: 40px;
     border-radius: 4px;
@@ -764,17 +915,29 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
         }
       }
 
-      if ('IntersectionObserver' in window && sections.length > 0) {
-        const observer = new IntersectionObserver(
-          (entries) => {
-            const visible = entries
-              .filter((e) => e.isIntersecting)
-              .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-            if (visible[0]?.target.id) setActive(visible[0].target.id);
-          },
-          { rootMargin: '-20% 0px -70% 0px', threshold: 0 },
-        );
-        for (const sec of sections) observer.observe(sec);
+      // Scrollspy basé sur la position : on prend la dernière section
+      // dont le haut a dépassé la ligne 1/3 du viewport (cohérent avec
+      // `scroll-margin-top: 33vh`). Évite le bug où #intro (qui contient
+      // tous les h2/h3) gagnait en permanence avec IntersectionObserver.
+      if (sections.length > 0) {
+        let raf = 0;
+        const updateActive = () => {
+          raf = 0;
+          const line = window.innerHeight * 0.33;
+          let activeId = sections[0].id;
+          for (const sec of sections) {
+            if (sec.getBoundingClientRect().top <= line) activeId = sec.id;
+            else break;
+          }
+          setActive(activeId);
+        };
+        const onScroll = () => {
+          if (raf) return;
+          raf = requestAnimationFrame(updateActive);
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onScroll, { passive: true });
+        updateActive();
       }
 
       // Smooth scroll au clic

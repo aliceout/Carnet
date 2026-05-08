@@ -8,10 +8,17 @@
 
 import React from 'react';
 
+export type BibAuthor = {
+  firstName?: string | null;
+  lastName: string;
+  role?: 'author' | 'editor' | 'translator';
+};
+
 export type BibEntry = {
   id: number | string;
   slug?: string;
-  author?: string;
+  authors?: BibAuthor[] | null;
+  authorLabel?: string | null;
   year?: number | string;
   title?: string;
 };

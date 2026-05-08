@@ -63,24 +63,24 @@ export function invitationEmail(opts: {
 
   const text = `Bonjour,
 
-${inviter} t'invite à rejoindre l'espace d'administration du Carnet.
+${inviter} vous invite à rejoindre l'espace d'administration du Carnet.
 
-Pour activer ton compte (${opts.inviteeEmail}) et choisir ton mot de passe, clique sur le lien ci-dessous. Il est valable ${days} jours.
+Pour activer votre compte (${opts.inviteeEmail}) et choisir votre mot de passe, cliquez sur le lien ci-dessous. Il est valable ${days} jours.
 
 ${opts.acceptUrl}
 
-Si tu ne t'attendais pas à recevoir ce mail, tu peux l'ignorer — le compte sera supprimé automatiquement à l'expiration du lien.
+Si vous ne vous attendiez pas à recevoir ce mail, vous pouvez l'ignorer — le compte sera supprimé automatiquement à l'expiration du lien.
 
 — Carnet
 `;
 
   const html = shell(
-    'Tu as été invité·e à rejoindre l\'espace d\'administration',
-    `<p style="margin:0 0 16px;line-height:1.5;">${escapeHtml(inviter)} t'invite à rejoindre l'espace d'administration du <strong>Carnet</strong>.</p>
-<p style="margin:0 0 16px;line-height:1.5;">Pour activer ton compte (<strong>${escapeHtml(opts.inviteeEmail)}</strong>) et choisir ton mot de passe, clique sur le bouton ci-dessous.</p>
+    'Vous avez été invité·e à rejoindre l\'espace d\'administration',
+    `<p style="margin:0 0 16px;line-height:1.5;">${escapeHtml(inviter)} vous invite à rejoindre l'espace d'administration du <strong>Carnet</strong>.</p>
+<p style="margin:0 0 16px;line-height:1.5;">Pour activer votre compte (<strong>${escapeHtml(opts.inviteeEmail)}</strong>) et choisir votre mot de passe, cliquez sur le bouton ci-dessous.</p>
 ${button(opts.acceptUrl, 'Activer mon compte')}
 <p style="margin:0 0 16px;font-size:14px;color:${MUTED};line-height:1.5;">Ce lien est valable <strong>${days} jours</strong>. Passé ce délai, le compte sera supprimé automatiquement.</p>
-<p style="margin:24px 0 0;font-size:13px;color:${MUTED};line-height:1.5;">Si tu ne t'attendais pas à ce mail, ignore-le simplement. Si le bouton ne fonctionne pas, copie ce lien dans ton navigateur :<br><span style="word-break:break-all;">${escapeHtml(opts.acceptUrl)}</span></p>`,
+<p style="margin:24px 0 0;font-size:13px;color:${MUTED};line-height:1.5;">Si vous ne vous attendiez pas à ce mail, ignorez-le simplement. Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br><span style="word-break:break-all;">${escapeHtml(opts.acceptUrl)}</span></p>`,
   );
 
   return { subject, html, text };
@@ -99,19 +99,19 @@ export function twoFactorCodeEmail(opts: {
   const ipLine = opts.ip ? `IP : ${opts.ip}\n` : '';
   const uaLine = opts.userAgent ? `Navigateur : ${opts.userAgent}\n` : '';
 
-  const text = `Ton code de vérification :
+  const text = `Votre code de vérification :
 
   ${opts.code}
 
 Valable ${ttl} minutes. À saisir dans la fenêtre de connexion.
 
 ${ipLine}${uaLine}
-Si ce n'est pas toi qui essaies de te connecter, change ton mot de passe immédiatement.
+Si ce n'est pas vous qui essayez de vous connecter, changez votre mot de passe immédiatement.
 `;
 
   const html = shell(
-    'Ton code de vérification',
-    `<p style="margin:0 0 16px;line-height:1.5;">Saisis ce code pour finaliser ta connexion :</p>
+    'Votre code de vérification',
+    `<p style="margin:0 0 16px;line-height:1.5;">Saisissez ce code pour finaliser votre connexion :</p>
 <p style="margin:24px 0;font-size:32px;font-weight:700;letter-spacing:8px;text-align:center;background:${BG};border:1px solid ${RULE};padding:16px;color:${TEXT};font-family:'JetBrains Mono','Menlo',monospace;">${escapeHtml(opts.code)}</p>
 <p style="margin:0 0 16px;font-size:14px;color:${MUTED};line-height:1.5;">Valable <strong>${ttl} minutes</strong>.</p>
 ${
@@ -119,7 +119,7 @@ ${
     ? `<p style="margin:16px 0 0;font-size:13px;color:${MUTED};line-height:1.5;">Tentative depuis :${opts.ip ? `<br>IP : ${escapeHtml(opts.ip)}` : ''}${opts.userAgent ? `<br>Navigateur : ${escapeHtml(opts.userAgent)}` : ''}</p>`
     : ''
 }
-<p style="margin:16px 0 0;font-size:13px;color:${MUTED};line-height:1.5;">Si ce n'est pas toi qui essaies de te connecter, change immédiatement ton mot de passe.</p>`,
+<p style="margin:16px 0 0;font-size:13px;color:${MUTED};line-height:1.5;">Si ce n'est pas vous qui essayez de vous connecter, changez immédiatement votre mot de passe.</p>`,
   );
 
   return { subject, html, text };
@@ -135,17 +135,17 @@ export function welcomeEmail(opts: {
 
   const text = `Bonjour,
 
-Ton compte ${opts.email} est maintenant actif.
+Votre compte ${opts.email} est maintenant actif.
 
-Tu peux te connecter à l'espace d'administration ici :
+Vous pouvez vous connecter à l'espace d'administration ici :
 ${opts.loginUrl}
 
 — Carnet
 `;
 
   const html = shell(
-    'Bienvenue ! Ton compte est actif',
-    `<p style="margin:0 0 16px;line-height:1.5;">Ton compte <strong>${escapeHtml(opts.email)}</strong> est maintenant actif.</p>
+    'Bienvenue ! Votre compte est actif',
+    `<p style="margin:0 0 16px;line-height:1.5;">Votre compte <strong>${escapeHtml(opts.email)}</strong> est maintenant actif.</p>
 ${button(opts.loginUrl, 'Aller à l\'espace d\'administration')}`,
   );
 

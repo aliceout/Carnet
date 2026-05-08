@@ -20,11 +20,17 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 import CarnetTopbar from './CarnetTopbar';
+import {
+  type BibAuthor,
+  formatAuthorsChicago,
+  formatTranslators,
+} from '@/lib/format-authors';
 
 const API_BIBLIO = '/cms/api/bibliography';
 const API_POSTS = '/cms/api/posts';
 
 type BibType = 'book' | 'chapter' | 'article' | 'paper' | 'web' | 'other';
+type BibRole = 'author' | 'editor' | 'translator';
 
 const TYPE_LABEL: Record<BibType, string> = {
   book: 'Livre',
@@ -35,11 +41,23 @@ const TYPE_LABEL: Record<BibType, string> = {
   other: 'Autre',
 };
 
+const ROLE_LABEL: Record<BibRole, string> = {
+  author: 'Auteur·ice',
+  editor: 'Direction (dir.)',
+  translator: 'Traduction (trad.)',
+};
+
+type BibAuthorRow = {
+  lastName: string;
+  firstName: string;
+  role: BibRole;
+};
+
 type Bib = {
   id?: number | string;
   slug: string;
   type: BibType;
-  author: string;
+  authors: BibAuthorRow[];
   year: number | string;
   title: string;
   publisher?: string;
@@ -50,6 +68,9 @@ type Bib = {
   url?: string;
   doi?: string;
   annotation?: string;
+  source?: 'manual' | 'zotero';
+  zoteroKey?: string;
+  zoteroVersion?: number;
 };
 
 type UsedInPost = { id: number | string; numero?: number; title?: string };
@@ -57,7 +78,7 @@ type UsedInPost = { id: number | string; numero?: number; title?: string };
 const EMPTY: Bib = {
   slug: '',
   type: 'book',
-  author: '',
+  authors: [{ lastName: '', firstName: '', role: 'author' }],
   year: '',
   title: '',
   publisher: '',
@@ -68,13 +89,17 @@ const EMPTY: Bib = {
   url: '',
   doi: '',
   annotation: '',
+  source: 'manual',
 };
 
 function formatChicago(b: Bib): string {
   const parts: string[] = [];
-  if (b.author) parts.push(b.author);
+  const authorsLine = formatAuthorsChicago(b.authors as BibAuthor[]);
+  if (authorsLine) parts.push(authorsLine);
   if (b.year !== undefined && b.year !== '') parts.push(`(${b.year})`);
   if (b.title) parts.push(b.title);
+  const translators = formatTranslators(b.authors as BibAuthor[]);
+  if (translators) parts.push(translators);
   if (b.journal) parts.push(b.journal);
   if (b.volume) parts.push(b.volume);
   if (b.publisher) {
@@ -100,7 +125,10 @@ export default function BibliographyEditViewClient({
   const [initial, setInitial] = useState<string>(JSON.stringify(EMPTY));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  // Modale de confirmation de suppression (remplace window.confirm).
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [usedIn, setUsedIn] = useState<UsedInPost[]>([]);
@@ -118,13 +146,19 @@ export default function BibliographyEditViewClient({
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
-      .then((doc: Bib) => {
+      .then((doc: Partial<Bib> & { authors?: Array<Partial<BibAuthorRow>> }) => {
+        const authorsRaw = Array.isArray(doc.authors) ? doc.authors : [];
+        const authors: BibAuthorRow[] = authorsRaw.map((a) => ({
+          lastName: a?.lastName ?? '',
+          firstName: a?.firstName ?? '',
+          role: (a?.role as BibRole) ?? 'author',
+        }));
         const norm: Bib = {
           ...EMPTY,
           ...doc,
           // Normalise les undefined en chaînes vides pour les inputs
           slug: doc.slug ?? '',
-          author: doc.author ?? '',
+          authors: authors.length > 0 ? authors : [{ lastName: '', firstName: '', role: 'author' }],
           title: doc.title ?? '',
           year: doc.year ?? '',
           publisher: doc.publisher ?? '',
@@ -135,6 +169,8 @@ export default function BibliographyEditViewClient({
           url: doc.url ?? '',
           doi: doc.doi ?? '',
           annotation: doc.annotation ?? '',
+          type: (doc.type as BibType) ?? 'book',
+          id: doc.id,
         };
         setData(norm);
         setInitial(JSON.stringify(norm));
@@ -156,6 +192,39 @@ export default function BibliographyEditViewClient({
 
   function patch<K extends keyof Bib>(key: K, value: Bib[K]) {
     setData((d) => ({ ...d, [key]: value }));
+  }
+
+  function patchAuthor(idx: number, field: keyof BibAuthorRow, value: string) {
+    setData((d) => {
+      const next = d.authors.map((a, i) => (i === idx ? { ...a, [field]: value } : a));
+      return { ...d, authors: next };
+    });
+  }
+
+  function addAuthor() {
+    setData((d) => ({
+      ...d,
+      authors: [...d.authors, { lastName: '', firstName: '', role: 'author' }],
+    }));
+  }
+
+  function removeAuthor(idx: number) {
+    setData((d) => {
+      const next = d.authors.filter((_, i) => i !== idx);
+      // Garder au moins une ligne (vide) pour ne pas casser le formulaire.
+      if (next.length === 0) next.push({ lastName: '', firstName: '', role: 'author' });
+      return { ...d, authors: next };
+    });
+  }
+
+  function moveAuthor(idx: number, dir: -1 | 1) {
+    setData((d) => {
+      const j = idx + dir;
+      if (j < 0 || j >= d.authors.length) return d;
+      const next = [...d.authors];
+      [next[idx], next[j]] = [next[j], next[idx]];
+      return { ...d, authors: next };
+    });
   }
 
   async function save() {
@@ -195,25 +264,25 @@ export default function BibliographyEditViewClient({
     }
   }
 
-  async function remove() {
+  async function confirmDelete() {
     if (!data.id) return;
-    if (typeof window === 'undefined') return;
-    const ok = window.confirm(
-      `Supprimer définitivement la référence « ${data.slug || data.title || data.id} » ?`,
-    );
-    if (!ok) return;
-    setDeleting(true);
-    setError(null);
+    setDeleteSubmitting(true);
+    setDeleteError(null);
     try {
       const res = await fetch(`${API_BIBLIO}/${encodeURIComponent(String(data.id))}`, {
         method: 'DELETE',
         credentials: 'include',
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      window.location.href = '/cms/admin/collections/bibliography';
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(`HTTP ${res.status} — ${t.slice(0, 200)}`);
+      }
+      if (typeof window !== 'undefined') {
+        window.location.href = '/cms/admin/collections/bibliography';
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur inconnue');
-      setDeleting(false);
+      setDeleteError(err instanceof Error ? err.message : 'Erreur inconnue');
+      setDeleteSubmitting(false);
     }
   }
 
@@ -233,6 +302,12 @@ export default function BibliographyEditViewClient({
   // Pour articles / papers : « Numéro » à la place de « Collection »
   const isJournalLike = data.type === 'article' || data.type === 'paper';
   const middleFieldLabel = isJournalLike ? 'Numéro' : 'Collection';
+
+  // Refs venues du sync Zotero — verrouillées en édition côté Carnet
+  // (les modifs se font dans Zotero puis un nouveau sync les remonte).
+  // La suppression reste possible : l'autrice peut décider de retirer
+  // une ref du Carnet sans toucher Zotero.
+  const isZoteroRef = data.source === 'zotero';
 
   return (
     <div className="carnet-editview carnet-editview--biblio">
@@ -258,23 +333,28 @@ export default function BibliographyEditViewClient({
           <button
             type="button"
             className="carnet-btn carnet-btn--ghost"
-            onClick={() => void remove()}
-            disabled={deleting || saving}
+            onClick={() => {
+              setDeleteOpen(true);
+              setDeleteError(null);
+            }}
+            disabled={saving}
             suppressHydrationWarning
           >
-            {deleting ? 'Suppression…' : 'Supprimer'}
+            Supprimer
           </button>
         )}
-        <button
-          type="button"
-          className="carnet-btn carnet-btn--accent"
-          onClick={() => void save()}
-          disabled={!dirty || saving || loading}
-          title="Sauvegarder"
-          suppressHydrationWarning
-        >
-          {saving ? 'Enregistrement…' : 'Sauvegarder'}
-        </button>
+        {!isZoteroRef && (
+          <button
+            type="button"
+            className="carnet-btn carnet-btn--accent"
+            onClick={() => void save()}
+            disabled={!dirty || saving || loading}
+            title="Sauvegarder"
+            suppressHydrationWarning
+          >
+            {saving ? 'Enregistrement…' : 'Sauvegarder'}
+          </button>
+        )}
       </CarnetTopbar>
 
       {error && <div className="carnet-editview__error">Erreur : {error}</div>}
@@ -298,10 +378,20 @@ export default function BibliographyEditViewClient({
             )}
           </div>
 
+          {isZoteroRef && (
+            <div className="carnet-zotero-banner">
+              Cette référence est importée depuis Zotero. Pour la modifier,
+              éditez-la dans Zotero puis lancez un nouveau sync depuis votre
+              page Compte. La suppression reste disponible si vous voulez la
+              retirer du Carnet sans toucher à Zotero.
+            </div>
+          )}
+
+          <fieldset className="carnet-editview__fieldset" disabled={isZoteroRef}>
           <section className="carnet-editview__section">
             <h2 className="carnet-editview__section-title">Identification</h2>
 
-            <div className="carnet-editview__row carnet-editview__row--3">
+            <div className="carnet-editview__row carnet-editview__row--2">
               <label className="carnet-editview__field">
                 <span className="lbl">Type</span>
                 <select
@@ -316,15 +406,6 @@ export default function BibliographyEditViewClient({
                 </select>
               </label>
               <label className="carnet-editview__field">
-                <span className="lbl">Auteur·ice(s)</span>
-                <input
-                  type="text"
-                  value={data.author}
-                  onChange={(e) => patch('author', e.target.value)}
-                  placeholder="Nom, Prénom ; …"
-                />
-              </label>
-              <label className="carnet-editview__field">
                 <span className="lbl">Année</span>
                 <input
                   type="number"
@@ -336,6 +417,85 @@ export default function BibliographyEditViewClient({
                   }
                 />
               </label>
+            </div>
+
+            <div className="carnet-editview__authors">
+              <div className="carnet-editview__authors-head">
+                <span className="lbl">Auteur·ice·s</span>
+                <span className="hint">
+                  La 1<sup>ère</sup> ligne = auteur·ice principal·e (utilisé pour la
+                  citation courte et le tri). Laissez « Prénom » vide pour les auteurs
+                  corporatifs (UNESCO…).
+                </span>
+              </div>
+              {data.authors.map((a, idx) => (
+                <div key={idx} className="carnet-editview__authors-row">
+                  <input
+                    type="text"
+                    className="lastname"
+                    placeholder="Nom"
+                    value={a.lastName}
+                    onChange={(e) => patchAuthor(idx, 'lastName', e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    className="firstname"
+                    placeholder="Prénom (optionnel)"
+                    value={a.firstName}
+                    onChange={(e) => patchAuthor(idx, 'firstName', e.target.value)}
+                  />
+                  <select
+                    className="role"
+                    value={a.role}
+                    onChange={(e) => patchAuthor(idx, 'role', e.target.value)}
+                  >
+                    {(Object.keys(ROLE_LABEL) as BibRole[]).map((r) => (
+                      <option key={r} value={r}>
+                        {ROLE_LABEL[r]}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="actions">
+                    <button
+                      type="button"
+                      className="carnet-editview__authors-act"
+                      onClick={() => moveAuthor(idx, -1)}
+                      disabled={idx === 0}
+                      aria-label="Monter"
+                      title="Monter"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className="carnet-editview__authors-act"
+                      onClick={() => moveAuthor(idx, 1)}
+                      disabled={idx === data.authors.length - 1}
+                      aria-label="Descendre"
+                      title="Descendre"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      className="carnet-editview__authors-act carnet-editview__authors-act--del"
+                      onClick={() => removeAuthor(idx)}
+                      disabled={data.authors.length <= 1 && !a.lastName && !a.firstName}
+                      aria-label="Retirer cette personne"
+                      title="Retirer"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="carnet-editview__authors-add"
+                onClick={addAuthor}
+              >
+                + Ajouter une personne
+              </button>
             </div>
 
             <label className="carnet-editview__field">
@@ -452,6 +612,7 @@ export default function BibliographyEditViewClient({
             <div className="carnet-biblio-preview__lbl">Aperçu (style biblio)</div>
             <div className="carnet-biblio-preview__body">{formatChicago(data)}</div>
           </div>
+          </fieldset>
 
           {data.id != null && (
             <div className="carnet-biblio-usedin">
@@ -473,6 +634,70 @@ export default function BibliographyEditViewClient({
             </div>
           )}
         </form>
+      )}
+
+      {deleteOpen && (
+        <div
+          className="carnet-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !deleteSubmitting) {
+              setDeleteOpen(false);
+              setDeleteError(null);
+            }
+          }}
+        >
+          <div className="carnet-modal" role="dialog" aria-modal="true">
+            <header className="carnet-modal__header">
+              <h2>Supprimer cette référence&nbsp;?</h2>
+              <button
+                type="button"
+                className="carnet-modal__close"
+                onClick={() => {
+                  if (deleteSubmitting) return;
+                  setDeleteOpen(false);
+                  setDeleteError(null);
+                }}
+                aria-label="Fermer"
+              >
+                ×
+              </button>
+            </header>
+
+            {deleteError && (
+              <div className="carnet-modal__error">Erreur&nbsp;: {deleteError}</div>
+            )}
+
+            <div className="carnet-modal__body">
+              <p>
+                «&nbsp;{data.slug || data.title || data.id}&nbsp;» sera
+                définitivement supprimée. Les billets qui la citent perdront
+                la référence à la sauvegarde de cette modification.
+              </p>
+            </div>
+
+            <footer className="carnet-modal__footer">
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--ghost"
+                onClick={() => {
+                  setDeleteOpen(false);
+                  setDeleteError(null);
+                }}
+                disabled={deleteSubmitting}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--danger"
+                onClick={() => void confirmDelete()}
+                disabled={deleteSubmitting}
+              >
+                {deleteSubmitting ? 'Suppression…' : 'Supprimer'}
+              </button>
+            </footer>
+          </div>
+        </div>
       )}
     </div>
   );

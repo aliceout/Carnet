@@ -4,7 +4,7 @@
 # node_modules complets dans l'image. Plutôt que de bidouiller, on garde
 # une image classique : tous les node_modules + sources + .next embarqués.
 
-FROM node:22.17.0-alpine AS base
+FROM node:24-alpine AS base
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 

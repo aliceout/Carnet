@@ -40,7 +40,12 @@ type LexicalNode = {
       | {
           id?: number | string;
           slug?: string;
-          author?: string;
+          authors?: Array<{
+            firstName?: string | null;
+            lastName: string;
+            role?: 'author' | 'editor' | 'translator';
+          }> | null;
+          authorLabel?: string | null;
           year?: number;
         }
       | number
@@ -134,17 +139,21 @@ function renderBlock(node: LexicalNode, ctx: RenderContext): string {
     case 'biblio_inline': {
       const entry = fields.entry;
       const prefix = fields.prefix ? escapeHtml(fields.prefix) + ' ' : '';
-      const suffix = fields.suffix ? escapeHtml(fields.suffix) : '';
+      // Page(s) citée(s) dans ce passage — distinct de la pagination de
+      // l'ouvrage en biblio. Préfixé « , p. » devant la valeur saisie.
+      const pagesRaw = typeof fields.pages === 'string' ? fields.pages.trim() : '';
+      const pagesPart = pagesRaw ? `, p.&nbsp;${escapeHtml(pagesRaw)}` : '';
+      const suffix = fields.suffix ? `, ${escapeHtml(fields.suffix)}` : '';
       if (!entry || typeof entry !== 'object' || !entry.slug) {
         // Référence non populated — fallback minimal.
         return `<span class="biblio-inline-empty">(réf.)</span>`;
       }
-      // Format Chicago author-date court : "(Auteur, année)" — le nom est
-      // pris jusqu'à la première virgule du champ author (ex. "Farris, Sara R."
-      // → "Farris").
-      const lastName = (entry.author ?? '').split(',')[0].trim();
+      // Format Chicago author-date court : « (Butler 2017, p. 47) ». On
+      // utilise `authorLabel` calculé serveur-side (« Butler », « Butler
+      // & Spivak », « Butler et al. »).
+      const shortAuthors = (entry.authorLabel ?? '').trim();
       const yearPart = entry.year ? `, ${entry.year}` : '';
-      const inner = `${prefix}${escapeHtml(lastName)}${yearPart}${suffix}`;
+      const inner = `${prefix}${escapeHtml(shortAuthors || '—')}${yearPart}${pagesPart}${suffix}`;
       return `<a class="biblio-inline" href="#bib-${escapeHtml(entry.slug)}">(${inner})</a>`;
     }
 
@@ -189,6 +198,13 @@ function renderNode(node: LexicalNode | unknown, ctx: RenderContext): string {
   switch (n.type) {
     case 'root':
       return inner;
+    case 'draft_container':
+      // Zone brouillon : on n'émet RIEN côté lecteur. Le contenu reste
+      // dans le JSON Lexical (donc visible dans l'admin), mais le
+      // rendu public le saute. C'est la sémantique « brouillon = pas
+      // publié » côté lecteur, et le filtre admin permet à l'autrice
+      // de retrouver les billets qui en contiennent encore. Cf issue #1.
+      return '';
     case 'paragraph':
       return `<p>${inner}</p>`;
     case 'heading': {
@@ -256,6 +272,48 @@ export function renderLexicalWithFootnotes(
   return { bodyHtml, footnotesHtml };
 }
 
+/**
+ * Mode sidenotes (cf issue #6). Walk les enfants directs du root et
+ * émet, après chaque bloc, les `<aside class="marg">` correspondant
+ * aux footnotes rencontrées dans ce bloc. Le `<sup>` reste inline
+ * dans le texte pour que le lecteur retrouve l'appel ; la note se
+ * place dans la colonne droite via CSS Grid (cf [slug].astro).
+ *
+ * Style « Tufte » — chaque note est positionnée en regard du
+ * paragraphe qui l'appelle, plutôt qu'empilée en pied d'article.
+ */
+export function renderLexicalSidenotes(node: LexicalNode | unknown): string {
+  if (!node || typeof node !== 'object') return '';
+  const x = node as LexicalNode & { root?: LexicalNode };
+  // Trouve le root.children — body Lexical = { root: { children: [...] } }
+  let rootNode: LexicalNode | null = null;
+  if ('root' in x && x.root) rootNode = x.root;
+  else if (x.type === 'root') rootNode = x;
+  if (!rootNode || !rootNode.children) {
+    // Fallback : pas de root, on rend en mode classique sans collecte
+    return renderNode(node, newContext());
+  }
+
+  const ctx = newContext();
+  const out: string[] = [];
+  let collected = 0;
+  for (const child of rootNode.children) {
+    const blockHtml = renderNode(child, ctx);
+    out.push(blockHtml);
+    // Émet les asides pour les nouvelles footnotes collectées dans ce
+    // bloc — `slice(collected)` capture seulement celles qui n'avaient
+    // pas encore été émises.
+    const newNotes = ctx.footnotes.slice(collected);
+    for (const { n, html } of newNotes) {
+      out.push(
+        `<aside class="marg" id="fn-${n}"><sup class="marg-num">${n}</sup>${html}<a href="#fnref-${n}" class="fn-back" aria-label="Retour au texte">↩</a></aside>`,
+      );
+    }
+    collected = ctx.footnotes.length;
+  }
+  return out.join('');
+}
+
 export type TocEntry = { id: string; text: string; level: 2 | 3 };
 
 export function extractToc(node: LexicalNode | unknown): TocEntry[] {
@@ -264,6 +322,9 @@ export function extractToc(node: LexicalNode | unknown): TocEntry[] {
     if (!n || typeof n !== 'object') return;
     const x = n as LexicalNode & { root?: LexicalNode };
     if ('root' in x && x.root) return walk(x.root);
+    // Skip draft zones : leur rendu public est vide donc leurs headings
+    // n'apparaissent pas dans le billet → pas dans le TOC non plus.
+    if (x.type === 'draft_container') return;
     if (x.type === 'heading') {
       const text = (x.children ?? [])
         .map((c) => (typeof c.text === 'string' ? c.text : ''))

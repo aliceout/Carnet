@@ -72,7 +72,7 @@ const loginEndpoint: Endpoint = {
     };
 
     if (user.status === 'pending') {
-      return errorResponse('Compte en attente d\'activation. Vérifie tes mails.', 403);
+      return errorResponse('Compte en attente d\'activation. Vérifiez vos mails.', 403);
     }
     if (user.status === 'disabled') {
       return errorResponse('Ce compte a été désactivé.', 403);
@@ -134,7 +134,7 @@ const verifyEndpoint: Endpoint = {
 
     const pending = peekPendingLogin(sessionId);
     if (!pending) {
-      return jsonResponse({ error: 'Session expirée, recommence la connexion.' }, { status: 410 }, [
+      return jsonResponse({ error: 'Session expirée, recommencez la connexion.' }, { status: 410 }, [
         clearPendingTwoFactorCookie(),
       ]);
     }

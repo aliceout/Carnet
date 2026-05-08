@@ -33,7 +33,7 @@ export const Site: GlobalConfig = {
     {
       name: 'identity',
       type: 'group',
-      label: "Identité de l'auteur·ice",
+      label: 'Identité du carnet',
       fields: [
         {
           name: 'authorName',
@@ -43,18 +43,7 @@ export const Site: GlobalConfig = {
           defaultValue: '',
           admin: {
             description:
-              "Affiché en signature dans la baseline du footer et la description meta (ex. « Marie Dupont »).",
-          },
-        },
-        {
-          name: 'authorCitation',
-          type: 'text',
-          required: false,
-          label: 'Format citation',
-          defaultValue: '',
-          admin: {
-            description:
-              'Format Chicago author-date « Nom, Prénom » utilisé dans la citation des billets (« Pour citer cet article »).',
+              'Nom du laboratoire de recherche, de la personne, du collectif… selon l\'utilisation du carnet. Affiché en signature dans la baseline du footer et la description meta.',
           },
         },
       ],
@@ -99,6 +88,28 @@ export const Site: GlobalConfig = {
           admin: {
             description:
               'Teinte de fond du Carnet — appliquée au body et aux zones neutres (header, footer, fond des billets, fond admin).',
+          },
+        },
+      ],
+    },
+    {
+      name: 'reading',
+      type: 'group',
+      label: 'Lecture des billets',
+      fields: [
+        {
+          name: 'notesMode',
+          type: 'select',
+          required: false,
+          label: 'Affichage des notes de bas de page',
+          defaultValue: 'classic',
+          options: [
+            { label: 'Classique — toutes les notes en pied d\'article', value: 'classic' },
+            { label: 'En marge — notes alignées à droite du paragraphe', value: 'sidenotes' },
+          ],
+          admin: {
+            description:
+              'Le mode classique empile les notes en bas du billet (style académique). Le mode en marge les place dans une colonne à droite, alignée sur le paragraphe qui les appelle (style « Tufte »). S\'applique uniformément à tous les billets du Carnet. Cf issue #6.',
           },
         },
       ],
@@ -209,7 +220,7 @@ export const Site: GlobalConfig = {
     {
       name: 'social',
       type: 'group',
-      label: 'Réseaux sociaux',
+      label: 'Être suivi',
       fields: [
         {
           name: 'mastodon',
@@ -248,7 +259,7 @@ export const Site: GlobalConfig = {
         { name: 'external', type: 'checkbox', defaultValue: false },
       ],
       defaultValue: [
-        { label: 'Thèmes', href: '/themes/', external: false },
+        { label: 'Tags', href: '/tags/', external: false },
         { label: 'Archives', href: '/archives/', external: false },
         { label: 'Admin', href: '/cms/admin', external: false },
       ],

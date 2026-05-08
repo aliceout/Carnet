@@ -18,7 +18,6 @@
 //                                 le fichier (skip pour le V1).
 
 import React, { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 
 import CarnetTopbar from './CarnetTopbar';
 
@@ -31,13 +30,14 @@ type Media = {
   filesize?: number;
   width?: number;
   height?: number;
+  title?: string;
   alt?: string;
   url?: string;
   createdAt?: string;
   updatedAt?: string;
 };
 
-const EMPTY: Media = { alt: '' };
+const EMPTY: Media = { title: '', alt: '' };
 
 function formatSize(bytes?: number): string {
   if (!bytes) return '—';
@@ -62,7 +62,12 @@ export default function MediaEditViewClient({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  // Modale de confirmation de suppression. open=true affiche le
+  // backdrop + dialog ; submitting bloque les boutons pendant l'appel
+  // DELETE.
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [drag, setDrag] = useState(false);
@@ -123,11 +128,14 @@ export default function MediaEditViewClient({
         // Création : multipart obligatoire (Payload upload). Le fichier
         // est requis ; les fields JSON passent dans `_payload`.
         if (!file) {
-          throw new Error('Sélectionne un fichier avant de sauvegarder.');
+          throw new Error('Sélectionnez un fichier avant de sauvegarder.');
         }
         const fd = new FormData();
         fd.append('file', file);
-        fd.append('_payload', JSON.stringify({ alt: data.alt ?? '' }));
+        fd.append(
+          '_payload',
+          JSON.stringify({ alt: data.alt ?? '', title: data.title ?? '' }),
+        );
         res = await fetch(API_MEDIA, {
           method: 'POST',
           credentials: 'include',
@@ -140,7 +148,10 @@ export default function MediaEditViewClient({
           method: 'PATCH',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ alt: data.alt ?? '' }),
+          body: JSON.stringify({
+            alt: data.alt ?? '',
+            title: data.title ?? '',
+          }),
         });
       }
       if (!res.ok) {
@@ -149,7 +160,12 @@ export default function MediaEditViewClient({
       }
       const json = (await res.json()) as { doc?: Media } | Media;
       const fresh: Media = (json as { doc?: Media }).doc ?? (json as Media);
-      const norm: Media = { ...EMPTY, ...fresh, alt: fresh.alt ?? '' };
+      const norm: Media = {
+        ...EMPTY,
+        ...fresh,
+        alt: fresh.alt ?? '',
+        title: fresh.title ?? '',
+      };
       setData(norm);
       setInitial(JSON.stringify(norm));
       setFile(null);
@@ -165,25 +181,25 @@ export default function MediaEditViewClient({
     }
   }
 
-  async function remove() {
+  async function confirmDelete() {
     if (!data.id) return;
-    if (typeof window === 'undefined') return;
-    const ok = window.confirm(
-      `Supprimer définitivement le média « ${data.filename || data.id} » ?`,
-    );
-    if (!ok) return;
-    setDeleting(true);
-    setError(null);
+    setDeleteSubmitting(true);
+    setDeleteError(null);
     try {
       const res = await fetch(`${API_MEDIA}/${encodeURIComponent(String(data.id))}`, {
         method: 'DELETE',
         credentials: 'include',
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      window.location.href = '/cms/admin/collections/media';
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(`HTTP ${res.status} — ${t.slice(0, 200)}`);
+      }
+      if (typeof window !== 'undefined') {
+        window.location.href = '/cms/admin/collections/media';
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur inconnue');
-      setDeleting(false);
+      setDeleteError(err instanceof Error ? err.message : 'Erreur inconnue');
+      setDeleteSubmitting(false);
     }
   }
 
@@ -236,11 +252,14 @@ export default function MediaEditViewClient({
           <button
             type="button"
             className="carnet-btn carnet-btn--ghost"
-            onClick={() => void remove()}
-            disabled={deleting || saving}
+            onClick={() => {
+              setDeleteOpen(true);
+              setDeleteError(null);
+            }}
+            disabled={saving}
             suppressHydrationWarning
           >
-            {deleting ? 'Suppression…' : 'Supprimer'}
+            Supprimer
           </button>
         )}
         <button
@@ -295,39 +314,57 @@ export default function MediaEditViewClient({
                     {shortMime(data.mimeType).toUpperCase()}
                   </div>
                 )}
-                <dl className="carnet-media-preview__meta">
-                  <div>
-                    <dt>Type</dt>
-                    <dd className="mono">{data.mimeType ?? '—'}</dd>
-                  </div>
-                  <div>
-                    <dt>Taille</dt>
-                    <dd className="mono">{formatSize(data.filesize)}</dd>
-                  </div>
-                  {data.width && data.height && (
+                <div className="carnet-media-preview__side">
+                  <label className="carnet-editview__field">
+                    <span className="lbl">Titre</span>
+                    <input
+                      type="text"
+                      value={data.title ?? ''}
+                      onChange={(e) => patch('title', e.target.value)}
+                      placeholder="Optionnel — vide = utilise le texte alternatif."
+                    />
+                    <span className="hint">
+                      Affiché en légende ou en infobulle selon le contexte. Si
+                      laissé vide, le texte alternatif est utilisé à la
+                      sauvegarde.
+                    </span>
+                  </label>
+
+                  <label className="carnet-editview__field">
+                    <span className="lbl">Texte alternatif (alt)</span>
+                    <input
+                      type="text"
+                      value={data.alt ?? ''}
+                      onChange={(e) => patch('alt', e.target.value)}
+                      placeholder="Décrivez l'image pour les lecteurs d'écran et le SEO."
+                    />
+                    <span className="hint">
+                      Obligatoire — exigence d'accessibilité (WCAG 2.2). Décrivez
+                      <em> ce qu'on voit</em>, pas le contexte du billet.
+                    </span>
+                  </label>
+
+                  <hr className="carnet-media-preview__rule" />
+
+                  <dl className="carnet-media-preview__meta">
                     <div>
-                      <dt>Dimensions</dt>
-                      <dd className="mono">
-                        {data.width} × {data.height}
-                      </dd>
+                      <dt>Type</dt>
+                      <dd className="mono">{data.mimeType ?? '—'}</dd>
                     </div>
-                  )}
-                  {data.url && (
                     <div>
-                      <dt>URL</dt>
-                      <dd>
-                        <a
-                          href={data.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mono"
-                        >
-                          {data.url}
-                        </a>
-                      </dd>
+                      <dt>Taille</dt>
+                      <dd className="mono">{formatSize(data.filesize)}</dd>
                     </div>
-                  )}
-                </dl>
+                    {data.width && data.height && (
+                      <div>
+                        <dt>Dimensions</dt>
+                        <dd className="mono">
+                          {data.width} × {data.height}
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                </div>
               </div>
             ) : (
               // Création : drop zone + button picker
@@ -350,7 +387,7 @@ export default function MediaEditViewClient({
                   <div className="carnet-media-drop__filename mono">{file.name}</div>
                 ) : (
                   <p className="carnet-media-drop__hint">
-                    Glisse un fichier ici, ou clique pour en sélectionner un.
+                    Glissez un fichier ici, ou cliquez pour en sélectionner un.
                   </p>
                 )}
 
@@ -383,33 +420,109 @@ export default function MediaEditViewClient({
             )}
           </section>
 
-          <section className="carnet-editview__section">
-            <h2 className="carnet-editview__section-title">Description</h2>
+          {/* En création, les champs Titre + Alt vivent ici (la zone de
+              drop n'a pas de side panel). En édition, ils sont dans le
+              side panel à droite de l'aperçu — voir .carnet-media-preview
+              ci-dessus. */}
+          {!data.id && (
+            <section className="carnet-editview__section">
+              <h2 className="carnet-editview__section-title">Description</h2>
 
-            <label className="carnet-editview__field">
-              <span className="lbl">Texte alternatif (alt)</span>
-              <input
-                type="text"
-                value={data.alt ?? ''}
-                onChange={(e) => patch('alt', e.target.value)}
-                placeholder="Décris l'image pour les lecteurs d'écran et le SEO."
-              />
-              <span className="hint">
-                Obligatoire — exigence d'accessibilité (WCAG 2.2). Décris
-                <em> ce qu'on voit</em>, pas le contexte du billet.
-              </span>
-            </label>
-          </section>
+              <label className="carnet-editview__field">
+                <span className="lbl">Titre</span>
+                <input
+                  type="text"
+                  value={data.title ?? ''}
+                  onChange={(e) => patch('title', e.target.value)}
+                  placeholder="Optionnel — vide = utilise le texte alternatif."
+                />
+                <span className="hint">
+                  Affiché en légende ou en infobulle selon le contexte. Si
+                  laissé vide, le texte alternatif est utilisé à la
+                  sauvegarde.
+                </span>
+              </label>
 
-          {data.id != null && data.url && (
-            <div className="carnet-biblio-usedin">
-              Lien direct :{' '}
-              <Link href={data.url} target="_blank">
-                {data.url}
-              </Link>
-            </div>
+              <label className="carnet-editview__field">
+                <span className="lbl">Texte alternatif (alt)</span>
+                <input
+                  type="text"
+                  value={data.alt ?? ''}
+                  onChange={(e) => patch('alt', e.target.value)}
+                  placeholder="Décrivez l'image pour les lecteurs d'écran et le SEO."
+                />
+                <span className="hint">
+                  Obligatoire — exigence d'accessibilité (WCAG 2.2). Décrivez
+                  <em> ce qu'on voit</em>, pas le contexte du billet.
+                </span>
+              </label>
+            </section>
           )}
         </form>
+      )}
+
+      {deleteOpen && (
+        <div
+          className="carnet-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !deleteSubmitting) {
+              setDeleteOpen(false);
+              setDeleteError(null);
+            }
+          }}
+        >
+          <div className="carnet-modal" role="dialog" aria-modal="true">
+            <header className="carnet-modal__header">
+              <h2>Supprimer ce média&nbsp;?</h2>
+              <button
+                type="button"
+                className="carnet-modal__close"
+                onClick={() => {
+                  if (deleteSubmitting) return;
+                  setDeleteOpen(false);
+                  setDeleteError(null);
+                }}
+                aria-label="Fermer"
+              >
+                ×
+              </button>
+            </header>
+
+            {deleteError && (
+              <div className="carnet-modal__error">Erreur&nbsp;: {deleteError}</div>
+            )}
+
+            <div className="carnet-modal__body">
+              <p>
+                «&nbsp;{data.filename || data.id}&nbsp;» sera définitivement
+                supprimé. Les billets ou pages qui le référencent perdront
+                leur image. Cette action est irréversible.
+              </p>
+            </div>
+
+            <footer className="carnet-modal__footer">
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--ghost"
+                onClick={() => {
+                  setDeleteOpen(false);
+                  setDeleteError(null);
+                }}
+                disabled={deleteSubmitting}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--danger"
+                onClick={() => void confirmDelete()}
+                disabled={deleteSubmitting}
+              >
+                {deleteSubmitting ? 'Suppression…' : 'Supprimer'}
+              </button>
+            </footer>
+          </div>
+        </div>
       )}
     </div>
   );

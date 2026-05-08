@@ -36,6 +36,49 @@ export const Posts: CollectionConfig = {
     update: authenticated,
     delete: authenticated,
   },
+  hooks: {
+    // Numérotation automatique à la création — on ne demande jamais
+    // à l'autrice de saisir le numéro. Cherche le max existant et
+    // assigne max+1. S'exécute en `beforeValidate` (donc avant le
+    // check `required: true`) pour qu'un billet créé sans numero
+    // dans le payload passe la validation.
+    //
+    // Auteur·ice par défaut : on auto-assigne req.user comme premier
+    // auteur·ice (kind=user) si la liste est vide à la création. La
+    // signataire peut ensuite ajouter co-auteur·ices (du Carnet ou
+    // externes). Cf issue #2.
+    beforeValidate: [
+      async ({ data, req, operation }) => {
+        let next = data;
+        if (operation === 'create') {
+          // Numéro auto
+          if (!next || typeof next.numero !== 'number' || next.numero <= 0) {
+            try {
+              const existing = await req.payload.find({
+                collection: 'posts',
+                sort: '-numero',
+                limit: 1,
+                depth: 0,
+              });
+              const top = existing.docs[0] as { numero?: number } | undefined;
+              const max = typeof top?.numero === 'number' ? top.numero : 0;
+              next = { ...(next ?? {}), numero: max + 1 };
+            } catch {
+              // Fallback prudent : on laisse Payload échouer sur le
+              // required, plutôt que d'écrire un numéro arbitraire.
+            }
+          }
+          // Auteur·ice par défaut
+          const authors = (next as { authors?: unknown[] } | undefined)?.authors;
+          const userId = (req.user as { id?: number | string } | null | undefined)?.id;
+          if ((!authors || authors.length === 0) && userId) {
+            next = { ...(next ?? {}), authors: [{ kind: 'user', user: userId }] };
+          }
+        }
+        return next;
+      },
+    ],
+  },
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['numero', 'title', 'type', 'publishedAt', 'draft', 'updatedAt'],
@@ -101,7 +144,7 @@ export const Posts: CollectionConfig = {
       required: true,
       defaultValue: 'analyse',
       options: [
-        { label: 'Analyse', value: 'analyse' },
+        { label: 'Article', value: 'analyse' },
         { label: 'Note de lecture', value: 'note' },
         { label: 'Fiche thématique', value: 'fiche' },
       ],
@@ -119,6 +162,76 @@ export const Posts: CollectionConfig = {
       admin: {
         description: 'Taxonomie multivaluée — un billet peut appartenir à plusieurs thèmes.',
       },
+    },
+    {
+      name: 'tags',
+      type: 'relationship',
+      relationTo: 'tags',
+      hasMany: true,
+      required: false,
+      label: 'Tags',
+      admin: {
+        description:
+          'Mots-clés libres, ajoutés à la volée depuis l’édition du billet. Différents des thèmes (qui sont structurants).',
+      },
+    },
+    {
+      // Auteur·ices d'un billet — chaque entrée est soit un user du
+      // Carnet (relation Users), soit un·e auteur·ice externe (texte
+      // libre + rattachement optionnel). Ordre = ordre de signature.
+      // Au create, on auto-assigne req.user comme premier·ère auteur·ice
+      // (cf hook beforeValidate). L'admin peut ensuite ajouter, retirer,
+      // réordonner. Cf issue #2.
+      name: 'authors',
+      type: 'array',
+      label: 'Auteur·ices',
+      minRows: 1,
+      admin: {
+        description:
+          'Au moins un·e. La première entrée est auto-remplie au create avec l’utilisateur·rice connecté·e. Pour les externes (collègues hors Carnet), choisir « Externe » et saisir le nom + rattachement.',
+      },
+      fields: [
+        {
+          name: 'kind',
+          type: 'radio',
+          required: true,
+          defaultValue: 'user',
+          options: [
+            { label: 'Interne', value: 'user' },
+            { label: 'Externe', value: 'external' },
+          ],
+          admin: { layout: 'horizontal' },
+        },
+        {
+          name: 'user',
+          type: 'relationship',
+          relationTo: 'users',
+          required: false,
+          admin: {
+            condition: (_, sibling) => sibling?.kind === 'user',
+          },
+        },
+        {
+          name: 'name',
+          type: 'text',
+          required: false,
+          label: 'Nom complet',
+          admin: {
+            condition: (_, sibling) => sibling?.kind === 'external',
+            description: 'Ex. « Aïcha Touré »',
+          },
+        },
+        {
+          name: 'affiliation',
+          type: 'text',
+          required: false,
+          label: 'Rattachement',
+          admin: {
+            condition: (_, sibling) => sibling?.kind === 'external',
+            description: 'Optionnel, ex. « LATTS ».',
+          },
+        },
+      ],
     },
     {
       name: 'publishedAt',
@@ -247,6 +360,27 @@ export const Posts: CollectionConfig = {
       label: 'Brouillon (masqué en prod)',
       admin: { position: 'sidebar' },
     },
+    {
+      name: 'hasDraftZones',
+      type: 'checkbox',
+      defaultValue: false,
+      index: true,
+      label: 'Zones brouillon en cours',
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        description:
+          'Calculé automatiquement — vrai si le corps contient au moins une zone marquée brouillon. Filtrable depuis la liste des billets.',
+      },
+      hooks: {
+        beforeChange: [
+          ({ siblingData }) => {
+            const body = siblingData?.body;
+            return hasDraftContainerInLexical(body);
+          },
+        ],
+      },
+    },
   ],
 };
 
@@ -259,6 +393,9 @@ export const Posts: CollectionConfig = {
 function extractTextFromLexical(node: unknown): string {
   if (!node || typeof node !== 'object') return '';
   const obj = node as Record<string, unknown>;
+  // Les zones brouillon ne sont pas rendues côté public — leur texte
+  // ne compte pas dans le temps de lecture estimé.
+  if (obj.type === 'draft_container') return '';
   let out = '';
   if (typeof obj.text === 'string') out += obj.text + ' ';
   const root = (obj.root ?? obj) as Record<string, unknown>;
@@ -269,4 +406,22 @@ function extractTextFromLexical(node: unknown): string {
     }
   }
   return out;
+}
+
+/**
+ * Vérifie si un body Lexical contient au moins une zone brouillon
+ * (node `draft_container`). Walk récursif sur les children.
+ */
+function hasDraftContainerInLexical(node: unknown): boolean {
+  if (!node || typeof node !== 'object') return false;
+  const obj = node as Record<string, unknown>;
+  if (obj.type === 'draft_container') return true;
+  const root = (obj.root ?? obj) as Record<string, unknown>;
+  const children = root.children;
+  if (Array.isArray(children)) {
+    for (const child of children) {
+      if (hasDraftContainerInLexical(child)) return true;
+    }
+  }
+  return false;
 }
