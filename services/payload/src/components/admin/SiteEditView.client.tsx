@@ -37,6 +37,9 @@ type SiteData = {
     accentColor?: string;
     backgroundColor?: string;
   };
+  reading?: {
+    notesMode?: 'classic' | 'sidenotes';
+  };
   home?: {
     heroTitle?: string;
     heroLede?: string;
@@ -83,6 +86,7 @@ const DEFAULT_BG = BG_OPTIONS[0].value;
 const EMPTY: SiteData = {
   identity: { authorName: '', authorCitation: '' },
   branding: { accentColor: DEFAULT_ACCENT, backgroundColor: DEFAULT_BG },
+  reading: { notesMode: 'classic' },
   home: { heroTitle: '', heroLede: '' },
   archives: { heroTitle: '', heroLede: '' },
   themes: { heroTitle: '', heroLede: '' },
@@ -118,6 +122,9 @@ export default function SiteEditViewClient(): React.ReactElement {
           branding: {
             accentColor: doc.branding?.accentColor || DEFAULT_ACCENT,
             backgroundColor: doc.branding?.backgroundColor || DEFAULT_BG,
+          },
+          reading: {
+            notesMode: doc.reading?.notesMode === 'sidenotes' ? 'sidenotes' : 'classic',
           },
           home: {
             heroTitle: doc.home?.heroTitle ?? '',
@@ -407,6 +414,34 @@ export default function SiteEditViewClient(): React.ReactElement {
                   ))}
                 </select>
               </div>
+            </label>
+          </section>
+
+          <section className="carnet-editview__section">
+            <h2 className="carnet-editview__section-title">Lecture des billets</h2>
+            <p className="carnet-editview__section-help">
+              Choix typographique pour les notes de bas de page. S&apos;applique à
+              tous les billets du Carnet.
+            </p>
+
+            <label className="carnet-editview__field">
+              <span className="lbl">Affichage des notes</span>
+              <select
+                value={data.reading?.notesMode ?? 'classic'}
+                onChange={(e) =>
+                  setData((d) => ({
+                    ...d,
+                    reading: { notesMode: e.target.value as 'classic' | 'sidenotes' },
+                  }))
+                }
+              >
+                <option value="classic">
+                  Classique — toutes les notes en pied d&apos;article
+                </option>
+                <option value="sidenotes">
+                  En marge — notes alignées à droite du paragraphe
+                </option>
+              </select>
             </label>
           </section>
 
