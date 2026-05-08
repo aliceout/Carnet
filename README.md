@@ -44,7 +44,7 @@ Seed de démo (idempotent, refuse en prod) : `pnpm --dir services/payload seed:d
 ## Prod
 
 Push sur `main` → GitHub Actions build les images → push GHCR → webhook VPS →
-[`scripts/deploy.sh`](scripts/deploy.sh) fetch les secrets Infisical, pull les
+[`scripts/deploy.sh`](scripts/deploy.sh) régénère le `.env`, pull les
 nouvelles images, `docker compose up -d`.
 
 Sample nginx (TLS terminé en amont, ports pilotés par Infisical
@@ -66,6 +66,31 @@ Setup initial du VPS (1×) : cloner le repo, écrire les creds Infisical
 Universal Auth dans `~/.config/infisical/carnet.env`, lancer
 `./scripts/deploy.sh`. Cf. [`compose.yml`](compose.yml) pour les ports
 internes / volumes.
+
+### Forker sans Infisical
+
+Notre setup utilise Infisical (cloud côté CI, self-hosted côté VPS) pour
+les secrets, mais c'est optionnel. Si tu fork le Carnet, deux modes
+sont détectés à l'exécution :
+
+**Côté CI** ([`build.yml`](.github/workflows/build.yml)) — si le GH
+secret `INFISICAL_API_URL` est posé, le workflow fetch tout depuis
+Infisical. Sinon, il lit un GH secret `ADDRESS` directement (ex.
+`carnet.toi.org`). C'est tout ce qu'il faut côté CI : un seul secret
+GitHub.
+
+**Côté VPS** ([`scripts/deploy.sh`](scripts/deploy.sh)) — si la CLI
+`infisical` est installée ET que `~/.config/infisical/carnet.env`
+existe, le script régénère le `.env` à chaque deploy. Sinon, il
+suppose qu'un `.env` complet est déjà présent à la racine du repo
+sur le VPS et le respecte tel quel. À toi de le poser à la main (ou
+via Bitwarden / pass / ansible-vault / tout autre gestionnaire).
+
+Les variables minimales à fournir dans le `.env` manuel :
+`POSTGRES_PASSWORD`, `PAYLOAD_SECRET`, `ADDRESS`, `PORT_PAYLOAD`,
+`PORT_SITE`, plus les `SMTP_*` pour les mails. Cf.
+[`compose.yml`](compose.yml) pour la liste complète des variables
+référencées.
 
 ## Structure
 
