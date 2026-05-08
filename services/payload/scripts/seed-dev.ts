@@ -56,6 +56,11 @@ type BiblioSeed = {
   year: number;
   title: string;
   type: 'book' | 'chapter' | 'article' | 'paper' | 'web' | 'other';
+  // `source` est required côté collection (avec defaultValue 'manual').
+  // Sans cette annotation, TS bascule sur l'overload « draft create »
+  // de payload.create() et exige `draft: true`. Les seeds sont toujours
+  // des refs saisies à la main.
+  source: 'manual';
   publisher?: string;
   place?: string;
   journal?: string;
@@ -70,6 +75,7 @@ const BIBLIOGRAPHY: BiblioSeed[] = [
     year: 2017,
     title: "In the Name of Women's Rights. The Rise of Femonationalism",
     type: 'book',
+    source: 'manual',
     publisher: 'Duke University Press',
     place: 'Durham',
   },
@@ -79,6 +85,7 @@ const BIBLIOGRAPHY: BiblioSeed[] = [
     year: 2007,
     title: 'Desiring Arabs',
     type: 'book',
+    source: 'manual',
     publisher: 'University of Chicago Press',
     place: 'Chicago',
   },
@@ -88,6 +95,7 @@ const BIBLIOGRAPHY: BiblioSeed[] = [
     year: 2007,
     title: 'Terrorist Assemblages. Homonationalism in Queer Times',
     type: 'book',
+    source: 'manual',
     publisher: 'Duke University Press',
     place: 'Durham',
   },
@@ -97,6 +105,7 @@ const BIBLIOGRAPHY: BiblioSeed[] = [
     year: 2014,
     title: 'Bracketing Sexuality',
     type: 'article',
+    source: 'manual',
     journal: 'Health and Human Rights',
     volume: 'vol. 6, n° 2',
     pages: '43-82',
