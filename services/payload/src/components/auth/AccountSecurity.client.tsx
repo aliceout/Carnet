@@ -1,10 +1,11 @@
 'use client';
 
-// Onglet Sécurité du profil : 2FA email (info statique) + gestion des
-// appareils de confiance.
+// Sécurité du profil : 2FA email (info statique) + gestion des
+// appareils de confiance. Rendu en deux blocs ouverts par défaut, sans
+// accordéon — le parent (AccountView / UserEditView) gère déjà la
+// hiérarchie de sections, on ne rajoute pas un niveau de pliage.
 
 import React, { useEffect, useState } from 'react';
-import { Banner, Button, Collapsible } from '@payloadcms/ui';
 
 const API_BASE = '/cms/api/users';
 
@@ -51,63 +52,56 @@ export default function AccountSecurityClient(): React.ReactElement {
     }
   }
 
-  const stack: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 'var(--base)' };
-  const sectionInner: React.CSSProperties = { ...stack, padding: 'var(--base)' };
-
   return (
-    <div className="field-type" style={{ ...stack, marginTop: 'var(--base)', marginBottom: 'var(--base)' }}>
-      <h3 style={{ margin: 0 }}>Sécurité du compte</h3>
-
-      {error && <Banner type="error">{error}</Banner>}
-
-      <Collapsible header="Double authentification (2FA)" initCollapsed={false}>
-        <div style={sectionInner}>
-          <p style={{ margin: 0 }}>
-            Toutes les connexions sont protégées par un <strong>code à 6 chiffres reçu par email</strong>.
-            Sur un appareil de confiance (cf. ci-dessous), le code est demandé environ une fois par semaine.
-          </p>
+    <div className="carnet-account-security">
+      {error && (
+        <div className="carnet-editview__error" role="alert">
+          {error}
         </div>
-      </Collapsible>
+      )}
 
-      <Collapsible header={`Appareils de confiance (${devices.length})`} initCollapsed={true}>
-        <div style={sectionInner}>
-          <p style={{ margin: 0 }}>
-            Ces appareils ne vous demandent pas de code à la connexion (validité 7 jours).
-          </p>
-          {devices.length === 0 && <p style={{ margin: 0, opacity: 0.7 }}>Aucun appareil de confiance.</p>}
-          {devices.length > 0 && (
-            <div>
-              {devices.map((d) => (
-                <div
-                  key={d.deviceId}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: 'calc(var(--base) / 2) 0',
-                    borderBottom: '1px solid var(--theme-elevation-100)',
-                    gap: 'var(--base)',
-                  }}
-                >
-                  <div>
-                    <div>
-                      <strong>{d.label ?? 'Appareil inconnu'}</strong>
-                    </div>
-                    <div style={{ fontSize: '0.85em', opacity: 0.7 }}>
-                      {d.ip ? `IP ${d.ip} · ` : ''}
-                      Ajouté le {new Date(d.createdAt).toLocaleString('fr-FR')} · expire le{' '}
-                      {new Date(d.expiresAt).toLocaleString('fr-FR')}
-                    </div>
+      <div className="carnet-account-security__group">
+        <div className="carnet-account-security__title">Double authentification (2FA)</div>
+        <p className="carnet-account-security__text">
+          Toutes les connexions sont protégées par un{' '}
+          <strong>code à 6 chiffres reçu par email</strong>. Sur un appareil de
+          confiance (cf. ci-dessous), le code est demandé environ une fois par semaine.
+        </p>
+      </div>
+
+      <div className="carnet-account-security__group">
+        <div className="carnet-account-security__title">
+          Appareils de confiance ({devices.length})
+        </div>
+        <p className="carnet-account-security__text">
+          Ces appareils ne vous demandent pas de code à la connexion (validité 7 jours).
+        </p>
+        {devices.length === 0 ? (
+          <p className="carnet-account-security__empty">Aucun appareil de confiance.</p>
+        ) : (
+          <ul className="carnet-account-security__devices">
+            {devices.map((d) => (
+              <li key={d.deviceId}>
+                <div className="info">
+                  <div className="label">{d.label ?? 'Appareil inconnu'}</div>
+                  <div className="meta">
+                    {d.ip ? `IP ${d.ip} · ` : ''}
+                    Ajouté le {new Date(d.createdAt).toLocaleString('fr-FR')} · expire le{' '}
+                    {new Date(d.expiresAt).toLocaleString('fr-FR')}
                   </div>
-                  <Button buttonStyle="secondary" size="small" onClick={() => void revokeDevice(d.deviceId)}>
-                    Révoquer
-                  </Button>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </Collapsible>
+                <button
+                  type="button"
+                  className="carnet-btn carnet-btn--ghost"
+                  onClick={() => void revokeDevice(d.deviceId)}
+                >
+                  Révoquer
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

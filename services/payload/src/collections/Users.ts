@@ -2,6 +2,7 @@ import type { CollectionConfig, FieldHook } from 'payload';
 
 import { canMutateRole, isAdminOrRoot, isSelfOrAdmin, userRole } from '../access/roles';
 import { AUTH_CONFIG } from '../auth/config';
+import { encrypt, isEncrypted, maskSecret } from '../lib/crypto';
 
 // Collection users — étendue pour supporter :
 //  - rôles (root unique / admin / editor)
@@ -50,11 +51,21 @@ export const Users: CollectionConfig = {
         list: {
           Component: '@/components/admin/UsersListView#default',
         },
+        // Vue d'édition entièrement custom — remplace le rendu natif
+        // Payload (form stacked + Change Password modal) par le layout
+        // Carnet (CarnetTopbar + sections + sidebar + modale danger).
+        // Cf UserEditView.client.tsx.
+        edit: {
+          root: {
+            Component: '@/components/admin/UserEditView#default',
+          },
+        },
       },
-      // Header custom (crumbs Carnet / Mon compte ou Carnet /
-      // Utilisateurs / [email]) au-dessus de la barre d'actions
-      // native pour /cms/admin/account et /cms/admin/collections/
-      // users/[id].
+      // Header custom (crumbs Carnet / Mon compte) au-dessus de la
+      // barre d'actions native pour /cms/admin/account. Sur
+      // /cms/admin/collections/users/[id] on a maintenant la vue
+      // entièrement custom (cf views.edit.root) — beforeDocumentControls
+      // n'est donc jamais rendu là.
       edit: {
         beforeDocumentControls: ['@/components/admin/AccountEditHeader#default'],
       },
@@ -261,6 +272,131 @@ export const Users: CollectionConfig = {
         position: 'sidebar',
         condition: (data) => Boolean(data?.id),
       },
+    },
+
+    // ─── Intégration Zotero (par-user) ───────────────────────────────
+    // Chaque user peut connecter sa bibliothèque Zotero personnelle.
+    // La clé API est chiffrée applicativement (PAYLOAD_SECRET) et
+    // n'est jamais renvoyée en clair par l'API REST — afterRead la
+    // remplace par un placeholder masqué (`••••••••XXXX`) pour donner
+    // un indice de présence sans exposer la valeur.
+    //
+    // Le déchiffrement effectif n'a lieu qu'au sein du endpoint sync
+    // (cf /cms/api/users/me/zotero-sync), qui charge le doc avec
+    // overrideAccess et appelle decrypt() explicitement.
+    {
+      name: 'zotero',
+      type: 'group',
+      label: 'Intégration Zotero',
+      access: {
+        read: isSelfOrAdmin,
+      },
+      admin: {
+        // Masqué dans l'UI native Payload — la saisie se fait depuis
+        // le panneau « Zotero » de la vue Compte custom.
+        hidden: true,
+        condition: (data) => Boolean(data?.id),
+      },
+      fields: [
+        {
+          name: 'apiKey',
+          type: 'text',
+          label: 'Clé API Zotero',
+          access: {
+            read: isSelfOrAdmin,
+          },
+          hooks: {
+            // Idempotent : si la valeur arrive déjà sous forme `zenc:…`
+            // on ne re-chiffre pas. Vide ou null laisse passer (efface
+            // la clé). Sinon on chiffre avant d'écrire en DB.
+            beforeChange: [
+              ({ value }) => {
+                if (value === null || value === undefined || value === '') return value;
+                if (typeof value !== 'string') return value;
+                if (isEncrypted(value)) return value;
+                return encrypt(value);
+              },
+            ],
+            // Masque la clé dans toutes les réponses API : on ne renvoie
+            // jamais la valeur déchiffrée. Le format `••••••••XXXX` (4
+            // derniers caractères de la clé en clair) sert juste d'indice
+            // de présence.
+            //
+            // Exception : les endpoints serveur qui ont besoin de la
+            // valeur chiffrée brute (test, sync) lisent le doc avec
+            // `req.context.zoteroRawRead = true`. Sans ce bypass, le
+            // hook masque la valeur avant que `decrypt()` puisse être
+            // appelé, et tout le sync casse.
+            afterRead: [
+              ({ value, req }) => {
+                if (value === null || value === undefined || value === '') return '';
+                const raw = (req?.context as { zoteroRawRead?: boolean } | undefined)
+                  ?.zoteroRawRead === true;
+                if (raw) return value;
+                return maskSecret(value);
+              },
+            ],
+          },
+        },
+        {
+          name: 'libraryId',
+          type: 'text',
+          label: 'ID de bibliothèque Zotero',
+          admin: {
+            description:
+              'Identifiant numérique — visible dans l’URL https://www.zotero.org/<userId>/library.',
+          },
+        },
+        {
+          name: 'libraryType',
+          type: 'select',
+          required: false,
+          defaultValue: 'user',
+          label: 'Type de bibliothèque',
+          options: [
+            { label: 'Personnelle', value: 'user' },
+            { label: 'Groupe', value: 'group' },
+          ],
+        },
+        {
+          name: 'lastSyncAt',
+          type: 'date',
+          label: 'Dernier sync',
+          admin: {
+            readOnly: true,
+            description: 'Mis à jour automatiquement à chaque synchronisation.',
+          },
+          access: { update: () => false },
+        },
+        {
+          name: 'lastSyncVersion',
+          type: 'number',
+          label: 'Version Zotero du dernier sync',
+          admin: {
+            readOnly: true,
+            description: 'Sert au diff incrémental côté Zotero (param `since`).',
+          },
+          access: { update: () => false },
+        },
+        {
+          name: 'lastSyncAdded',
+          type: 'number',
+          admin: { readOnly: true, hidden: true },
+          access: { update: () => false },
+        },
+        {
+          name: 'lastSyncUpdated',
+          type: 'number',
+          admin: { readOnly: true, hidden: true },
+          access: { update: () => false },
+        },
+        {
+          name: 'lastSyncError',
+          type: 'text',
+          admin: { readOnly: true, hidden: true },
+          access: { update: () => false },
+        },
+      ],
     },
 
     // ─── Trusted devices (post-OTP, 7 jours) ─────────────────────────

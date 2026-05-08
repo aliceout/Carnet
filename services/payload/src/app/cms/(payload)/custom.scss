@@ -1161,6 +1161,12 @@ button.btn--style-primary,
     text-decoration: none;
     transition: background 0.12s, color 0.12s;
 
+    // Variante « Tous les billets » : on insère une colonne Auteur·ice
+    // après Titre. 7 colonnes au lieu de 6.
+    &--with-authors {
+      grid-template-columns: 1fr 140px 130px 180px 110px 90px 20px;
+    }
+
     &:last-child {
       border-bottom: 0;
     }
@@ -1203,6 +1209,11 @@ button.btn--style-primary,
     .theme {
       font-size: 12px;
       color: var(--b-accent);
+    }
+
+    .authors {
+      font-size: 12px;
+      color: var(--b-muted);
     }
 
     .title {
@@ -2561,6 +2572,21 @@ button.btn--style-primary,
     display: grid;
     gap: 14px;
     margin-bottom: 16px;
+    // Sans cette règle, deux fields avec des hints de hauteurs différentes
+    // (1 ligne vs 2-3 lignes) peuvent paraître désalignés (le label/input
+    // de la cellule courte se centre verticalement). On force le top.
+    align-items: start;
+    // Quirk grid : `min-width: auto` par défaut sur les grid items les
+    // empêche de descendre sous leur largeur de contenu. Conséquence :
+    // `1fr 1fr` ne donne pas du strict 50/50 quand un côté a un hint
+    // plus long que l'autre — la cellule au contenu plus large prend
+    // sa min-content. `min-width: 0` + `width: 100%` force vraiment
+    // le track à s'imposer et le label à le remplir entièrement.
+    > * {
+      min-width: 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
 
     &--2 {
       grid-template-columns: 1fr 1fr;
@@ -2821,6 +2847,11 @@ button.btn--style-primary,
     }
   }
 
+  // ── Array editor pattern (SiteEditView) ─────────────────────
+  // `__rows` est un flex container vertical, `__rowitem` une ligne.
+  // Pas confondre avec `__row` plus haut qui est un helper de grille
+  // pour mettre 2/3 fields côte-à-côte dans un formulaire (collision
+  // de noms historique → renommé en __rowitem ici).
   &__rows {
     display: flex;
     flex-direction: column;
@@ -2828,7 +2859,7 @@ button.btn--style-primary,
     margin-bottom: 12px;
   }
 
-  &__row {
+  &__rowitem {
     display: grid;
     grid-template-columns: minmax(120px, 1fr) minmax(160px, 2fr) auto auto;
     gap: 12px;
@@ -2838,7 +2869,7 @@ button.btn--style-primary,
     border: 1px solid var(--b-rule);
   }
 
-  &__row-actions {
+  &__rowitem-actions {
     display: flex;
     gap: 4px;
     align-self: end;
@@ -2856,6 +2887,95 @@ button.btn--style-primary,
     font-size: 12px;
   }
 
+  // Action inline dans un field (texte d'état + bouton à droite).
+  // Utilisé p.ex. dans UserEditView pour « Force unlock » avec le
+  // compteur d'échecs à gauche et le bouton à droite.
+  &__inline-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--b-paper);
+    border: 1px solid var(--b-rule);
+
+    .hint {
+      margin: 0;
+      flex: 1;
+      font-size: 11.5px;
+      color: var(--b-muted);
+      line-height: 1.4;
+    }
+  }
+
+  // Petit feedback sous une action ponctuelle (ex : « Compte
+  // déverrouillé. » après Force unlock). Disparaît implicitement
+  // au prochain refresh.
+  &__inline-feedback {
+    display: block;
+    margin-top: 6px;
+    font-size: 11.5px;
+    color: var(--b-muted);
+    font-style: italic;
+  }
+
+  // Bandeau d'information neutre — utilisé pour signaler qu'une partie
+  // de l'édition (ex : éditeur de blocs Pages, étape 2) n'est pas
+  // encore branchée mais que la donnée est préservée.
+  &__notice {
+    padding: 12px 14px;
+    background: var(--b-bg);
+    border-left: 2px solid var(--b-accent);
+    color: var(--b-muted);
+    font-size: 12.5px;
+    line-height: 1.5;
+    margin: 0 0 14px;
+  }
+
+  // Liste read-only des blocs d'une page (PageEditView étape 1).
+  // Énumère « 01 / Texte (prose) », « 02 / Figure », etc. Réplique
+  // visuelle simple, sans actions — l'éditeur arrive en étape 2.
+  &__sections-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12.5px;
+
+    li {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      padding: 10px 14px;
+      background: var(--b-paper);
+      border: 1px solid var(--b-rule);
+      color: var(--b-ink);
+    }
+
+    .carnet-mono {
+      color: var(--b-muted);
+      font-size: 11px;
+    }
+
+    .kind {
+      color: var(--b-ink);
+    }
+  }
+
+  // Section « zone dangereuse » : abrite le bouton « Supprimer cette
+  // page ». Pas de border-top pour ne pas mimer une vraie section
+  // — c'est une zone admin, pas un champ.
+  &__section--danger {
+    border-top: 0;
+    padding-top: 8px;
+
+    .carnet-postedit__delete {
+      max-width: 320px;
+    }
+  }
+
   // /admin/account a une grille readonly plus dense (3 chips alignés)
   &--account {
     .carnet-editview__readonly-grid {
@@ -2865,11 +2985,280 @@ button.btn--style-primary,
   }
 
   @media (max-width: 900px) {
-    &__row {
+    &__rowitem {
       grid-template-columns: 1fr 1fr;
     }
     &__readonly-grid {
       grid-template-columns: 1fr 1fr;
+    }
+  }
+}
+
+// ─── Éditeur de sections (PageEditView) ─────────────────────────
+// Cards empilables (Prose / Figure / Citation) avec en-tête index +
+// type + preview + actions, body collapsible.
+
+.page-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  &__empty {
+    padding: 16px;
+    background: var(--b-paper);
+    border: 1px dashed var(--b-rule);
+    color: var(--b-muted);
+    font-size: 12px;
+    text-align: center;
+  }
+
+  &__add {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+    padding: 12px;
+    background: var(--b-bg);
+    border: 1px dashed var(--b-rule);
+
+    .lbl {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--b-muted);
+    }
+  }
+}
+
+.page-section {
+  background: var(--b-paper);
+  border: 1px solid var(--b-rule);
+
+  &--unknown {
+    background: var(--b-bg);
+    border-style: dashed;
+  }
+
+  &__head {
+    display: grid;
+    grid-template-columns: 30px 130px 1fr auto;
+    align-items: baseline;
+    gap: 14px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--b-rule);
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+  }
+
+  &--collapsed &__head {
+    border-bottom: 0;
+  }
+
+  &__index {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--b-muted);
+  }
+
+  &__kind {
+    font-weight: 600;
+    color: var(--b-ink);
+  }
+
+  &__preview {
+    color: var(--b-muted);
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 4px;
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      padding: 0;
+      background: transparent;
+      border: 1px solid var(--b-rule);
+      color: var(--b-muted);
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+
+      &:hover:not(:disabled) {
+        color: var(--b-ink);
+        border-color: var(--b-ink);
+      }
+
+      &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  &__del {
+    &:hover:not(:disabled) {
+      background: rgba(182, 58, 58, 0.1) !important;
+      color: #b63a3a !important;
+      border-color: #b63a3a !important;
+    }
+  }
+
+  &__body {
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .carnet-editview__field {
+      margin-bottom: 0;
+      max-width: none;
+    }
+  }
+
+  &__unknown {
+    padding: 12px;
+    background: var(--b-bg);
+    border-left: 2px solid var(--b-muted);
+    color: var(--b-muted);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+}
+
+// ─── PageProseEditor (Lexical minimal pour blocs Prose) ─────────
+// Toolbar haut sobre + zone d'édition .ed-body (theme partagé avec
+// PostBodyEditor — voir .carnet-postedit .ed-body pour la structure).
+// On duplique seulement le minimum vital (typo, marges) pour que ça
+// rende correctement hors de la PostEditView.
+
+.page-prose-editor {
+  border: 1px solid var(--b-rule);
+  background: var(--b-paper);
+
+  .page-prose-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--b-rule);
+    background: var(--b-bg);
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 28px;
+      height: 26px;
+      padding: 0 6px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--b-muted);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+
+      &:hover {
+        color: var(--b-ink);
+        border-color: var(--b-rule);
+        background: var(--b-paper);
+      }
+    }
+
+    .sep {
+      display: inline-block;
+      width: 1px;
+      height: 18px;
+      background: var(--b-rule);
+      margin: 0 4px;
+    }
+  }
+
+  .ed-body {
+    position: relative;
+    padding: 14px;
+    font-family: var(--font-serif);
+    font-size: 16px;
+    line-height: 1.65;
+    color: var(--b-ink);
+    min-height: 120px;
+
+    .ed-content {
+      outline: none;
+      min-height: 90px;
+    }
+
+    .ed-placeholder {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      pointer-events: none;
+      color: var(--b-muted);
+      font-style: italic;
+    }
+
+    .ed-p {
+      margin: 0 0 0.9em;
+    }
+
+    .ed-h2 {
+      font-size: 22px;
+      font-weight: 600;
+      margin: 18px 0 10px;
+      letter-spacing: -0.2px;
+      line-height: 1.25;
+    }
+
+    .ed-h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 14px 0 8px;
+      line-height: 1.3;
+    }
+
+    .ed-quote {
+      margin: 14px 0;
+      padding: 0 0 0 14px;
+      border-left: 2px solid var(--b-rule);
+      color: var(--b-muted);
+      font-style: italic;
+    }
+
+    .ed-bold {
+      font-weight: 700;
+    }
+    .ed-italic {
+      font-style: italic;
+    }
+    .ed-underline {
+      text-decoration: underline;
+    }
+    .ed-strike {
+      text-decoration: line-through;
+    }
+    .ed-link {
+      color: var(--b-accent);
+      border-bottom: 1px solid var(--b-accent);
+      text-decoration: none;
+    }
+    .ed-ul,
+    .ed-ol {
+      margin: 0 0 0.9em;
+      padding-left: 22px;
+    }
+    .ed-li {
+      margin-bottom: 4px;
     }
   }
 }
@@ -4429,6 +4818,93 @@ button.btn--style-primary,
   color: var(--b-ink);
 }
 
+// Sécurité du compte (2FA + appareils de confiance) — embed dans
+// AccountView et UserEditView, sans accordéon. Deux groupes empilés
+// avec un titre lbl-style et un corps en texte serif.
+.carnet-account-security {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  // Aligne le bord droit sur les autres .carnet-editview__field qui
+  // ont déjà un cap à 640px — sinon les paragraphes 2FA et la liste
+  // d'appareils s'étendent plus loin que le bloc Verrouillage juste
+  // au-dessus.
+  max-width: 640px;
+
+  &__group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--b-muted);
+  }
+
+  &__text {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--b-ink);
+
+    strong {
+      font-weight: 600;
+    }
+  }
+
+  &__empty {
+    margin: 0;
+    font-size: 12px;
+    color: var(--b-muted);
+    font-style: italic;
+  }
+
+  &__devices {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+
+    li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--b-rule);
+
+      &:last-child {
+        border-bottom: 0;
+      }
+
+      .info {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .label {
+        font-family: var(--font-sans);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--b-ink);
+      }
+
+      .meta {
+        margin-top: 2px;
+        font-size: 11.5px;
+        color: var(--b-muted);
+        line-height: 1.4;
+      }
+    }
+  }
+}
+
 // Section Zotero de la page Compte. Reprend le style des autres sections
 // editview (gap, typo) avec quelques spécificités : barre de statut
 // (✓/✕), groupe d'actions horizontal, ligne de feedback (info/error).
@@ -4436,7 +4912,6 @@ button.btn--style-primary,
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-width: 800px;
 
   &__intro {
     margin: 0;

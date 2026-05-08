@@ -31,6 +31,8 @@ import { default as default_8afbac37d45034f52a5dc2f36e202eda } from '@/component
 import { default as default_c2a08a78b2479e66392ea346136ef322 } from '@/components/admin/BibliographyEditView'
 import { default as default_748165dd07e185739c7cd0f1c37b06a9 } from '@/components/admin/BibliographyListView'
 import { default as default_e47d771c2781df16f3ba2f52239ec339 } from '@/components/admin/PagesListView'
+import { default as default_pageeditview_carnet } from '@/components/admin/PageEditView'
+import { default as default_usereditview_carnet } from '@/components/admin/UserEditView'
 import { default as default_83821287226bebaf0b24b9baffeb4c81 } from '@/components/auth/AccountSecurity'
 import { default as default_53d63216743950c49d1b24206b7bd206 } from '@/components/auth/InviteUserButton'
 import { default as default_6dd41e8136f3ff7004ad420790f2ad26 } from '@/components/admin/AccountEditHeader'
@@ -81,6 +83,8 @@ export const importMap = {
   "@/components/admin/BibliographyEditView#default": default_c2a08a78b2479e66392ea346136ef322,
   "@/components/admin/BibliographyListView#default": default_748165dd07e185739c7cd0f1c37b06a9,
   "@/components/admin/PagesListView#default": default_e47d771c2781df16f3ba2f52239ec339,
+  "@/components/admin/PageEditView#default": default_pageeditview_carnet,
+  "@/components/admin/UserEditView#default": default_usereditview_carnet,
   "@/components/auth/AccountSecurity#default": default_83821287226bebaf0b24b9baffeb4c81,
   "@/components/auth/InviteUserButton#default": default_53d63216743950c49d1b24206b7bd206,
   "@/components/admin/AccountEditHeader#default": default_6dd41e8136f3ff7004ad420790f2ad26,
