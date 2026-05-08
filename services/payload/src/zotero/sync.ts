@@ -167,7 +167,9 @@ export async function syncZoteroForUser(opts: {
         const data = {
           ...mapped,
           slug: makeSlug(userId, item.key),
-          owner: userId,
+          // Payload's Postgres adapter type owner: number | { id, ... }.
+          // Notre signature accepte string | number — on coerce vers number.
+          owner: typeof userId === 'number' ? userId : Number(userId),
         };
         // `req.context.zoteroSync = true` est le flag que le hook
         // beforeChange de Bibliography reconnaît pour bypass le
