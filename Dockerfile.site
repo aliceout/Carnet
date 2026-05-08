@@ -18,6 +18,14 @@ WORKDIR /app
 
 RUN corepack enable
 
+# ADDRESS reçu en --build-arg depuis le workflow CI (Infisical → step
+# « Fetch build-time secrets » dans .github/workflows/build.yml). Promu
+# en ENV pour que `pnpm build` (donc astro.config.mjs → Astro.site) y
+# ait accès via process.env.ADDRESS. Baké dans dist/ : sitemap, RSS,
+# canonical URLs, JSON-LD.
+ARG ADDRESS
+ENV ADDRESS=$ADDRESS
+
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 

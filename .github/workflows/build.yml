@@ -72,11 +72,40 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Récupère les secrets build-time depuis Infisical (ADDRESS surtout —
+      # nécessaire au build Astro pour `Astro.site` qui alimente sitemap,
+      # RSS, canonical URLs, JSON-LD). Auth Universal Auth via Machine
+      # Identity dédiée CI.
+      #
+      # ⚠ Cet Infisical est l'instance *cloud* utilisée par la CI (pas
+      # l'Infisical self-hosted qui alimente le runtime VPS via deploy.sh).
+      # Le path /services/carnet diffère donc de l'arbo /web qu'on retrouve
+      # côté self-hosted.
+      - name: Fetch build-time secrets from Infisical
+        uses: Infisical/secrets-action@v1.0.7
+        with:
+          method: universal-auth
+          domain: ${{ secrets.INFISICAL_API_URL }}
+          client-id: ${{ secrets.INFISICAL_CI_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CI_CLIENT_SECRET }}
+          # L'action exige `project-slug` (pas l'UUID). Le GH secret est
+          # nommé INFISICAL_PROJECT_ID pour des raisons historiques mais
+          # doit contenir le SLUG du projet (visible dans l'URL admin
+          # Infisical, ex. « carnet-ayz-p »).
+          project-slug: ${{ secrets.INFISICAL_PROJECT_ID }}
+          env-slug: prod
+          secret-path: /services/carnet
+          export-type: env
+
       - name: Build and push web
         uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile.site
+          # ADDRESS baké dans Astro.site au build (cf. astro.config.mjs).
+          # Reçu en ARG par le stage `builder` du Dockerfile.
+          build-args: |
+            ADDRESS=${{ env.ADDRESS }}
           push: true
           tags: |
             ghcr.io/aliceout/carnet/web:latest
