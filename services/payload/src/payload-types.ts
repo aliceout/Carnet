@@ -366,7 +366,7 @@ export interface User {
   /**
    * Géré automatiquement par le système d'invitation.
    */
-  status: 'pending' | 'active' | 'disabled';
+  status?: ('pending' | 'active' | 'disabled') | null;
   invitation?: {
     tokenHash?: string | null;
     expiresAt?: string | null;
@@ -724,7 +724,7 @@ export interface Site {
   };
   home?: {
     /**
-     * H1 de la page d'accueil. Entourer une portion de "*" pour la mettre en italique (ex. *études de genre*).
+     * H1 de la page d'accueil. Entourer une portion de "*" pour la mettre en italique.
      */
     heroTitle?: string | null;
     /**

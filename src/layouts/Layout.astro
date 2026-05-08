@@ -42,19 +42,20 @@ const {
 const canonical = new URL(Astro.url.pathname, Astro.site).toString();
 
 // Couleurs pilotées depuis Payload (global Site → branding). Si Payload
-// n'est pas joignable au SSR, on garde les valeurs fixées dans global.css
-// (#5a3a7a accent, #f6f5f1 fond). Whitelist simple pour ne pas injecter
-// n'importe quoi.
+// n'est pas joignable au SSR, on garde les valeurs fixées dans global.css.
+// Whitelist + mapping hex → slug pour pouvoir poser un attribut
+// data-accent sur <html>, qui pilote les variantes dark mode dans
+// global.css ([data-theme='dark'][data-accent='rouge'] etc.).
 type SiteBranding = {
   branding?: { accentColor?: string; backgroundColor?: string };
 };
-const ACCENT_WHITELIST = new Set([
-  '#5a3a7a',
-  '#8a3a3a',
-  '#1f3a5a',
-  '#3a3a3a',
-  '#2d5a3d',
-]);
+const ACCENT_HEX_TO_SLUG: Record<string, string> = {
+  '#5a3a7a': 'violet',
+  '#8a3a3a': 'rouge',
+  '#1f3a5a': 'bleu',
+  '#3a3a3a': 'gris',
+  '#2d5a3d': 'vert',
+};
 const BG_WHITELIST = new Set([
   '#f6f5f1',
   '#fdfcf8',
@@ -64,11 +65,15 @@ const BG_WHITELIST = new Set([
   '#e9eaec',
 ]);
 let accentOverride: string | null = null;
+let accentSlug: string | null = null;
 let bgOverride: string | null = null;
 try {
   const site = await fetchSite<SiteBranding>();
   const a = site.branding?.accentColor;
-  if (a && ACCENT_WHITELIST.has(a)) accentOverride = a;
+  if (a && ACCENT_HEX_TO_SLUG[a]) {
+    accentOverride = a;
+    accentSlug = ACCENT_HEX_TO_SLUG[a];
+  }
   const b = site.branding?.backgroundColor;
   if (b && BG_WHITELIST.has(b.toLowerCase())) bgOverride = b.toLowerCase();
 } catch (err) {
@@ -77,7 +82,7 @@ try {
 ---
 
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-accent={accentSlug ?? 'violet'}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -98,7 +103,7 @@ try {
     />
     {(accentOverride || bgOverride) && (
       <style
-        set:html={`:root{${accentOverride ? `--color-accent:${accentOverride};--color-accent-base:${accentOverride};` : ''}${bgOverride ? `--color-bg:${bgOverride};` : ''}}`}
+        set:html={`:root{${accentOverride ? `--color-accent:${accentOverride};` : ''}${bgOverride ? `--color-bg:${bgOverride};` : ''}}`}
       ></style>
     )}
     {/*

@@ -31,23 +31,16 @@
   --density-feed: 0.7;
 }
 
-/* `--color-accent-base` est la « source » de l'accent en valeur claire,
-   séparée de `--color-accent` (que le dark mode éclaircit via
-   color-mix). Doit être une CONSTANTE (pas un var(--color-accent))
-   sinon le dark mode crée un cycle référentiel — color-mix lit la
-   base, qui pointe vers --color-accent, qui se calcule à partir de
-   la base, etc. → CSS invalide → fallback currentColor.
-   Layout.astro surcharge cette valeur au SSR avec la couleur choisie
-   dans Payload (Site → Branding → Couleur d'accentuation). */
+/* Couleur de surface utilisée par les cartouches « Pour citer cet
+   article ». Légèrement plus chaude que --color-paper en light, plus
+   sombre que --color-bg en dark — donne une note de surface visible
+   sans casser le rythme. */
 :root {
-  --color-accent-base: #5a3a7a;
+  --color-citation-bg: #ece9e0;
 }
 
-/* Dark mode — appliqué quand le HTML porte data-theme="dark" (cf.
-   inline script anti-FOUC dans Layout.astro et toggle dans Header.astro).
-   Palette warm dark (légèrement violacée pour cohabiter avec l'accent),
-   pas noir pur. L'accent est éclairci en oklch pour rester lisible
-   sur fond sombre quelle que soit la couleur source choisie dans Payload. */
+/* Dark mode — appliqué quand <html> porte data-theme="dark" (cf.
+   script anti-FOUC du Layout). Palette warm dark, pas noir pur. */
 [data-theme='dark'] {
   --color-bg: #22242e;
   --color-paper: #2a2c38;
@@ -56,7 +49,30 @@
   --color-muted: #9aa0ad;
   --color-body: #d8d6d0;
   --color-body-soft: #b8b6b0;
-  --color-accent: color-mix(in oklch, var(--color-accent-base), white 30%);
+  --color-citation-bg: #2c2f3c;
+}
+
+/* Variantes dark de l'accent — une par couleur d'accent disponible
+   dans Payload (Site → Branding). Le slug est posé en data-accent
+   sur <html> par Layout.astro au SSR (mapping hex → slug). On utilise
+   data-accent (spécificité 0,1,0) plutôt que var()+color-mix(), ce
+   qui évite tout problème de cascade entre l'injection SSR et la
+   feuille bundlée. Le defaut violet sert de fallback si data-accent
+   n'est pas posé. */
+[data-theme='dark'] {
+  --color-accent: #a888c8;
+}
+[data-theme='dark'][data-accent='rouge'] {
+  --color-accent: #d49a9a;
+}
+[data-theme='dark'][data-accent='bleu'] {
+  --color-accent: #7ea4cc;
+}
+[data-theme='dark'][data-accent='gris'] {
+  --color-accent: #b8b8b8;
+}
+[data-theme='dark'][data-accent='vert'] {
+  --color-accent: #8ec4a4;
 }
 
 /* Reset minimal */
