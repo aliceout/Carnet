@@ -3943,16 +3943,17 @@ button.btn--style-primary,
 
     // Bouton « Tutoriel ▾ » à droite du header — toggle l'accordéon
     // bib-block__help. Style minimaliste pour rester subordonné au
-    // titre. Le caret pivote selon l'état ouvert/fermé.
+    // titre. Le caret pivote selon l'état ouvert/fermé. Casse normale
+    // (pas uppercase) pour le distinguer du titre majuscule à gauche.
     &__help-toggle {
       background: transparent;
       border: 0;
       padding: 0;
       font-family: inherit;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0;
+      text-transform: none;
       color: var(--b-muted);
       cursor: pointer;
       display: inline-flex;
