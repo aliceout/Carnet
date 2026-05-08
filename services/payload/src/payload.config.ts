@@ -9,6 +9,7 @@ import { Users } from './collections/Users';
 import { Media } from './collections/Media';
 import { Posts } from './collections/Posts';
 import { Themes } from './collections/Themes';
+import { Tags } from './collections/Tags';
 import { Bibliography } from './collections/Bibliography';
 import { Pages } from './collections/Pages';
 import { Site } from './globals/Site';
@@ -102,6 +103,7 @@ export default buildConfig({
   collections: [
     Posts,
     Themes,
+    Tags,
     Bibliography,
     Pages,
     UsersWithEndpoints,

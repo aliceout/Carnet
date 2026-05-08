@@ -2931,6 +2931,26 @@ button.btn--style-primary,
     &::placeholder {
       color: var(--b-rule);
     }
+
+    // État invalide (validation client : titre vide au save). Bordure
+    // basse rouge + placeholder dans la même teinte pour signaler
+    // visuellement le champ obligatoire non rempli.
+    &--invalid {
+      border-bottom: 2px solid #b63a3a;
+      padding-bottom: 4px;
+
+      &::placeholder {
+        color: #b63a3a;
+      }
+    }
+  }
+
+  .ed-title__error {
+    margin-top: -8px;
+    margin-bottom: 14px;
+    color: #b63a3a;
+    font-family: var(--font-sans);
+    font-size: 12px;
   }
 
   .ed-lede {

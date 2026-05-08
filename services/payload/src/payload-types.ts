@@ -69,6 +69,7 @@ export interface Config {
   collections: {
     posts: Post;
     themes: Theme;
+    tags: Tag;
     bibliography: Bibliography;
     pages: Page;
     users: User;
@@ -82,6 +83,7 @@ export interface Config {
   collectionsSelect: {
     posts: PostsSelect<false> | PostsSelect<true>;
     themes: ThemesSelect<false> | ThemesSelect<true>;
+    tags: TagsSelect<false> | TagsSelect<true>;
     bibliography: BibliographySelect<false> | BibliographySelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -149,6 +151,10 @@ export interface Post {
    * Taxonomie multivaluée — un billet peut appartenir à plusieurs thèmes.
    */
   themes?: (number | Theme)[] | null;
+  /**
+   * Mots-clés libres, ajoutés à la volée depuis l’édition du billet. Différents des thèmes (qui sont structurants).
+   */
+  tags?: (number | Tag)[] | null;
   publishedAt: string;
   /**
    * ~2-3 phrases — affichées en deck sous le titre.
@@ -185,6 +191,10 @@ export interface Post {
    */
   idCarnet?: string | null;
   draft?: boolean | null;
+  /**
+   * Calculé automatiquement — vrai si le corps contient au moins une zone marquée brouillon. Filtrable depuis la liste des billets.
+   */
+  hasDraftZones?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -206,6 +216,23 @@ export interface Theme {
    * 1 à 2 phrases — apparaît en hero de la page /theme/<slug>/.
    */
   description?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tags".
+ */
+export interface Tag {
+  id: number;
+  /**
+   * Mot-clé libre, ex : « Russie », « pinkwashing », « Conseil des droits de l’homme ».
+   */
+  name: string;
+  /**
+   * Auto-dérivé du nom (slugify). Sert d’ancre URL `/tag/<slug>/`.
+   */
+  slug: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -437,6 +464,10 @@ export interface PayloadLockedDocument {
         value: number | Theme;
       } | null)
     | ({
+        relationTo: 'tags';
+        value: number | Tag;
+      } | null)
+    | ({
         relationTo: 'bibliography';
         value: number | Bibliography;
       } | null)
@@ -504,6 +535,7 @@ export interface PostsSelect<T extends boolean = true> {
   slug?: T;
   type?: T;
   themes?: T;
+  tags?: T;
   publishedAt?: T;
   lede?: T;
   body?: T;
@@ -511,6 +543,7 @@ export interface PostsSelect<T extends boolean = true> {
   readingTime?: T;
   idCarnet?: T;
   draft?: T;
+  hasDraftZones?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -522,6 +555,16 @@ export interface ThemesSelect<T extends boolean = true> {
   name?: T;
   slug?: T;
   description?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tags_select".
+ */
+export interface TagsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
   updatedAt?: T;
   createdAt?: T;
 }

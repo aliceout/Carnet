@@ -36,6 +36,34 @@ export const Posts: CollectionConfig = {
     update: authenticated,
     delete: authenticated,
   },
+  hooks: {
+    // Numérotation automatique à la création — on ne demande jamais
+    // à l'autrice de saisir le numéro. Cherche le max existant et
+    // assigne max+1. S'exécute en `beforeValidate` (donc avant le
+    // check `required: true`) pour qu'un billet créé sans numero
+    // dans le payload passe la validation.
+    beforeValidate: [
+      async ({ data, req, operation }) => {
+        if (operation !== 'create') return data;
+        if (data && typeof data.numero === 'number' && data.numero > 0) return data;
+        try {
+          const existing = await req.payload.find({
+            collection: 'posts',
+            sort: '-numero',
+            limit: 1,
+            depth: 0,
+          });
+          const top = existing.docs[0] as { numero?: number } | undefined;
+          const max = typeof top?.numero === 'number' ? top.numero : 0;
+          return { ...(data ?? {}), numero: max + 1 };
+        } catch {
+          // Fallback prudent : on laisse Payload échouer sur le
+          // required, plutôt que d'écrire un numéro arbitraire.
+          return data;
+        }
+      },
+    ],
+  },
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['numero', 'title', 'type', 'publishedAt', 'draft', 'updatedAt'],

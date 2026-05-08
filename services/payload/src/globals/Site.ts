@@ -248,7 +248,7 @@ export const Site: GlobalConfig = {
         { name: 'external', type: 'checkbox', defaultValue: false },
       ],
       defaultValue: [
-        { label: 'Thèmes', href: '/themes/', external: false },
+        { label: 'Tags', href: '/tags/', external: false },
         { label: 'Archives', href: '/archives/', external: false },
         { label: 'Admin', href: '/cms/admin', external: false },
       ],

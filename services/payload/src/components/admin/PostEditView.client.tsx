@@ -53,6 +53,7 @@ const API_POSTS = '/cms/api/posts';
 type PostType = 'analyse' | 'note' | 'fiche';
 
 type Theme = { id: number | string; slug: string; name: string };
+type Tag = { id: number | string; slug: string; name: string };
 type BibEntry = {
   id: number | string;
   slug?: string;
@@ -68,6 +69,7 @@ type Post = {
   slug: string;
   type: PostType;
   themes?: (Theme | number | string)[] | null;
+  tags?: (Tag | number | string)[] | null;
   publishedAt: string;
   updatedAt?: string;
   lede: string;
@@ -127,6 +129,7 @@ const EMPTY_DRAFT: Omit<Post, 'id'> & { id?: number | string | null } = {
   slug: '',
   type: 'analyse',
   themes: [],
+  tags: [],
   publishedAt: new Date().toISOString().slice(0, 10),
   lede: '',
   body: null,
@@ -144,11 +147,15 @@ export default function PostEditViewClient({
   );
   const [initialJson, setInitialJson] = useState<string>(JSON.stringify(EMPTY_DRAFT));
   const [themes, setThemes] = useState<Theme[]>([]);
+  const [allTags, setAllTags] = useState<Tag[]>([]);
   const [biblioOptions, setBiblioOptions] = useState<BibEntry[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Erreurs de validation client par champ. Affichées en rouge sous
+  // le champ concerné (cf .field.invalid dans .ed-card et le sidebar).
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
 
@@ -168,6 +175,12 @@ export default function PostEditViewClient({
       .then((r) => r.json())
       .then((data: { docs: Theme[] }) => setThemes(data.docs ?? []))
       .catch(() => setThemes([]));
+    const tagsP = fetch('/cms/api/tags?limit=500&depth=0&sort=name', {
+      credentials: 'include',
+    })
+      .then((r) => r.json())
+      .then((data: { docs: Tag[] }) => setAllTags(data.docs ?? []))
+      .catch(() => setAllTags([]));
     const biblioP = fetch('/cms/api/bibliography?limit=200&depth=0&sort=author', {
       credentials: 'include',
     })
@@ -177,7 +190,7 @@ export default function PostEditViewClient({
 
     if (!docId) {
       // Création : pas de fetch post, on part de EMPTY_DRAFT
-      Promise.all([themesP, biblioP]).finally(() => {
+      Promise.all([themesP, tagsP, biblioP]).finally(() => {
         setInitialJson(JSON.stringify(EMPTY_DRAFT));
         setLoading(false);
       });
@@ -195,6 +208,7 @@ export default function PostEditViewClient({
         const norm: Post = {
           ...doc,
           themes: Array.isArray(doc.themes) ? doc.themes : [],
+          tags: Array.isArray(doc.tags) ? doc.tags : [],
           bibliography: Array.isArray(doc.bibliography) ? doc.bibliography : [],
           body: doc.body ?? null,
         };
@@ -205,7 +219,7 @@ export default function PostEditViewClient({
         setError(err instanceof Error ? err.message : 'Erreur inconnue');
       });
 
-    Promise.all([themesP, biblioP, postP]).finally(() => setLoading(false));
+    Promise.all([themesP, tagsP, biblioP, postP]).finally(() => setLoading(false));
   }, [docId]);
 
   const dirty = JSON.stringify(post) !== initialJson;
@@ -233,6 +247,68 @@ export default function PostEditViewClient({
     });
   }
 
+  function attachTag(tag: Tag) {
+    setPost((p) => {
+      const cur = (p.tags ?? []) as (Tag | number | string)[];
+      const ids = cur.map((t) => (typeof t === 'object' ? t.id : t));
+      if (ids.includes(tag.id)) return p;
+      return { ...p, tags: [...cur, tag] };
+    });
+  }
+
+  function detachTag(tagId: number | string) {
+    setPost((p) => {
+      const cur = (p.tags ?? []) as (Tag | number | string)[];
+      return {
+        ...p,
+        tags: cur.filter((t) => (typeof t === 'object' ? t.id : t) !== tagId),
+      };
+    });
+  }
+
+  // Crée un tag à la volée via POST /cms/api/tags, puis l'attache au
+  // billet courant. Le slug est dérivé côté serveur (hook beforeChange).
+  async function createAndAttachTag(name: string) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    // Slug calculé côté client uniquement pour le payload — le serveur
+    // l'écrasera avec sa propre slugify pour rester source de vérité.
+    const slug = trimmed
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-+|-+$)/g, '');
+    try {
+      const res = await fetch('/cms/api/tags', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmed, slug }),
+      });
+      if (!res.ok) {
+        // Si le tag existe déjà (slug unique), on le récupère et on l'attache.
+        if (res.status === 400 || res.status === 409) {
+          const existing = allTags.find((t) => t.slug === slug);
+          if (existing) {
+            attachTag(existing);
+            return;
+          }
+        }
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const json = (await res.json()) as { doc?: Tag } | Tag;
+      const fresh = (json as { doc?: Tag }).doc ?? (json as Tag);
+      setAllTags((prev) =>
+        prev.find((t) => String(t.id) === String(fresh.id)) ? prev : [...prev, fresh],
+      );
+      attachTag(fresh);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue');
+    }
+  }
+
   function toggleBiblio(entryId: number | string) {
     setPost((p) => {
       const cur = (p.bibliography ?? []) as (BibEntry | number | string)[];
@@ -249,21 +325,43 @@ export default function PostEditViewClient({
   }
 
   async function save(opts: { publish?: boolean } = {}) {
+    // Validation client AVANT toute requête : titre obligatoire (le
+    // numéro est attribué auto côté Payload, le slug est dérivé du
+    // titre côté serveur si absent — on ne valide que le titre ici).
+    const errs: Record<string, string> = {};
+    if (!post.title.trim()) errs.title = 'Champ obligatoire.';
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
+      // Focus / scroll au premier champ en erreur pour signal visuel.
+      if (errs.title && titleRef.current) {
+        titleRef.current.focus();
+        titleRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+    setFieldErrors({});
     setSaving(true);
     setError(null);
     try {
+      // Pour PATCH (billet existant), on omet `numero` du body s'il
+      // est nul/undefined côté state pour ne pas écraser la valeur DB
+      // avec un null. Pour POST (création), on n'envoie pas numero du
+      // tout : le hook beforeValidate côté Payload l'attribue auto.
       const body: Record<string, unknown> = {
-        numero: post.numero ?? null,
         title: post.title,
         slug: post.slug,
         type: post.type,
         themes: (post.themes ?? []).map((t) => (typeof t === 'object' ? t.id : t)),
+        tags: (post.tags ?? []).map((t) => (typeof t === 'object' ? t.id : t)),
         publishedAt: post.publishedAt,
         lede: post.lede,
         body: post.body,
         bibliography: (post.bibliography ?? []).map((b) => (typeof b === 'object' ? b.id : b)),
         draft: opts.publish ? false : post.draft,
       };
+      if (typeof post.numero === 'number' && post.numero > 0) {
+        body.numero = post.numero;
+      }
       const url =
         post.id != null && post.id !== ''
           ? `${API_POSTS}/${encodeURIComponent(String(post.id))}`
@@ -284,6 +382,7 @@ export default function PostEditViewClient({
       const norm: Post = {
         ...fresh,
         themes: Array.isArray(fresh.themes) ? fresh.themes : [],
+        tags: Array.isArray(fresh.tags) ? fresh.tags : [],
         bibliography: Array.isArray(fresh.bibliography) ? fresh.bibliography : [],
         body: fresh.body ?? null,
       };
@@ -355,6 +454,14 @@ export default function PostEditViewClient({
   const savedLabel = savedAt ? `Sauvegardé ${relativeSavedAt(savedAt)}` : '';
 
   const themeIds = (post.themes ?? []).map((t) => (typeof t === 'object' ? t.id : t));
+  const tagIds = (post.tags ?? []).map((t) => (typeof t === 'object' ? t.id : t));
+  const tagsAttached: Tag[] = (post.tags ?? [])
+    .map((t) =>
+      typeof t === 'object'
+        ? (t as Tag)
+        : (allTags.find((x) => String(x.id) === String(t)) as Tag | undefined),
+    )
+    .filter((t): t is Tag => t !== undefined);
   const explicitBiblioIds = (post.bibliography ?? []).map((b) =>
     typeof b === 'object' ? b.id : b,
   );
@@ -469,7 +576,7 @@ export default function PostEditViewClient({
               </div>
               <textarea
                 ref={titleRef}
-                className="ed-title"
+                className={`ed-title${fieldErrors.title ? ' ed-title--invalid' : ''}`}
                 rows={1}
                 value={post.title}
                 placeholder="Titre du billet"
@@ -481,8 +588,22 @@ export default function PostEditViewClient({
                     ledeRef.current?.focus();
                   }
                 }}
-                onChange={(e) => patch('title', e.target.value)}
+                onChange={(e) => {
+                  patch('title', e.target.value);
+                  // Efface l'erreur dès que l'utilisatrice tape.
+                  if (fieldErrors.title) {
+                    setFieldErrors((prev) => {
+                      const { title: _omit, ...rest } = prev;
+                      return rest;
+                    });
+                  }
+                }}
               />
+              {fieldErrors.title && (
+                <div className="ed-title__error" role="alert">
+                  {fieldErrors.title}
+                </div>
+              )}
               <textarea
                 ref={ledeRef}
                 className="ed-lede"
@@ -633,13 +754,9 @@ export default function PostEditViewClient({
             <div className="row">
               <div className="field">
                 <label>Numéro de billet</label>
-                <input
-                  type="number"
-                  value={post.numero ?? ''}
-                  onChange={(e) =>
-                    patch('numero', e.target.value === '' ? null : Number(e.target.value))
-                  }
-                />
+                <div className="auto" title="Attribué automatiquement à la création">
+                  {post.numero != null ? `n° ${pad3(post.numero)}` : '— (auto à la création)'}
+                </div>
               </div>
               <div className="field">
                 <label>Type</label>
@@ -715,6 +832,17 @@ export default function PostEditViewClient({
                   Retrait d'un thème = ouvrir le multi-select et décocher. */}
             </div>
 
+            <div className="field">
+              <label>Tags</label>
+              <TagsPicker
+                allTags={allTags}
+                attached={tagsAttached}
+                onAttach={attachTag}
+                onDetach={detachTag}
+                onCreate={createAndAttachTag}
+              />
+            </div>
+
             <hr />
             <h3>Calendrier</h3>
             <div className="field">
@@ -745,6 +873,128 @@ export default function PostEditViewClient({
               </div>
             </div>
           </aside>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── TagsPicker ─────────────────────────────────────────────────
+// Petit composant : input qui filtre les tags existants en
+// autocomplétion + propose « Créer ce tag » si la saisie ne matche
+// aucun tag. Les tags attachés sont rendus sous l'input en chips
+// muted avec × pour détacher.
+
+function TagsPicker({
+  allTags,
+  attached,
+  onAttach,
+  onDetach,
+  onCreate,
+}: {
+  allTags: Tag[];
+  attached: Tag[];
+  onAttach: (tag: Tag) => void;
+  onDetach: (id: number | string) => void;
+  onCreate: (name: string) => void | Promise<void>;
+}): React.ReactElement {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onDoc(e: MouseEvent) {
+      if (!ref.current) return;
+      if (!ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  const attachedIds = new Set(attached.map((t) => String(t.id)));
+  const q = query.trim().toLowerCase();
+  const matches = allTags
+    .filter((t) => !attachedIds.has(String(t.id)))
+    .filter((t) => !q || t.name.toLowerCase().includes(q) || t.slug.includes(q))
+    .slice(0, 30);
+  const exact = q && allTags.find((t) => t.name.toLowerCase() === q);
+
+  function pickFirst() {
+    if (matches.length > 0) {
+      onAttach(matches[0]);
+      setQuery('');
+      return;
+    }
+    if (q && !exact) {
+      void onCreate(query);
+      setQuery('');
+    }
+  }
+
+  return (
+    <div ref={ref} className="tags-picker">
+      <input
+        type="text"
+        className="tags-picker__input"
+        value={query}
+        placeholder="Tape un tag, Entrée pour ajouter…"
+        onFocus={() => setOpen(true)}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            pickFirst();
+          }
+          if (e.key === 'Escape') setOpen(false);
+        }}
+      />
+      {open && (query.length > 0 || matches.length > 0) && (
+        <div className="tags-picker__menu">
+          {matches.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className="tags-picker__opt"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onAttach(t);
+                setQuery('');
+              }}
+            >
+              {t.name}
+            </button>
+          ))}
+          {q && !exact && matches.length === 0 && (
+            <button
+              type="button"
+              className="tags-picker__opt tags-picker__opt--create"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                void onCreate(query);
+                setQuery('');
+              }}
+            >
+              + Créer le tag « {query.trim()} »
+            </button>
+          )}
+        </div>
+      )}
+      {attached.length > 0 && (
+        <div className="tags-picker__attached">
+          {attached.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className="tag-chip"
+              onClick={() => onDetach(t.id)}
+              title="Retirer ce tag"
+            >
+              {t.name} <span aria-hidden="true">×</span>
+            </button>
+          ))}
         </div>
       )}
     </div>
