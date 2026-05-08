@@ -46,7 +46,6 @@ POSTGRES_DB=carnet
 PAYLOAD_SECRET=$(openssl rand -hex 32)
 PAYLOAD_PUBLIC_SERVER_URL=http://localhost:3001
 PAYLOAD_INTERNAL_URL=http://localhost:3001
-ASTRO_PUBLIC_PAYLOAD_URL=http://localhost:3001
 SMTP_HOST=localhost
 SMTP_PORT=1025
 SMTP_USER=dev

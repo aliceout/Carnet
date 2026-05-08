@@ -131,7 +131,6 @@ export default buildConfig({
   // autorise uniquement le domaine du site.
   cors: [
     process.env.PAYLOAD_PUBLIC_SERVER_URL,
-    process.env.ASTRO_PUBLIC_PAYLOAD_URL,
     'https://carnet.aliceosdel.org',
     'http://localhost:4321',
     'http://localhost:3001',
@@ -140,7 +139,6 @@ export default buildConfig({
   // mutantes (POST/PATCH/DELETE) côté admin et auth.
   csrf: [
     process.env.PAYLOAD_PUBLIC_SERVER_URL,
-    process.env.ASTRO_PUBLIC_PAYLOAD_URL,
     'https://carnet.aliceosdel.org',
     'http://localhost:4321',
     'http://localhost:3001',

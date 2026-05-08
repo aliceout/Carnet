@@ -21,9 +21,7 @@ const API_BASE = `${INTERNAL_URL.replace(/\/$/, '')}/cms/api`;
 
 /** URL publique pour servir les fichiers media (côté browser). */
 const PUBLIC_URL =
-  process.env.ASTRO_PUBLIC_PAYLOAD_URL ??
-  process.env.PAYLOAD_PUBLIC_SERVER_URL ??
-  'http://localhost:3001';
+  process.env.PAYLOAD_PUBLIC_SERVER_URL ?? 'http://localhost:3001';
 
 /**
  * Construit l'URL publique d'une image Payload depuis son `filename`

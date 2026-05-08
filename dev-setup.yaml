@@ -31,4 +31,3 @@ secrets:
     - dev/payload
     - dev/postgres
     - dev/smtp
-    - dev/web
