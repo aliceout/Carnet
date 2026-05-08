@@ -15,6 +15,7 @@ import Layout from '../layouts/Layout.astro';
 import Hero from '../components/Hero.astro';
 import PostCard from '../components/PostCard.astro';
 import { fetchCollection, fetchSite, filterPublished } from '../lib/payload';
+import { formatHeroLede, formatHeroTitle } from '../lib/site';
 
 type Theme = { id: number | string; slug: string; name: string };
 
@@ -63,26 +64,12 @@ try {
 
 const total = posts.length;
 
-const heroTitleSrc = site.home?.heroTitle?.trim() || DEFAULT_HERO_TITLE;
-const heroLede = site.home?.heroLede?.trim() || DEFAULT_HERO_LEDE;
-
-// Mini-format : `*texte*` → `<em>texte</em>`. On échappe le reste pour
-// éviter toute injection HTML depuis l'admin.
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-const heroTitleHtml = escapeHtml(heroTitleSrc).replace(
-  /\*([^*]+)\*/g,
-  '<em>$1</em>',
+const heroTitleHtml = formatHeroTitle(
+  site.home?.heroTitle?.trim() || DEFAULT_HERO_TITLE,
 );
-// Lede : on garde le texte brut (échappé) mais on convertit les retours
-// ligne saisis dans Payload en <br> pour que l'autrice contrôle le wrap.
-const heroLedeHtml = escapeHtml(heroLede).replace(/\r?\n/g, '<br />');
+const heroLedeHtml = formatHeroLede(
+  site.home?.heroLede?.trim() || DEFAULT_HERO_LEDE,
+);
 
 // Top thèmes utilisés (pour la barre de filtres) — max 6 chips après "Tous"
 const themeUsage = new Map<string, { theme: Theme; count: number }>();

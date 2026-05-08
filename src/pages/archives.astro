@@ -11,8 +11,8 @@
  */
 import Layout from '../layouts/Layout.astro';
 import Hero from '../components/Hero.astro';
-import { fetchCollection, filterPublished } from '../lib/payload';
-import { formatDateIso } from '../lib/site';
+import { fetchCollection, fetchSite, filterPublished } from '../lib/payload';
+import { formatDateIso, formatHeroLede, formatHeroTitle } from '../lib/site';
 
 type Theme = { id: number | string; slug: string; name: string };
 
@@ -27,13 +27,22 @@ type Post = {
   draft?: boolean;
 };
 
+type SiteGlobal = {
+  archives?: { heroTitle?: string; heroLede?: string };
+};
+
 const TYPE_LABEL: Record<Post['type'], string> = {
   analyse: 'Analyse',
   note: 'Note',
   fiche: 'Fiche',
 };
 
+const DEFAULT_TITLE = 'Tous les billets, par année.';
+const DEFAULT_LEDE =
+  'Le carnet est versionné : chaque billet a un numéro, une date de publication et, le cas échéant, une date de mise à jour. Les fiches thématiques sont régulièrement révisées.';
+
 let posts: Post[] = [];
+let site: SiteGlobal = {};
 try {
   const raw = await fetchCollection<Post>('posts', {
     sort: '-publishedAt',
@@ -43,6 +52,11 @@ try {
   posts = filterPublished(raw);
 } catch (err) {
   console.warn('[archives] fetch failed, rendering empty:', (err as Error).message);
+}
+try {
+  site = await fetchSite<SiteGlobal>();
+} catch (err) {
+  console.warn('[archives] fetchSite failed, using defaults:', (err as Error).message);
 }
 
 // Group by year (descending)
@@ -55,6 +69,13 @@ for (const p of posts) {
 const years = [...byYear.keys()].sort().reverse();
 
 const total = posts.length;
+
+const heroTitleHtml = formatHeroTitle(
+  site.archives?.heroTitle?.trim() || DEFAULT_TITLE,
+);
+const heroLedeHtml = formatHeroLede(
+  site.archives?.heroLede?.trim() || DEFAULT_LEDE,
+);
 ---
 
 <Layout
@@ -63,8 +84,8 @@ const total = posts.length;
 >
   <Hero
     kicker={`Archives · ${total} billet${total > 1 ? 's' : ''}`}
-    title="Tous les billets, par&nbsp;année."
-    lede="Le carnet est versionné : chaque billet a un numéro, une date de publication et, le cas échéant, une date de mise à jour. Les fiches thématiques sont régulièrement révisées."
+    title={heroTitleHtml}
+    lede={heroLedeHtml}
   />
 
   <section class="container archives">

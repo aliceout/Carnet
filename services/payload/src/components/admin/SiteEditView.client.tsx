@@ -37,6 +37,14 @@ type SiteData = {
     heroTitle?: string;
     heroLede?: string;
   };
+  archives?: {
+    heroTitle?: string;
+    heroLede?: string;
+  };
+  themes?: {
+    heroTitle?: string;
+    heroLede?: string;
+  };
   baseline?: string;
   copyrightLine?: string;
   social?: {
@@ -71,6 +79,8 @@ const DEFAULT_BG = BG_OPTIONS[0].value;
 const EMPTY: SiteData = {
   branding: { accentColor: DEFAULT_ACCENT, backgroundColor: DEFAULT_BG },
   home: { heroTitle: '', heroLede: '' },
+  archives: { heroTitle: '', heroLede: '' },
+  themes: { heroTitle: '', heroLede: '' },
   baseline: '',
   copyrightLine: '',
   social: { mastodon: '', bluesky: '', orcid: '', hal: '' },
@@ -103,6 +113,14 @@ export default function SiteEditViewClient(): React.ReactElement {
           home: {
             heroTitle: doc.home?.heroTitle ?? '',
             heroLede: doc.home?.heroLede ?? '',
+          },
+          archives: {
+            heroTitle: doc.archives?.heroTitle ?? '',
+            heroLede: doc.archives?.heroLede ?? '',
+          },
+          themes: {
+            heroTitle: doc.themes?.heroTitle ?? '',
+            heroLede: doc.themes?.heroLede ?? '',
           },
           baseline: doc.baseline ?? '',
           copyrightLine: doc.copyrightLine ?? '',
@@ -139,6 +157,14 @@ export default function SiteEditViewClient(): React.ReactElement {
 
   function updateHome(key: keyof NonNullable<SiteData['home']>, value: string) {
     setData((d) => ({ ...d, home: { ...(d.home ?? {}), [key]: value } }));
+  }
+
+  function updateArchives(key: keyof NonNullable<SiteData['archives']>, value: string) {
+    setData((d) => ({ ...d, archives: { ...(d.archives ?? {}), [key]: value } }));
+  }
+
+  function updateThemes(key: keyof NonNullable<SiteData['themes']>, value: string) {
+    setData((d) => ({ ...d, themes: { ...(d.themes ?? {}), [key]: value } }));
   }
 
   function updateAccent(value: string) {
@@ -212,6 +238,14 @@ export default function SiteEditViewClient(): React.ReactElement {
         home: {
           heroTitle: fresh.home?.heroTitle ?? '',
           heroLede: fresh.home?.heroLede ?? '',
+        },
+        archives: {
+          heroTitle: fresh.archives?.heroTitle ?? '',
+          heroLede: fresh.archives?.heroLede ?? '',
+        },
+        themes: {
+          heroTitle: fresh.themes?.heroTitle ?? '',
+          heroLede: fresh.themes?.heroLede ?? '',
         },
         baseline: fresh.baseline ?? '',
         copyrightLine: fresh.copyrightLine ?? '',
@@ -348,6 +382,56 @@ export default function SiteEditViewClient(): React.ReactElement {
                 rows={4}
                 value={data.home?.heroLede ?? ''}
                 onChange={(e) => updateHome('heroLede', e.target.value)}
+              />
+            </label>
+          </section>
+
+          <section className="carnet-editview__section">
+            <h2 className="carnet-editview__section-title">Page Archives</h2>
+            <p className="carnet-editview__section-help">
+              Titre et présentation de la page <code>/archives/</code>.
+            </p>
+
+            <label className="carnet-editview__field">
+              <span className="lbl">Titre du hero</span>
+              <textarea
+                rows={3}
+                value={data.archives?.heroTitle ?? ''}
+                onChange={(e) => updateArchives('heroTitle', e.target.value)}
+              />
+            </label>
+
+            <label className="carnet-editview__field">
+              <span className="lbl">Texte de présentation (lede)</span>
+              <textarea
+                rows={4}
+                value={data.archives?.heroLede ?? ''}
+                onChange={(e) => updateArchives('heroLede', e.target.value)}
+              />
+            </label>
+          </section>
+
+          <section className="carnet-editview__section">
+            <h2 className="carnet-editview__section-title">Page Thèmes</h2>
+            <p className="carnet-editview__section-help">
+              Titre et présentation de la page <code>/themes/</code>.
+            </p>
+
+            <label className="carnet-editview__field">
+              <span className="lbl">Titre du hero</span>
+              <textarea
+                rows={3}
+                value={data.themes?.heroTitle ?? ''}
+                onChange={(e) => updateThemes('heroTitle', e.target.value)}
+              />
+            </label>
+
+            <label className="carnet-editview__field">
+              <span className="lbl">Texte de présentation (lede)</span>
+              <textarea
+                rows={4}
+                value={data.themes?.heroLede ?? ''}
+                onChange={(e) => updateThemes('heroLede', e.target.value)}
               />
             </label>
           </section>

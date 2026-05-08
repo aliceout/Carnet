@@ -722,6 +722,26 @@ export interface Site {
      */
     heroLede?: string | null;
   };
+  archives?: {
+    /**
+     * H1 de la page /archives/. Entourer une portion de "*" pour la mettre en italique.
+     */
+    heroTitle?: string | null;
+    /**
+     * Paragraphe sous le titre de /archives/.
+     */
+    heroLede?: string | null;
+  };
+  themes?: {
+    /**
+     * H1 de la page /themes/. Entourer une portion de "*" pour la mettre en italique (ex. *thèmes*).
+     */
+    heroTitle?: string | null;
+    /**
+     * Paragraphe sous le titre de /themes/.
+     */
+    heroLede?: string | null;
+  };
   /**
    * Affichée dans le footer (col 1).
    */
@@ -771,6 +791,18 @@ export interface SiteSelect<T extends boolean = true> {
         backgroundColor?: T;
       };
   home?:
+    | T
+    | {
+        heroTitle?: T;
+        heroLede?: T;
+      };
+  archives?:
+    | T
+    | {
+        heroTitle?: T;
+        heroLede?: T;
+      };
+  themes?:
     | T
     | {
         heroTitle?: T;

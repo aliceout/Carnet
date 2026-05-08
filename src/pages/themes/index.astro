@@ -10,7 +10,8 @@
  */
 import Layout from '../../layouts/Layout.astro';
 import Hero from '../../components/Hero.astro';
-import { fetchCollection, filterPublished } from '../../lib/payload';
+import { fetchCollection, fetchSite, filterPublished } from '../../lib/payload';
+import { formatHeroLede, formatHeroTitle } from '../../lib/site';
 
 type Theme = {
   id: number | string;
@@ -25,8 +26,17 @@ type PostLite = {
   themes?: Array<{ id: number | string; slug: string } | number | string> | null;
 };
 
+type SiteGlobal = {
+  themes?: { heroTitle?: string; heroLede?: string };
+};
+
+const DEFAULT_TITLE = 'Les *thèmes* du carnet.';
+const DEFAULT_LEDE =
+  'Chaque billet est rattaché à un ou plusieurs thèmes. La taxonomie est libre et évolue avec le carnet.';
+
 let themes: Theme[] = [];
 let counts: Map<string, number> = new Map();
+let site: SiteGlobal = {};
 try {
   themes = await fetchCollection<Theme>('themes', {
     sort: 'name',
@@ -49,6 +59,11 @@ try {
 } catch (err) {
   console.warn('[themes] fetch failed:', (err as Error).message);
 }
+try {
+  site = await fetchSite<SiteGlobal>();
+} catch (err) {
+  console.warn('[themes] fetchSite failed, using defaults:', (err as Error).message);
+}
 
 // Tri : décroissant par usage, puis alpha
 const sorted = themes.slice().sort((a, b) => {
@@ -59,6 +74,13 @@ const sorted = themes.slice().sort((a, b) => {
 });
 
 const total = sorted.length;
+
+const heroTitleHtml = formatHeroTitle(
+  site.themes?.heroTitle?.trim() || DEFAULT_TITLE,
+);
+const heroLedeHtml = formatHeroLede(
+  site.themes?.heroLede?.trim() || DEFAULT_LEDE,
+);
 ---
 
 <Layout
@@ -67,8 +89,8 @@ const total = sorted.length;
 >
   <Hero
     kicker={`Thèmes thématiques · ${total} thème${total > 1 ? 's' : ''}`}
-    title="Les <em>thèmes</em> du carnet."
-    lede="Chaque billet est rattaché à un ou plusieurs thèmes. La taxonomie est libre et évolue avec le carnet."
+    title={heroTitleHtml}
+    lede={heroLedeHtml}
   />
 
   <section class="container themes-list">

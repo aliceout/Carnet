@@ -105,6 +105,64 @@ export const Site: GlobalConfig = {
       ],
     },
     {
+      name: 'archives',
+      type: 'group',
+      label: 'Page Archives',
+      fields: [
+        {
+          name: 'heroTitle',
+          type: 'textarea',
+          required: false,
+          label: 'Titre du hero',
+          defaultValue: 'Tous les billets, par année.',
+          admin: {
+            description:
+              'H1 de la page /archives/. Entourer une portion de "*" pour la mettre en italique.',
+          },
+        },
+        {
+          name: 'heroLede',
+          type: 'textarea',
+          required: false,
+          label: 'Texte de présentation (lede)',
+          defaultValue:
+            'Le carnet est versionné : chaque billet a un numéro, une date de publication et, le cas échéant, une date de mise à jour. Les fiches thématiques sont régulièrement révisées.',
+          admin: {
+            description: 'Paragraphe sous le titre de /archives/.',
+          },
+        },
+      ],
+    },
+    {
+      name: 'themes',
+      type: 'group',
+      label: 'Page Thèmes',
+      fields: [
+        {
+          name: 'heroTitle',
+          type: 'textarea',
+          required: false,
+          label: 'Titre du hero',
+          defaultValue: 'Les *thèmes* du carnet.',
+          admin: {
+            description:
+              'H1 de la page /themes/. Entourer une portion de "*" pour la mettre en italique (ex. *thèmes*).',
+          },
+        },
+        {
+          name: 'heroLede',
+          type: 'textarea',
+          required: false,
+          label: 'Texte de présentation (lede)',
+          defaultValue:
+            'Chaque billet est rattaché à un ou plusieurs thèmes. La taxonomie est libre et évolue avec le carnet.',
+          admin: {
+            description: 'Paragraphe sous le titre de /themes/.',
+          },
+        },
+      ],
+    },
+    {
       name: 'baseline',
       type: 'textarea',
       required: false,

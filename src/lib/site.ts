@@ -67,3 +67,37 @@ export function formatIdCarnet(year: number | string, n: number | string): strin
   const num = typeof n === 'string' ? parseInt(n, 10) : n;
   return `carnet:${year}-${String(num).padStart(3, '0')}`;
 }
+
+/**
+ * Échappe le HTML pour empêcher toute injection depuis l'admin Payload.
+ * À combiner avec formatHeroTitle / formatHeroLede ci-dessous selon le
+ * contexte d'usage.
+ */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Formate un titre de hero pour le composant <Hero/> : échappe le HTML,
+ * puis transforme les portions entourées de `*` en `<em>`. Les `<em>`
+ * sont stylés en accent par le composant Hero.
+ *   formatHeroTitle('Notes en *études de genre*.')
+ *     → 'Notes en <em>études de genre</em>.'
+ */
+export function formatHeroTitle(s: string): string {
+  return escapeHtml(s).replace(/\*([^*]+)\*/g, '<em>$1</em>');
+}
+
+/**
+ * Formate un lede de hero : échappe le HTML, puis convertit les retours
+ * ligne saisis dans Payload en `<br />` pour que l'autrice contrôle le
+ * wrap visuel.
+ */
+export function formatHeroLede(s: string): string {
+  return escapeHtml(s).replace(/\r?\n/g, '<br />');
+}
