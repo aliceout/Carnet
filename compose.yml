@@ -2,12 +2,16 @@
 #
 # Topologie :
 #   db      (postgres:16-alpine)            non exposé, accessible uniquement par `payload`
-#   payload (ghcr.io/aliceout/carnet/payload) 127.0.0.1:8068  → /cms/admin + /cms/api
-#   site    (ghcr.io/aliceout/carnet/web)      127.0.0.1:8067  → / (Astro SSR)
+#   payload (ghcr.io/aliceout/carnet/payload) 127.0.0.1:${HOST_PORT_PAYLOAD}  → /cms/admin + /cms/api
+#   site    (ghcr.io/aliceout/carnet/web)      127.0.0.1:${HOST_PORT_SITE}     → / (Astro SSR)
 #
 # Le reverse proxy nginx du VPS (hors compose) termine TLS et route :
-#   carnet.aliceosdel.org/cms/* → 127.0.0.1:8068
-#   carnet.aliceosdel.org/*     → 127.0.0.1:8067
+#   carnet.aliceosdel.org/cms/* → 127.0.0.1:${HOST_PORT_PAYLOAD}
+#   carnet.aliceosdel.org/*     → 127.0.0.1:${HOST_PORT_SITE}
+#
+# Convention historique (Infisical defaults) : 8068 pour Payload, 8067 pour
+# le site. Modifiable via Infisical, mais doit rester aligné avec la config
+# nginx du VPS (proxy_pass).
 #
 # Data persistante = bind mounts sous $DATA_DIR (= $HOME/data/carnet,
 # injecté par scripts/deploy.sh) :
@@ -73,7 +77,7 @@ services:
     volumes:
       - ${DATA_DIR}/payload-media:/app/media
     ports:
-      - '127.0.0.1:8068:3001'
+      - '127.0.0.1:${HOST_PORT_PAYLOAD}:3001'
     networks:
       - internal
     depends_on:
@@ -104,7 +108,7 @@ services:
       ASTRO_PUBLIC_PAYLOAD_URL: ${ASTRO_PUBLIC_PAYLOAD_URL}
       PAYLOAD_PUBLIC_SERVER_URL: ${PAYLOAD_PUBLIC_SERVER_URL}
     ports:
-      - '127.0.0.1:8067:4321'
+      - '127.0.0.1:${HOST_PORT_SITE}:4321'
     networks:
       - internal
     depends_on:

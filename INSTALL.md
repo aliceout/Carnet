@@ -193,7 +193,7 @@ server {
   ssl_certificate     /etc/letsencrypt/live/carnet.aliceosdel.org/fullchain.pem;
   ssl_certificate_key /etc/letsencrypt/live/carnet.aliceosdel.org/privkey.pem;
 
-  # Admin Payload + API
+  # Admin Payload + API — port = HOST_PORT_PAYLOAD (Infisical, défaut 8068)
   location /cms/ {
     proxy_pass http://127.0.0.1:8068;
     proxy_set_header Host $host;
@@ -202,7 +202,7 @@ server {
     proxy_set_header X-Forwarded-Proto $scheme;
   }
 
-  # Site public Astro (catch-all)
+  # Site public Astro (catch-all) — port = HOST_PORT_SITE (Infisical, défaut 8067)
   location / {
     proxy_pass http://127.0.0.1:8067;
     proxy_set_header Host $host;
@@ -212,6 +212,10 @@ server {
   }
 }
 ```
+
+> ⚠️ Les ports `8068` et `8067` ci-dessus doivent matcher les vars
+> `HOST_PORT_PAYLOAD` et `HOST_PORT_SITE` dans Infisical (path
+> `prod/infra`). Si tu changes l'une, change l'autre.
 
 ### CI/CD
 
@@ -226,12 +230,15 @@ pull && up -d` → attente healthchecks (90 s).
 
 ### Ports prod
 
-- `127.0.0.1:8067` → site Astro (public)
-- `127.0.0.1:8068` → Payload (admin + API sous `/cms/*`)
-- Postgres : interne réseau Docker uniquement
+Pilotés par Infisical (path `prod/infra`) :
 
-Tu peux changer ces ports librement dans `compose.yml` selon ce qui est
-libre sur ton VPS.
+- `127.0.0.1:${HOST_PORT_SITE}`    → site Astro (public, défaut **8067**)
+- `127.0.0.1:${HOST_PORT_PAYLOAD}` → Payload (admin + API sous `/cms/*`, défaut **8068**)
+- Postgres : interne réseau Docker uniquement, pas exposé sur le host
+
+Pour changer un port : éditer la valeur dans Infisical, redéployer
+(`./scripts/deploy.sh`), puis aligner le `proxy_pass` de la config nginx
+du VPS.
 
 ---
 
