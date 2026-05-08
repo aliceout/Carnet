@@ -19,8 +19,13 @@ const INTERNAL_URL =
 /** URL de base de l'API REST Payload (ajoute `/cms/api`). */
 const API_BASE = `${INTERNAL_URL.replace(/\/$/, '')}/cms/api`;
 
-/** URL publique pour servir les fichiers media (côté browser). */
-const ADDRESS = process.env.ADDRESS ?? 'http://localhost:3001';
+/** URL publique pour servir les fichiers media (côté browser).
+ *  Si ADDRESS n'a pas de schème, on préfixe https:// — convention
+ *  Infisical = on stocke juste le domaine. */
+const RAW_ADDRESS = process.env.ADDRESS ?? 'http://localhost:3001';
+const ADDRESS = /^https?:\/\//.test(RAW_ADDRESS)
+  ? RAW_ADDRESS
+  : `https://${RAW_ADDRESS}`;
 
 /**
  * Construit l'URL publique d'une image Payload depuis son `filename`

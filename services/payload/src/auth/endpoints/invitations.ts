@@ -32,14 +32,21 @@ import { randomBytes } from 'node:crypto';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// URL publique du site — convention Infisical : la valeur d'ADDRESS
+// est juste le domaine (sans schème). On préfixe https:// si manquant
+// avant de construire les URLs d'invitation et de login.
+function publicBase(): string {
+  const raw = process.env.ADDRESS || 'http://localhost:3001';
+  const withScheme = /^https?:\/\//.test(raw) ? raw : `https://${raw}`;
+  return withScheme.replace(/\/$/, '');
+}
+
 function buildAcceptUrl(token: string): string {
-  const base = process.env.ADDRESS?.replace(/\/$/, '') || 'http://localhost:3001';
-  return `${base}/cms/admin/invitation/${token}`;
+  return `${publicBase()}/cms/admin/invitation/${token}`;
 }
 
 function buildLoginUrl(): string {
-  const base = process.env.ADDRESS?.replace(/\/$/, '') || 'http://localhost:3001';
-  return `${base}/cms/admin/login`;
+  return `${publicBase()}/cms/admin/login`;
 }
 
 // ─── POST /users/invite ────────────────────────────────────────────
