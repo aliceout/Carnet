@@ -4,6 +4,7 @@ import * as migration_20260508_144416_auto_20260508_174408 from './20260508_1444
 import * as migration_20260508_160719 from './20260508_160719';
 import * as migration_20260508_162340_auto_20260508_192333 from './20260508_162340_auto_20260508_192333';
 import * as migration_20260508_170130_auto_20260508_200122 from './20260508_170130_auto_20260508_200122';
+import * as migration_20260508_214735_backfill from './20260508_214735_backfill';
 
 export const migrations = [
   {
@@ -34,6 +35,11 @@ export const migrations = [
   {
     up: migration_20260508_170130_auto_20260508_200122.up,
     down: migration_20260508_170130_auto_20260508_200122.down,
-    name: '20260508_170130_auto_20260508_200122'
+    name: '20260508_170130_auto_20260508_200122',
+  },
+  {
+    up: migration_20260508_214735_backfill.up,
+    down: migration_20260508_214735_backfill.down,
+    name: '20260508_214735_backfill'
   },
 ];
