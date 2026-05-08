@@ -29,6 +29,10 @@ type NavLink = {
 };
 
 type SiteData = {
+  branding?: {
+    accentColor?: string;
+    backgroundColor?: string;
+  };
   home?: {
     heroTitle?: string;
     heroLede?: string;
@@ -44,7 +48,28 @@ type SiteData = {
   navFooter?: NavLink[];
 };
 
+// Doit rester aligné avec les options du select dans globals/Site.ts.
+const ACCENT_OPTIONS: { label: string; value: string }[] = [
+  { label: 'Violet (par défaut)', value: '#5a3a7a' },
+  { label: 'Rouge sourd', value: '#8a3a3a' },
+  { label: 'Bleu encre', value: '#1f3a5a' },
+  { label: 'Gris ardoise', value: '#3a3a3a' },
+  { label: 'Vert forêt', value: '#2d5a3d' },
+];
+const DEFAULT_ACCENT = ACCENT_OPTIONS[0].value;
+
+const BG_OPTIONS: { label: string; value: string }[] = [
+  { label: 'Ivoire (par défaut)', value: '#f6f5f1' },
+  { label: 'Presque-blanc', value: '#fdfcf8' },
+  { label: 'Blanc pur', value: '#ffffff' },
+  { label: 'Craie', value: '#f1efe8' },
+  { label: 'Parchemin', value: '#eee9dd' },
+  { label: 'Froid pâle', value: '#e9eaec' },
+];
+const DEFAULT_BG = BG_OPTIONS[0].value;
+
 const EMPTY: SiteData = {
+  branding: { accentColor: DEFAULT_ACCENT, backgroundColor: DEFAULT_BG },
   home: { heroTitle: '', heroLede: '' },
   baseline: '',
   copyrightLine: '',
@@ -71,6 +96,10 @@ export default function SiteEditViewClient(): React.ReactElement {
       })
       .then((doc: SiteData) => {
         const normalized: SiteData = {
+          branding: {
+            accentColor: doc.branding?.accentColor || DEFAULT_ACCENT,
+            backgroundColor: doc.branding?.backgroundColor || DEFAULT_BG,
+          },
           home: {
             heroTitle: doc.home?.heroTitle ?? '',
             heroLede: doc.home?.heroLede ?? '',
@@ -110,6 +139,20 @@ export default function SiteEditViewClient(): React.ReactElement {
 
   function updateHome(key: keyof NonNullable<SiteData['home']>, value: string) {
     setData((d) => ({ ...d, home: { ...(d.home ?? {}), [key]: value } }));
+  }
+
+  function updateAccent(value: string) {
+    setData((d) => ({
+      ...d,
+      branding: { ...(d.branding ?? {}), accentColor: value },
+    }));
+  }
+
+  function updateBackground(value: string) {
+    setData((d) => ({
+      ...d,
+      branding: { ...(d.branding ?? {}), backgroundColor: value },
+    }));
   }
 
   function updateNav(idx: number, patch: Partial<NavLink>) {
@@ -162,6 +205,10 @@ export default function SiteEditViewClient(): React.ReactElement {
       // Payload renvoie soit { result, message } soit le doc direct selon la version
       const fresh: SiteData = (doc as { result?: SiteData }).result ?? (doc as SiteData);
       const normalized: SiteData = {
+        branding: {
+          accentColor: fresh.branding?.accentColor || DEFAULT_ACCENT,
+          backgroundColor: fresh.branding?.backgroundColor || DEFAULT_BG,
+        },
         home: {
           heroTitle: fresh.home?.heroTitle ?? '',
           heroLede: fresh.home?.heroLede ?? '',
@@ -227,6 +274,57 @@ export default function SiteEditViewClient(): React.ReactElement {
             void save();
           }}
         >
+          <section className="carnet-editview__section">
+            <h2 className="carnet-editview__section-title">Branding</h2>
+            <p className="carnet-editview__section-help">
+              Couleurs appliquées à tout le site — accent (point de la marque,
+              item nav actif, kickers, liens des billets, boutons actifs…) et
+              fond (body, header, footer, fond des billets).
+            </p>
+
+            <label className="carnet-editview__field">
+              <span className="lbl">Couleur d&apos;accentuation</span>
+              <div className="carnet-accent-picker">
+                <span
+                  className="carnet-accent-picker__swatch"
+                  style={{ background: data.branding?.accentColor || DEFAULT_ACCENT }}
+                  aria-hidden="true"
+                />
+                <select
+                  value={data.branding?.accentColor || DEFAULT_ACCENT}
+                  onChange={(e) => updateAccent(e.target.value)}
+                >
+                  {ACCENT_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label} — {opt.value}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </label>
+
+            <label className="carnet-editview__field">
+              <span className="lbl">Couleur de fond</span>
+              <div className="carnet-accent-picker">
+                <span
+                  className="carnet-accent-picker__swatch"
+                  style={{ background: data.branding?.backgroundColor || DEFAULT_BG }}
+                  aria-hidden="true"
+                />
+                <select
+                  value={data.branding?.backgroundColor || DEFAULT_BG}
+                  onChange={(e) => updateBackground(e.target.value)}
+                >
+                  {BG_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label} — {opt.value}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </label>
+          </section>
+
           <section className="carnet-editview__section">
             <h2 className="carnet-editview__section-title">Page d&apos;accueil</h2>
             <p className="carnet-editview__section-help">

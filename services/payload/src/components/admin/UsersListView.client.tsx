@@ -56,11 +56,69 @@ export default function UsersListViewClient(): React.ReactElement {
   const [search, setSearch] = useState('');
   const [role, setRole] = useState<FilterRole>('all');
 
-  // Bouton « Inviter » — appelle l'endpoint custom invitations
-  // déjà en place côté Payload (cf services/payload/src/auth/endpoints/
-  // invitations.ts). Pour l'instant on redirige vers la page d'invitation
-  // native si Payload en a une, sinon on affiche un placeholder.
-  const inviteHref = '/cms/admin/collections/users/create';
+  // Modal d'invitation — formulaire email + role + displayName qui
+  // POST /cms/api/users/invite (l'endpoint génère un token, persiste
+  // un user pending, et envoie le mail). La création directe de user
+  // est interdite côté schéma (Users.access.create = () => false), on
+  // ne navigue donc PAS vers /collections/users/create (qui renvoie
+  // Unauthorized).
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<'editor' | 'admin'>('editor');
+  const [inviteName, setInviteName] = useState('');
+  const [inviteSubmitting, setInviteSubmitting] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+
+  function openInvite() {
+    setInviteEmail('');
+    setInviteRole('editor');
+    setInviteName('');
+    setInviteError(null);
+    setInviteOpen(true);
+  }
+
+  async function submitInvite(e: React.FormEvent) {
+    e.preventDefault();
+    setInviteError(null);
+    setInviteSubmitting(true);
+    try {
+      const res = await fetch('/cms/api/users/invite', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: inviteEmail,
+          role: inviteRole,
+          displayName: inviteName || undefined,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(data.error || 'Invitation impossible');
+      setInviteOpen(false);
+      // Refresh la liste pour afficher le nouvel user pending
+      setPage(1);
+      setSearch((s) => s); // déclenche le useEffect
+      // Force-fetch direct
+      const params = new URLSearchParams();
+      params.set('limit', String(PER_PAGE));
+      params.set('page', '1');
+      params.set('sort', '-updatedAt');
+      params.set('depth', '0');
+      const r = await fetch(`/cms/api/users?${params.toString()}`, {
+        credentials: 'include',
+      });
+      if (r.ok) {
+        const d = (await r.json()) as FetchResult<User>;
+        setUsers(d.docs ?? []);
+        setTotalDocs(d.totalDocs ?? 0);
+        setTotalPages(d.totalPages ?? 1);
+      }
+    } catch (err) {
+      setInviteError(err instanceof Error ? err.message : 'Erreur inconnue');
+    } finally {
+      setInviteSubmitting(false);
+    }
+  }
 
   useEffect(() => {
     setLoading(true);
@@ -100,10 +158,93 @@ export default function UsersListViewClient(): React.ReactElement {
       <CarnetTopbar
         crumbs={[{ href: '/cms/admin', label: 'Carnet' }, { label: 'Utilisateurs' }]}
       >
-        <Link href={inviteHref} className="carnet-btn carnet-btn--accent">
+        <button
+          type="button"
+          className="carnet-btn carnet-btn--accent"
+          onClick={openInvite}
+        >
           Inviter un·e utilisateur·ice
-        </Link>
+        </button>
       </CarnetTopbar>
+
+      {inviteOpen && (
+        <div
+          className="carnet-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !inviteSubmitting) setInviteOpen(false);
+          }}
+        >
+          <form className="carnet-modal" onSubmit={submitInvite}>
+            <header className="carnet-modal__header">
+              <h2>Inviter un·e utilisateur·ice</h2>
+              <button
+                type="button"
+                className="carnet-modal__close"
+                onClick={() => !inviteSubmitting && setInviteOpen(false)}
+                aria-label="Fermer"
+              >
+                ×
+              </button>
+            </header>
+
+            {inviteError && (
+              <div className="carnet-modal__error">Erreur : {inviteError}</div>
+            )}
+
+            <div className="carnet-modal__body">
+              <label className="carnet-editview__field">
+                <span className="lbl">Email</span>
+                <input
+                  type="email"
+                  required
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  autoFocus
+                />
+              </label>
+              <label className="carnet-editview__field">
+                <span className="lbl">Nom affiché (optionnel)</span>
+                <input
+                  type="text"
+                  value={inviteName}
+                  onChange={(e) => setInviteName(e.target.value)}
+                />
+              </label>
+              <label className="carnet-editview__field">
+                <span className="lbl">Rôle</span>
+                <select
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value as 'editor' | 'admin')}
+                >
+                  <option value="editor">Éditeur·ice (édite le contenu)</option>
+                  <option value="admin">Admin (peut aussi gérer les comptes)</option>
+                </select>
+                <span className="hint">
+                  Un mail d&apos;invitation sera envoyé. Lien valable 7 jours.
+                </span>
+              </label>
+            </div>
+
+            <footer className="carnet-modal__footer">
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--ghost"
+                onClick={() => setInviteOpen(false)}
+                disabled={inviteSubmitting}
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                className="carnet-btn carnet-btn--accent"
+                disabled={inviteSubmitting}
+              >
+                {inviteSubmitting ? 'Envoi…' : 'Envoyer l’invitation'}
+              </button>
+            </footer>
+          </form>
+        </div>
+      )}
 
       <div className="carnet-listview__toolbar">
         <div className="carnet-listview__search">

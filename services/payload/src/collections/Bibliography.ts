@@ -28,25 +28,26 @@ export const Bibliography: CollectionConfig = {
     listSearchableFields: ['author', 'title', 'slug'],
     components: {
       views: {
+        // Vue d'édition custom — remplace entièrement le rendu natif
+        // Payload (form stacked + champs UI fantômes pour sections /
+        // preview / used-in) par le layout du handoff (CarnetTopbar
+        // + h1 hero + sections Identification/Publication/Notes +
+        // aperçu Chicago author-date live + liste des billets liés).
+        edit: {
+          root: {
+            Component: '@/components/admin/BibliographyEditView#default',
+          },
+        },
         list: {
           Component: '@/components/admin/BibliographyListView#default',
         },
       },
     },
   },
-  // Fields organisés en sections (Identification / Publication / Notes)
-  // via des `ui` fields fantômes qui rendent un header de section, et
-  // un BiblioPreview en pied (aperçu live + used-in). Cf handoff §6.
+  // Schéma plat — la vue custom (BibliographyEditView) regroupe les
+  // champs en sections « Identification / Publication / Notes » et
+  // rend l'aperçu + used-in. Pas besoin de UI fields fantômes.
   fields: [
-    {
-      name: '__section_id',
-      type: 'ui',
-      admin: {
-        components: {
-          Field: '@/components/admin/BiblioSection#Identification',
-        },
-      },
-    },
     {
       name: 'slug',
       type: 'text',
@@ -102,15 +103,6 @@ export const Bibliography: CollectionConfig = {
       label: 'Titre',
     },
 
-    {
-      name: '__section_pub',
-      type: 'ui',
-      admin: {
-        components: {
-          Field: '@/components/admin/BiblioSection#Publication',
-        },
-      },
-    },
     {
       type: 'row',
       fields: [
@@ -168,15 +160,6 @@ export const Bibliography: CollectionConfig = {
     },
 
     {
-      name: '__section_notes',
-      type: 'ui',
-      admin: {
-        components: {
-          Field: '@/components/admin/BiblioSection#NotesSection',
-        },
-      },
-    },
-    {
       name: 'annotation',
       type: 'textarea',
       required: false,
@@ -184,16 +167,6 @@ export const Bibliography: CollectionConfig = {
       admin: {
         description:
           "Optionnel — note de lecture, raison de l'inclusion, mémo de contexte. Non publié.",
-      },
-    },
-
-    {
-      name: '__preview',
-      type: 'ui',
-      admin: {
-        components: {
-          Field: '@/components/admin/BiblioPreview#default',
-        },
       },
     },
 

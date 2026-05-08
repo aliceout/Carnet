@@ -702,6 +702,26 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
  */
 export interface Site {
   id: number;
+  branding?: {
+    /**
+     * Teinte d'accent appliquée à tout le site (point de la marque, item nav actif, kickers, liens dans les billets, boutons actifs, etc.).
+     */
+    accentColor?: ('#5a3a7a' | '#8a3a3a' | '#1f3a5a' | '#3a3a3a' | '#2d5a3d') | null;
+    /**
+     * Teinte de fond du Carnet — appliquée au body et aux zones neutres (header, footer, fond des billets, fond admin).
+     */
+    backgroundColor?: ('#f6f5f1' | '#fdfcf8' | '#ffffff' | '#f1efe8' | '#eee9dd' | '#e9eaec') | null;
+  };
+  home?: {
+    /**
+     * H1 de la page d'accueil. Entourer une portion de "*" pour la mettre en italique (ex. *études de genre*).
+     */
+    heroTitle?: string | null;
+    /**
+     * Paragraphe sous le titre de la page d'accueil.
+     */
+    heroLede?: string | null;
+  };
   /**
    * Affichée dans le footer (col 1).
    */
@@ -744,6 +764,18 @@ export interface Site {
  * via the `definition` "site_select".
  */
 export interface SiteSelect<T extends boolean = true> {
+  branding?:
+    | T
+    | {
+        accentColor?: T;
+        backgroundColor?: T;
+      };
+  home?:
+    | T
+    | {
+        heroTitle?: T;
+        heroLede?: T;
+      };
   baseline?: T;
   copyrightLine?: T;
   social?:

@@ -24,17 +24,16 @@ import { HorizontalRuleFeatureClient as HorizontalRuleFeatureClient_e70f5e05f09f
 import { InlineToolbarFeatureClient as InlineToolbarFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { default as default_7c96febce50ca24b7bbaad53a9c8dcdb } from '@/components/admin/PostEditView'
 import { default as default_9a392549adc5e7cea5c12dbcd0e775a6 } from '@/components/admin/PostListView'
+import { default as default_6d604e02fd948e3dc45b0ec9060c7c9c } from '@/components/admin/ThemeEditView'
 import { default as default_145dcd377f3e16019ed4fdecfff71610 } from '@/components/admin/ThemeListView'
-import { Identification as Identification_6f3ca1230738e5dd0f22c42f12bcc8b7 } from '@/components/admin/BiblioSection'
-import { Publication as Publication_6f3ca1230738e5dd0f22c42f12bcc8b7 } from '@/components/admin/BiblioSection'
-import { NotesSection as NotesSection_6f3ca1230738e5dd0f22c42f12bcc8b7 } from '@/components/admin/BiblioSection'
-import { default as default_691c07a96fe730618786e4f77fd40992 } from '@/components/admin/BiblioPreview'
+import { default as default_c2a08a78b2479e66392ea346136ef322 } from '@/components/admin/BibliographyEditView'
 import { default as default_748165dd07e185739c7cd0f1c37b06a9 } from '@/components/admin/BibliographyListView'
 import { default as default_e47d771c2781df16f3ba2f52239ec339 } from '@/components/admin/PagesListView'
 import { default as default_83821287226bebaf0b24b9baffeb4c81 } from '@/components/auth/AccountSecurity'
 import { default as default_53d63216743950c49d1b24206b7bd206 } from '@/components/auth/InviteUserButton'
 import { default as default_6dd41e8136f3ff7004ad420790f2ad26 } from '@/components/admin/AccountEditHeader'
 import { default as default_0fd3c3eccd52a16be9bd6cca42425f7d } from '@/components/admin/UsersListView'
+import { default as default_0f8af68b522e403e7b3a07b953513ee2 } from '@/components/admin/MediaEditView'
 import { default as default_4f4a1390d781eaf766954f2462345309 } from '@/components/admin/MediaListView'
 import { default as default_ece08040cf741a6431b879c5468cef8b } from '@/components/admin/SiteEditView'
 import { default as default_a9d4b87e0306b3ddfe97926a52a69591 } from '@/components/admin/Nav'
@@ -73,17 +72,16 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#InlineToolbarFeatureClient": InlineToolbarFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@/components/admin/PostEditView#default": default_7c96febce50ca24b7bbaad53a9c8dcdb,
   "@/components/admin/PostListView#default": default_9a392549adc5e7cea5c12dbcd0e775a6,
+  "@/components/admin/ThemeEditView#default": default_6d604e02fd948e3dc45b0ec9060c7c9c,
   "@/components/admin/ThemeListView#default": default_145dcd377f3e16019ed4fdecfff71610,
-  "@/components/admin/BiblioSection#Identification": Identification_6f3ca1230738e5dd0f22c42f12bcc8b7,
-  "@/components/admin/BiblioSection#Publication": Publication_6f3ca1230738e5dd0f22c42f12bcc8b7,
-  "@/components/admin/BiblioSection#NotesSection": NotesSection_6f3ca1230738e5dd0f22c42f12bcc8b7,
-  "@/components/admin/BiblioPreview#default": default_691c07a96fe730618786e4f77fd40992,
+  "@/components/admin/BibliographyEditView#default": default_c2a08a78b2479e66392ea346136ef322,
   "@/components/admin/BibliographyListView#default": default_748165dd07e185739c7cd0f1c37b06a9,
   "@/components/admin/PagesListView#default": default_e47d771c2781df16f3ba2f52239ec339,
   "@/components/auth/AccountSecurity#default": default_83821287226bebaf0b24b9baffeb4c81,
   "@/components/auth/InviteUserButton#default": default_53d63216743950c49d1b24206b7bd206,
   "@/components/admin/AccountEditHeader#default": default_6dd41e8136f3ff7004ad420790f2ad26,
   "@/components/admin/UsersListView#default": default_0fd3c3eccd52a16be9bd6cca42425f7d,
+  "@/components/admin/MediaEditView#default": default_0f8af68b522e403e7b3a07b953513ee2,
   "@/components/admin/MediaListView#default": default_4f4a1390d781eaf766954f2462345309,
   "@/components/admin/SiteEditView#default": default_ece08040cf741a6431b879c5468cef8b,
   "@/components/admin/Nav#default": default_a9d4b87e0306b3ddfe97926a52a69591,

@@ -418,11 +418,10 @@ export default function PostEditViewClient({
           className="carnet-btn"
           onClick={() => void save()}
           disabled={!dirty || saving || loading}
-          title="Sauvegarder (⌘S)"
+          title="Sauvegarder"
           suppressHydrationWarning
         >
           {saving ? 'Enregistrement…' : 'Sauvegarder'}
-          <span className="kbd" aria-hidden="true">⌘S</span>
         </button>
         <button
           type="button"

@@ -1349,32 +1349,217 @@ button.btn--style-primary,
   }
 }
 
-// ─── Bibliography edit view : sections + preview (issue #17) ────
-// Composants UI fantômes (BiblioSection, BiblioPreview) insérés
-// entre les fields existants pour grouper visuellement la vue
-// d'édition d'une référence biblio. Cf handoff § 6.
+// ─── Modal réutilisable (invitation user, confirmations, etc.) ───
+.carnet-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
 
-.carnet-biblio-section {
-  margin: 32px 0 8px;
+.carnet-modal {
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  background: var(--b-paper);
+  border: 1px solid var(--b-rule);
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-sans);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
 
-  &__label {
-    font-family: var(--font-sans);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--b-muted);
-    margin: 0;
-    padding: 0 0 8px;
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
     border-bottom: 1px solid var(--b-rule);
+
+    h2 {
+      margin: 0;
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--b-ink);
+    }
+  }
+
+  &__close {
+    background: transparent;
+    border: 0;
+    color: var(--b-muted);
+    font-family: var(--font-mono);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 8px;
+
+    &:hover {
+      color: var(--b-ink);
+    }
+  }
+
+  &__error {
+    margin: 12px 20px 0;
+    padding: 10px 14px;
+    background: rgba(182, 58, 58, 0.06);
+    border: 1px solid #b63a3a;
+    color: #b63a3a;
+    font-size: 12px;
+  }
+
+  &__body {
+    padding: 18px 20px;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  &__footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--b-rule);
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
   }
 }
 
-.carnet-biblio-preview-wrap {
-  margin: 32px 0 0;
+// ─── Media edit view : drop-zone + preview ────────────────────────
+// Drop-zone à la création (pas de fichier encore), puis aperçu + meta
+// en édition.
+
+.carnet-media-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 220px;
+  padding: 24px;
+  background: var(--b-paper);
+  border: 1px dashed var(--b-rule);
+  text-align: center;
+  transition: border-color 0.12s, background 0.12s;
+
+  &--drag {
+    border-color: var(--b-accent);
+    background: var(--b-accent-tint);
+  }
+
+  &__hint {
+    margin: 0;
+    color: var(--b-muted);
+    font-size: 13px;
+  }
+
+  &__preview {
+    max-width: 100%;
+    max-height: 280px;
+    background: var(--b-bg);
+    border: 1px solid var(--b-rule);
+  }
+
+  &__filename {
+    font-size: 13px;
+    color: var(--b-ink);
+    background: var(--b-bg);
+    border: 1px solid var(--b-rule);
+    padding: 8px 12px;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 8px;
+  }
 }
 
+.carnet-media-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 24px;
+  align-items: start;
+
+  &__img {
+    max-width: 100%;
+    max-height: 480px;
+    background: var(--b-bg);
+    border: 1px solid var(--b-rule);
+  }
+
+  &__fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    background: var(--b-bg);
+    border: 1px solid var(--b-rule);
+    font-family: var(--font-mono);
+    font-size: 18px;
+    letter-spacing: 0.06em;
+    color: var(--b-muted);
+  }
+
+  &__meta {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    div {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    dt {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--b-muted);
+    }
+
+    dd {
+      margin: 0;
+      font-size: 13px;
+      color: var(--b-ink);
+      word-break: break-all;
+
+      &.mono,
+      .mono {
+        font-family: var(--font-mono);
+        font-size: 12px;
+      }
+
+      a {
+        color: var(--b-accent);
+        text-decoration: none;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ─── Bibliography edit view : aperçu + used-in ────────────────────
+// Réutilisés dans BibliographyEditView (vue Édition custom). Le
+// .carnet-biblio-preview affiche la citation Chicago author-date
+// formatée live ; .carnet-biblio-usedin liste les billets qui
+// référencent l'entrée.
+
 .carnet-biblio-preview {
+  margin: 24px 24px 0;
   background: var(--b-bg);
   border-left: 2px solid var(--b-accent);
   padding: 14px 18px;
@@ -1398,7 +1583,7 @@ button.btn--style-primary,
 }
 
 .carnet-biblio-usedin {
-  margin-top: 14px;
+  margin: 14px 24px 0;
   font-family: var(--font-sans);
   font-size: 12px;
   color: var(--b-muted);
@@ -1837,6 +2022,65 @@ button.btn--style-primary,
     line-height: 1.5;
   }
 
+  // Hero : grand titre éditorial en haut de la vue (BibliographyEditView,
+  // potentiellement réutilisable). Cf handoff → ScreenBiblio.
+  &__hero {
+    margin: 28px 0 24px;
+
+    .carnet-h1 {
+      font-family: var(--font-serif);
+      font-size: 36px;
+      line-height: 1.1;
+      font-weight: 600;
+      letter-spacing: -0.4px;
+      color: var(--b-ink);
+      margin: 0 0 6px;
+    }
+  }
+
+  &__hero-key {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--b-muted);
+
+    .mono {
+      color: var(--b-ink);
+    }
+  }
+
+  // Row helper : aligne 2 ou 3 fields côte à côte avec gap. Sur écran
+  // étroit, les fields tombent en colonne (flex-wrap) plutôt qu'être
+  // tronqués.
+  &__row {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 16px;
+
+    &--2 {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    &--3 {
+      grid-template-columns: minmax(160px, 1fr) minmax(160px, 2fr) minmax(120px, 1fr);
+    }
+
+    // Quand un &__field est dans une row, plus de margin-bottom (le
+    // gap de la grille s'en charge) et la max-width n'est plus
+    // pertinente — chaque cellule prend sa colonne.
+    .carnet-editview__field {
+      margin-bottom: 0;
+      max-width: none;
+    }
+
+    @media (max-width: 800px) {
+      &--2,
+      &--3 {
+        grid-template-columns: 1fr;
+      }
+    }
+  }
+
   &__field {
     display: flex;
     flex-direction: column;
@@ -1860,6 +2104,8 @@ button.btn--style-primary,
     input[type='text'],
     input[type='email'],
     input[type='url'],
+    input[type='number'],
+    select,
     textarea {
       width: 100%;
       padding: 8px 10px;
@@ -1875,7 +2121,10 @@ button.btn--style-primary,
         border-color: var(--b-accent);
       }
 
-      &:read-only,
+      // [readonly] (et non :read-only) — la pseudo-classe :read-only
+      // matche aussi les <select> par défaut (ils ne sont pas "user-
+      // editable"), ce qui appliquait le curseur not-allowed à tort.
+      &[readonly],
       &:disabled {
         background: var(--b-bg);
         color: var(--b-muted);
@@ -1991,6 +2240,29 @@ button.btn--style-primary,
     &__readonly-grid {
       grid-template-columns: 1fr 1fr;
     }
+  }
+}
+
+// ─── Picker de couleur d'accent (Site global) ───────────────────
+// Swatch + <select> côte à côte. Utilisé dans SiteEditView. Le swatch
+// reflète la couleur actuellement choisie en temps réel.
+.carnet-accent-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 420px;
+
+  &__swatch {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    flex: 0 0 auto;
+  }
+
+  select {
+    flex: 1;
   }
 }
 

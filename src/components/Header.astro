@@ -1,6 +1,6 @@
 ---
 /**
- * Header non sticky — brand "Carnet." à gauche (point en accent),
+ * Header sticky — brand "Carnet." à gauche (point en accent),
  * nav à droite (Inter 13px, muted → ink + filet --b-accent 1.5px sur
  * l'item actif).
  *
@@ -28,7 +28,7 @@ function isActive(item: NavItem): boolean {
 }
 ---
 
-<header class="site">
+<header class="site" id="site-header">
   <div class="row">
     <a class="brand" href="/">Carnet<span class="dot">.</span></a>
     <nav>
@@ -50,6 +50,9 @@ function isActive(item: NavItem): boolean {
 
 <style>
   header.site {
+    position: sticky;
+    top: 0;
+    z-index: 10;
     background: var(--color-bg);
     border-bottom: 1px solid var(--color-rule);
   }
@@ -60,6 +63,12 @@ function isActive(item: NavItem): boolean {
     padding: 24px 80px 18px;
     max-width: 1280px;
     margin: 0 auto;
+    transition: padding 0.18s ease;
+  }
+  /* Compact sticky : on retire ~25 % de padding vertical une fois scrollé. */
+  header.site.is-scrolled .row {
+    padding-top: 18px;
+    padding-bottom: 13px;
   }
   header.site .brand {
     font-size: 22px;
@@ -100,9 +109,38 @@ function isActive(item: NavItem): boolean {
       gap: 12px;
       align-items: flex-start;
     }
+    header.site.is-scrolled .row {
+      padding-top: 14px;
+      padding-bottom: 10px;
+    }
     header.site nav {
       gap: 18px;
       flex-wrap: wrap;
     }
   }
 </style>
+
+<script is:inline>
+  // Compact sticky : la classe `is-scrolled` est posée dès qu'on a quitté
+  // le haut de page. Listener passif + rAF pour éviter le jank.
+  (function () {
+    const el = document.getElementById('site-header');
+    if (!el) return;
+    let ticking = false;
+    function update() {
+      ticking = false;
+      el.classList.toggle('is-scrolled', window.scrollY > 4);
+    }
+    document.addEventListener(
+      'scroll',
+      () => {
+        if (!ticking) {
+          ticking = true;
+          requestAnimationFrame(update);
+        }
+      },
+      { passive: true },
+    );
+    update();
+  })();
+</script>

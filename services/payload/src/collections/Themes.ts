@@ -30,6 +30,13 @@ export const Themes: CollectionConfig = {
     listSearchableFields: ['name', 'slug'],
     components: {
       views: {
+        // Vue d'édition custom — remplace le rendu natif Payload par
+        // CarnetTopbar + h1 hero + champs + used-in.
+        edit: {
+          root: {
+            Component: '@/components/admin/ThemeEditView#default',
+          },
+        },
         list: {
           Component: '@/components/admin/ThemeListView#default',
         },

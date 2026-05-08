@@ -19,6 +19,7 @@ import '@fontsource/jetbrains-mono/500.css';
 
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import { fetchSite } from '../lib/payload';
 
 interface Props {
   title?: string;
@@ -39,6 +40,40 @@ const {
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site).toString();
+
+// Couleurs pilotées depuis Payload (global Site → branding). Si Payload
+// n'est pas joignable au SSR, on garde les valeurs fixées dans global.css
+// (#5a3a7a accent, #f6f5f1 fond). Whitelist simple pour ne pas injecter
+// n'importe quoi.
+type SiteBranding = {
+  branding?: { accentColor?: string; backgroundColor?: string };
+};
+const ACCENT_WHITELIST = new Set([
+  '#5a3a7a',
+  '#8a3a3a',
+  '#1f3a5a',
+  '#3a3a3a',
+  '#2d5a3d',
+]);
+const BG_WHITELIST = new Set([
+  '#f6f5f1',
+  '#fdfcf8',
+  '#ffffff',
+  '#f1efe8',
+  '#eee9dd',
+  '#e9eaec',
+]);
+let accentOverride: string | null = null;
+let bgOverride: string | null = null;
+try {
+  const site = await fetchSite<SiteBranding>();
+  const a = site.branding?.accentColor;
+  if (a && ACCENT_WHITELIST.has(a)) accentOverride = a;
+  const b = site.branding?.backgroundColor;
+  if (b && BG_WHITELIST.has(b.toLowerCase())) bgOverride = b.toLowerCase();
+} catch (err) {
+  console.warn('[layout] fetchSite failed, using defaults:', (err as Error).message);
+}
 ---
 
 <!doctype html>
@@ -61,6 +96,11 @@ const canonical = new URL(Astro.url.pathname, Astro.site).toString();
       title="Carnet — flux RSS"
       href="/rss.xml"
     />
+    {(accentOverride || bgOverride) && (
+      <style
+        set:html={`:root{${accentOverride ? `--color-accent:${accentOverride};` : ''}${bgOverride ? `--color-bg:${bgOverride};` : ''}}`}
+      ></style>
+    )}
   </head>
   <body class={bodyClass}>
     {progressBar && (
@@ -83,7 +123,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).toString();
         top: 0;
         height: 2px;
         background: transparent;
-        z-index: 5;
+        z-index: 11;
       }
       .progress-fill {
         height: 100%;

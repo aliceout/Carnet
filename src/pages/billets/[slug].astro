@@ -154,7 +154,7 @@ const citationText = `Aussel Delamaide, Alice. « ${post.title} », Carnet, ${nu
     </aside>
   )}
 
-  <article class="post container">
+  <article class:list={['post', 'container', { 'no-toc': tocEntries.length === 0 }]}>
     <div class="crumbs">
       <a href="/">Carnet</a> &nbsp;/&nbsp;
       {primaryTheme ? (
@@ -340,7 +340,6 @@ const citationText = `Aussel Delamaide, Alice. « ${post.title} », Carnet, ${nu
     line-height: 1.5;
     color: var(--color-muted);
     margin: 0 0 32px;
-    max-width: 720px;
   }
   article.post .meta-strip {
     display: grid;
@@ -365,8 +364,7 @@ const citationText = `Aussel Delamaide, Alice. « ${post.title} », Carnet, ${nu
 
   /* Body grid + lettrine + justify */
   .body-grid {
-    max-width: 720px;
-    margin: 0 auto;
+    margin: 0;
   }
   .body-grid .col {
     font-family: var(--font-serif);
@@ -559,8 +557,7 @@ const citationText = `Aussel Delamaide, Alice. « ${post.title} », Carnet, ${nu
 
   /* Tail (biblio, citation, related) */
   .tail {
-    max-width: 720px;
-    margin: 48px auto 0;
+    margin: 48px 0 0;
   }
   .tail h3 {
     font-family: var(--font-sans);
@@ -681,12 +678,14 @@ const citationText = `Aussel Delamaide, Alice. « ${post.title} », Carnet, ${nu
     line-height: 1.3;
   }
 
-  /* TOC flottant — visible uniquement sur viewports larges. Le contenu
-     de l'article est décalé à droite (cf. @media min-width:1300px sur
-     article.post) pour ne jamais chevaucher le TOC. */
+  /* TOC flottant — visible uniquement sur viewports larges. Ancré sur
+     le bord gauche du .container (max-width 1280) plutôt que sur le
+     viewport, pour garder un gap constant avec le contenu de l'article
+     quelle que soit la largeur de la fenêtre. Le calc max() évite le
+     dépassement quand le viewport est plus étroit que le container. */
   .toc {
     position: fixed;
-    left: 24px;
+    left: max(24px, calc((100vw - 1280px) / 2 + 24px));
     top: 140px;
     width: 220px;
     font-family: var(--font-sans);
@@ -724,13 +723,23 @@ const citationText = `Aussel Delamaide, Alice. « ${post.title} », Carnet, ${nu
       display: none;
     }
   }
-  /* À partir de 1300px le TOC est visible — on pousse le contenu de
-     l'article à droite pour éviter le chevauchement avec le titre h1
-     et la zone du body. Calcul : 24 (left TOC) + 220 (width TOC) +
-     ~56 (gap visuel) = ~300 px. */
+  /* À partir de 1300px le TOC est visible. Le TOC étant ancré sur le
+     bord gauche du container (24 px d'inset), il occupe les 244 px
+     suivants (24 + 220). On place le contenu de l'article à 280 px,
+     soit un gap constant de 36 px avec la fin du TOC, indépendant
+     de la largeur du viewport.
+     Largeur utile du contenu = 1280 (container) - 280 (left) - 80
+     (right) = 920 px.
+     Si pas de TOC (article sans h2 → tocEntries vide), on garde la
+     même largeur utile (920 px) mais on centre via padding symétrique :
+     (1280 - 920) / 2 = 180 px de chaque côté. */
   @media (min-width: 1300px) {
     article.post {
-      padding-left: 300px;
+      padding-left: 280px;
+    }
+    article.post.no-toc {
+      padding-left: 180px;
+      padding-right: 180px;
     }
   }
 
