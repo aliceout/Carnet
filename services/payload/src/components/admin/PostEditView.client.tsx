@@ -54,10 +54,23 @@ type PostType = 'analyse' | 'note' | 'fiche';
 
 type Theme = { id: number | string; slug: string; name: string };
 type Tag = { id: number | string; slug: string; name: string };
+type CarnetUser = { id: number | string; displayName?: string; email?: string };
+type PostAuthor = {
+  kind?: 'user' | 'external';
+  user?: CarnetUser | number | string | null;
+  name?: string;
+  affiliation?: string;
+};
+type BibAuthor = {
+  firstName?: string | null;
+  lastName: string;
+  role?: 'author' | 'editor' | 'translator';
+};
 type BibEntry = {
   id: number | string;
   slug?: string;
-  author?: string;
+  authors?: BibAuthor[] | null;
+  authorLabel?: string | null;
   year?: number | string;
   title?: string;
 };
@@ -70,6 +83,7 @@ type Post = {
   type: PostType;
   themes?: (Theme | number | string)[] | null;
   tags?: (Tag | number | string)[] | null;
+  authors?: PostAuthor[] | null;
   publishedAt: string;
   updatedAt?: string;
   lede: string;
@@ -130,6 +144,7 @@ const EMPTY_DRAFT: Omit<Post, 'id'> & { id?: number | string | null } = {
   type: 'analyse',
   themes: [],
   tags: [],
+  authors: [],
   publishedAt: new Date().toISOString().slice(0, 10),
   lede: '',
   body: null,
@@ -148,6 +163,7 @@ export default function PostEditViewClient({
   const [initialJson, setInitialJson] = useState<string>(JSON.stringify(EMPTY_DRAFT));
   const [themes, setThemes] = useState<Theme[]>([]);
   const [allTags, setAllTags] = useState<Tag[]>([]);
+  const [allUsers, setAllUsers] = useState<CarnetUser[]>([]);
   const [biblioOptions, setBiblioOptions] = useState<BibEntry[]>([]);
 
   const [loading, setLoading] = useState(true);
@@ -181,16 +197,25 @@ export default function PostEditViewClient({
       .then((r) => r.json())
       .then((data: { docs: Tag[] }) => setAllTags(data.docs ?? []))
       .catch(() => setAllTags([]));
-    const biblioP = fetch('/cms/api/bibliography?limit=200&depth=0&sort=author', {
+    const biblioP = fetch('/cms/api/bibliography?limit=200&depth=0&sort=authorLabel', {
       credentials: 'include',
     })
       .then((r) => r.json())
       .then((data: { docs: BibEntry[] }) => setBiblioOptions(data.docs ?? []))
       .catch(() => setBiblioOptions([]));
+    // Liste des user·rices actifs du Carnet pour le picker auteur·ices.
+    // status='active' uniquement — on n'expose pas les pending/disabled.
+    const usersP = fetch(
+      '/cms/api/users?limit=200&depth=0&sort=displayName&where[status][equals]=active',
+      { credentials: 'include' },
+    )
+      .then((r) => r.json())
+      .then((data: { docs: CarnetUser[] }) => setAllUsers(data.docs ?? []))
+      .catch(() => setAllUsers([]));
 
     if (!docId) {
       // Création : pas de fetch post, on part de EMPTY_DRAFT
-      Promise.all([themesP, tagsP, biblioP]).finally(() => {
+      Promise.all([themesP, tagsP, biblioP, usersP]).finally(() => {
         setInitialJson(JSON.stringify(EMPTY_DRAFT));
         setLoading(false);
       });
@@ -209,6 +234,7 @@ export default function PostEditViewClient({
           ...doc,
           themes: Array.isArray(doc.themes) ? doc.themes : [],
           tags: Array.isArray(doc.tags) ? doc.tags : [],
+          authors: Array.isArray(doc.authors) ? doc.authors : [],
           bibliography: Array.isArray(doc.bibliography) ? doc.bibliography : [],
           body: doc.body ?? null,
         };
@@ -219,7 +245,7 @@ export default function PostEditViewClient({
         setError(err instanceof Error ? err.message : 'Erreur inconnue');
       });
 
-    Promise.all([themesP, tagsP, biblioP, postP]).finally(() => setLoading(false));
+    Promise.all([themesP, tagsP, biblioP, usersP, postP]).finally(() => setLoading(false));
   }, [docId]);
 
   const dirty = JSON.stringify(post) !== initialJson;
@@ -263,6 +289,38 @@ export default function PostEditViewClient({
         ...p,
         tags: cur.filter((t) => (typeof t === 'object' ? t.id : t) !== tagId),
       };
+    });
+  }
+
+  // ─── Auteur·ices ─────────────────────────────────────────────
+  function addAuthor(kind: 'user' | 'external') {
+    setPost((p) => {
+      const cur = p.authors ?? [];
+      const fresh: PostAuthor =
+        kind === 'user' ? { kind: 'user', user: null } : { kind: 'external', name: '', affiliation: '' };
+      return { ...p, authors: [...cur, fresh] };
+    });
+  }
+  function removeAuthor(idx: number) {
+    setPost((p) => ({
+      ...p,
+      authors: (p.authors ?? []).filter((_, i) => i !== idx),
+    }));
+  }
+  function updateAuthor(idx: number, patch: Partial<PostAuthor>) {
+    setPost((p) => {
+      const cur = [...(p.authors ?? [])];
+      cur[idx] = { ...cur[idx], ...patch };
+      return { ...p, authors: cur };
+    });
+  }
+  function moveAuthor(idx: number, delta: -1 | 1) {
+    setPost((p) => {
+      const cur = [...(p.authors ?? [])];
+      const target = idx + delta;
+      if (target < 0 || target >= cur.length) return p;
+      [cur[idx], cur[target]] = [cur[target], cur[idx]];
+      return { ...p, authors: cur };
     });
   }
 
@@ -353,6 +411,19 @@ export default function PostEditViewClient({
         type: post.type,
         themes: (post.themes ?? []).map((t) => (typeof t === 'object' ? t.id : t)),
         tags: (post.tags ?? []).map((t) => (typeof t === 'object' ? t.id : t)),
+        // authors : on remappe l'objet user populé en simple ID pour le PATCH
+        // (Payload accepte les deux mais l'ID est plus propre côté wire).
+        authors: (post.authors ?? []).map((a) => ({
+          kind: a.kind ?? 'user',
+          user:
+            a.kind === 'user' && a.user
+              ? typeof a.user === 'object'
+                ? a.user.id
+                : a.user
+              : null,
+          name: a.kind === 'external' ? (a.name ?? '') : '',
+          affiliation: a.kind === 'external' ? (a.affiliation ?? '') : '',
+        })),
         publishedAt: post.publishedAt,
         lede: post.lede,
         body: post.body,
@@ -383,6 +454,7 @@ export default function PostEditViewClient({
         ...fresh,
         themes: Array.isArray(fresh.themes) ? fresh.themes : [],
         tags: Array.isArray(fresh.tags) ? fresh.tags : [],
+        authors: Array.isArray(fresh.authors) ? fresh.authors : [],
         bibliography: Array.isArray(fresh.bibliography) ? fresh.bibliography : [],
         body: fresh.body ?? null,
       };
@@ -628,8 +700,8 @@ export default function PostEditViewClient({
                 <span>Notes de bas de page ({footnotes.length})</span>
               </div>
               <div className="fn-block__help">
-                Pour ajouter une note dans le corps : tape <kbd>/</kbd> puis
-                « Note de bas de page » — écris le contenu dans le panneau
+                Pour ajouter une note dans le corps : tapez <kbd>/</kbd> puis
+                « Note de bas de page » — écrivez le contenu dans le panneau
                 qui s’ouvre.
                 <br />
                 Les notes apparaissent ici, numérotées automatiquement.
@@ -660,12 +732,12 @@ export default function PostEditViewClient({
                 <span>Bibliographie liée ({biblioIds.length})</span>
               </div>
               <div className="bib-block__help">
-                Pour <em>citer</em> une référence dans le corps : tape <kbd>/</kbd>{' '}
-                puis « Bibliographie inline » — choisis-la dans le panneau qui
+                Pour <em>citer</em> une référence dans le corps : tapez <kbd>/</kbd>{' '}
+                puis « Bibliographie inline » — choisissez-la dans le panneau qui
                 s’ouvre.
                 <br />
                 Pour <em>lister</em> une référence sans la citer dans le corps :
-                ajoute-la directement ci-dessous.
+                ajoutez-la directement ci-dessous.
               </div>
               <div className="biblio-list">
                 {biblioIds.length === 0 && (
@@ -704,7 +776,7 @@ export default function PostEditViewClient({
                     <div key={String(id)} className="b-row">
                       <div className="n">[{i + 1}]</div>
                       <div className="body">
-                        <span className="au">{e.author ?? '—'}</span>
+                        <span className="au">{e.authorLabel || '—'}</span>
                         {e.year && <> ({e.year})</>}
                         {e.title && (
                           <>
@@ -739,7 +811,7 @@ export default function PostEditViewClient({
                         className="add-rel-item"
                         onClick={() => toggleBiblio(b.id)}
                       >
-                        <span className="au">{b.author ?? '—'}</span>
+                        <span className="au">{b.authorLabel || '—'}</span>
                         {b.year && <> ({b.year})</>}
                         {b.title && <> · <span className="ti">{b.title}</span></>}
                       </button>
@@ -755,7 +827,7 @@ export default function PostEditViewClient({
               <div className="field">
                 <label>Numéro de billet</label>
                 <div className="auto" title="Attribué automatiquement à la création">
-                  {post.numero != null ? `n° ${pad3(post.numero)}` : '— (auto à la création)'}
+                  {post.numero != null ? `n° ${pad3(post.numero)}` : 'auto'}
                 </div>
               </div>
               <div className="field">
@@ -843,6 +915,112 @@ export default function PostEditViewClient({
               />
             </div>
 
+            <div className="field">
+              <label>Auteur·ices</label>
+              <div className="authors-list">
+                {(post.authors ?? []).length === 0 && (
+                  <div className="authors-list__empty">
+                    Aucun·e signataire — sera auto-rempli·e à la sauvegarde.
+                  </div>
+                )}
+                {(post.authors ?? []).map((a, i) => {
+                  const k = a.kind ?? 'user';
+                  const userId =
+                    a.user && typeof a.user === 'object' ? a.user.id : (a.user ?? null);
+                  return (
+                    <div key={i} className="authors-list__row">
+                      <div className="authors-list__head">
+                        <select
+                          value={k}
+                          onChange={(e) =>
+                            updateAuthor(i, {
+                              kind: e.target.value as 'user' | 'external',
+                              // Reset des champs de l'autre kind pour pas
+                              // garder de données fantômes en BDD.
+                              ...(e.target.value === 'user'
+                                ? { name: '', affiliation: '' }
+                                : { user: null }),
+                            })
+                          }
+                        >
+                          <option value="user">Membre du Carnet</option>
+                          <option value="external">Externe</option>
+                        </select>
+                        <div className="authors-list__moves">
+                          <button
+                            type="button"
+                            disabled={i === 0}
+                            onClick={() => moveAuthor(i, -1)}
+                            aria-label="Monter"
+                          >
+                            ↑
+                          </button>
+                          <button
+                            type="button"
+                            disabled={i === (post.authors ?? []).length - 1}
+                            onClick={() => moveAuthor(i, 1)}
+                            aria-label="Descendre"
+                          >
+                            ↓
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeAuthor(i)}
+                            aria-label="Retirer"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+                      {k === 'user' ? (
+                        <select
+                          value={userId == null ? '' : String(userId)}
+                          onChange={(e) =>
+                            updateAuthor(i, {
+                              user:
+                                e.target.value === ''
+                                  ? null
+                                  : (Number(e.target.value) || e.target.value),
+                            })
+                          }
+                        >
+                          <option value="">— choisir un·e membre —</option>
+                          {allUsers.map((u) => (
+                            <option key={u.id} value={String(u.id)}>
+                              {u.displayName ?? u.email ?? `User #${u.id}`}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <>
+                          <input
+                            type="text"
+                            placeholder="Nom complet (ex. Aïcha Touré)"
+                            value={a.name ?? ''}
+                            onChange={(e) => updateAuthor(i, { name: e.target.value })}
+                          />
+                          <input
+                            type="text"
+                            placeholder="Rattachement (optionnel, ex. LATTS)"
+                            value={a.affiliation ?? ''}
+                            onChange={(e) => updateAuthor(i, { affiliation: e.target.value })}
+                          />
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+                <div className="authors-list__add">
+                  <button type="button" onClick={() => addAuthor('user')}>
+                    + Membre
+                  </button>
+                  <button type="button" onClick={() => addAuthor('external')}>
+                    + Externe
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <hr />
             <h3>Calendrier</h3>
             <div className="field">
@@ -913,10 +1091,14 @@ function TagsPicker({
 
   const attachedIds = new Set(attached.map((t) => String(t.id)));
   const q = query.trim().toLowerCase();
-  const matches = allTags
-    .filter((t) => !attachedIds.has(String(t.id)))
-    .filter((t) => !q || t.name.toLowerCase().includes(q) || t.slug.includes(q))
-    .slice(0, 30);
+  // Pas de q → on n'affiche rien : à 150 tags, dérouler la liste entière
+  // au focus ne sert à rien. Le menu n'apparaît que dès la première lettre.
+  const matches = q
+    ? allTags
+        .filter((t) => !attachedIds.has(String(t.id)))
+        .filter((t) => t.name.toLowerCase().includes(q) || t.slug.includes(q))
+        .slice(0, 30)
+    : [];
   const exact = q && allTags.find((t) => t.name.toLowerCase() === q);
 
   function pickFirst() {
@@ -937,7 +1119,7 @@ function TagsPicker({
         type="text"
         className="tags-picker__input"
         value={query}
-        placeholder="Tape un tag, Entrée pour ajouter…"
+        placeholder="Tapez un tag, Entrée pour ajouter…"
         onFocus={() => setOpen(true)}
         onChange={(e) => {
           setQuery(e.target.value);
@@ -951,7 +1133,7 @@ function TagsPicker({
           if (e.key === 'Escape') setOpen(false);
         }}
       />
-      {open && (query.length > 0 || matches.length > 0) && (
+      {open && q.length > 0 && (
         <div className="tags-picker__menu">
           {matches.map((t) => (
             <button

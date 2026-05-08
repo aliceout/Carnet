@@ -44,6 +44,7 @@ type FetchResult = {
 type FilterType = 'all' | 'analyse' | 'note' | 'fiche';
 type FilterStatut = 'all' | 'draft' | 'published' | 'scheduled';
 type FilterDrafts = 'all' | 'with' | 'without';
+type FilterScope = 'all' | 'mine';
 type SortKey = '-publishedAt' | 'publishedAt' | '-numero' | 'numero';
 
 const TYPE_LABELS: Record<Post['type'], string> = {
@@ -74,6 +75,7 @@ export default function PostListViewClient(): React.ReactElement {
   const [pole, setPole] = useState<string>('all');
   const [statut, setStatut] = useState<FilterStatut>('all');
   const [drafts, setDrafts] = useState<FilterDrafts>('all');
+  const [scope, setScope] = useState<FilterScope>('all');
   const [sort, setSort] = useState<SortKey>('-publishedAt');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -85,13 +87,24 @@ export default function PostListViewClient(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
 
   const [themes, setThemes] = useState<Theme[]>([]);
+  // ID de l'utilisateur·rice connecté·e — sert à filtrer « Mes billets ».
+  // Récupéré via /cms/api/users/me. null tant que pas chargé.
+  const [currentUserId, setCurrentUserId] = useState<number | string | null>(null);
 
-  // Fetch initial des thèmes (pour le filtre Pôle)
+  // Fetch initial des thèmes (pour le filtre Pôle) + user courant
   useEffect(() => {
     fetch('/cms/api/themes?limit=100&depth=0&sort=name', { credentials: 'include' })
       .then((r) => r.json())
       .then((data: { docs: Theme[] }) => setThemes(data.docs ?? []))
       .catch(() => setThemes([]));
+    fetch('/cms/api/users/me', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data: { user?: { id?: number | string } }) => {
+        if (data.user?.id != null) setCurrentUserId(data.user.id);
+      })
+      .catch(() => {
+        // Silencieux : si /me échoue, on désactive juste le filtre.
+      });
   }, []);
 
   // Fetch des posts à chaque changement de filtre/tri/page
@@ -125,6 +138,12 @@ export default function PostListViewClient(): React.ReactElement {
     } else if (drafts === 'without') {
       params.append('where[hasDraftZones][equals]', 'false');
     }
+    if (scope === 'mine' && currentUserId != null) {
+      // Filtre par billets dont la liste authors[] contient un kind=user
+      // pointant sur l'utilisateur·rice connecté·e. Payload supporte la
+      // notation pointée pour les arrays imbriqués.
+      params.append('where[authors.user][equals]', String(currentUserId));
+    }
     if (search.trim()) {
       params.append('where[title][like]', search.trim());
     }
@@ -144,12 +163,12 @@ export default function PostListViewClient(): React.ReactElement {
         setPosts([]);
       })
       .finally(() => setLoading(false));
-  }, [type, pole, statut, drafts, sort, page, search]);
+  }, [type, pole, statut, drafts, scope, currentUserId, sort, page, search]);
 
   // Reset page=1 quand un filtre change (sinon on peut être sur p2 d'un filtre vide)
   useEffect(() => {
     setPage(1);
-  }, [type, pole, statut, drafts, sort, search]);
+  }, [type, pole, statut, drafts, scope, sort, search]);
 
   const themeOptions = useMemo(
     () => [{ slug: 'all', name: 'tous' }, ...themes],
@@ -178,6 +197,25 @@ export default function PostListViewClient(): React.ReactElement {
           Nouveau billet
         </Link>
       </CarnetTopbar>
+
+      <div className="carnet-listview__scope">
+        <button
+          type="button"
+          className={scope === 'all' ? 'on' : ''}
+          onClick={() => setScope('all')}
+        >
+          Tous les billets
+        </button>
+        <button
+          type="button"
+          className={scope === 'mine' ? 'on' : ''}
+          onClick={() => setScope('mine')}
+          disabled={currentUserId == null}
+          title={currentUserId == null ? 'Connecte-toi pour filtrer' : 'Mes billets'}
+        >
+          Mes billets
+        </button>
+      </div>
 
       <div className="carnet-listview__toolbar">
         <div className="carnet-listview__search">

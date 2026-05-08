@@ -25,14 +25,27 @@ import {
   renderLexicalSidenotes,
   renderLexicalWithFootnotes,
 } from '../../lib/lexical';
-import { formatDateFr, formatNumero } from '../../lib/site';
+import {
+  formatDateFr,
+  formatNumero,
+  formatPostByline,
+  formatPostCitationChicago,
+  type PostAuthorEntry,
+} from '../../lib/site';
+import { formatAuthorsChicago, formatTranslators } from '../../lib/format-authors';
 
 type Theme = { id: number | string; slug: string; name: string };
 type Tag = { id: number | string; slug: string; name: string };
+type BibAuthor = {
+  firstName?: string | null;
+  lastName: string;
+  role?: 'author' | 'editor' | 'translator';
+};
 type BiblioEntry = {
   id: number | string;
   slug: string;
-  author: string;
+  authors?: BibAuthor[] | null;
+  authorLabel?: string | null;
   year: number;
   title: string;
   type?: string;
@@ -53,6 +66,7 @@ type Post = {
   type: 'analyse' | 'note' | 'fiche';
   themes?: Theme[] | null;
   tags?: Tag[] | null;
+  authors?: PostAuthorEntry[] | null;
   publishedAt: string;
   updatedAt?: string;
   lede: string;
@@ -147,10 +161,17 @@ if (primaryTheme) {
 
 const numLabel = formatNumero(post.numero);
 
-// Identité de l'auteur·ice — citation Chicago author-date depuis le
-// global Site (champ identity.authorCitation, format « Nom, Prénom »).
-// Fallback générique si non renseigné.
-const authorCitation = site.identity?.authorCitation?.trim() || 'Auteur·ice';
+// Auteur·ices du billet — byline lisible sous le titre et signature
+// Chicago dans le bloc « Pour citer ». Cf issue #2.
+const postAuthors = (post.authors ?? []) as PostAuthorEntry[];
+const byline = formatPostByline(postAuthors);
+const postCitation = formatPostCitationChicago(postAuthors);
+
+// Si le billet n'a pas d'auteur·ices renseigné·es (cas legacy sur des
+// billets antérieurs à la migration), on retombe sur la signature
+// globale du Site (champ identity.authorCitation).
+const fallbackCitation = site.identity?.authorCitation?.trim() || 'Auteur·ice';
+const authorCitation = postCitation || fallbackCitation;
 
 // Citation bibliographique du billet (Chicago author-date façon Carnet)
 const articleUrl = new URL(Astro.url.pathname, Astro.site).toString();
@@ -193,6 +214,7 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
     </div>
 
     <h1>{post.title}</h1>
+    {byline && <p class="byline">par {byline}</p>}
     <p class="deck">{post.lede}</p>
 
     <div class="meta-strip">
@@ -233,9 +255,10 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
           <ul class="biblio">
             {biblio.map((b) => (
               <li id={`bib-${b.slug}`}>
-                <span class="ba">{b.author}</span>
+                <span class="ba">{formatAuthorsChicago(b.authors)}</span>
                 {`, ${b.year}, `}
                 <em>{b.title}</em>
+                {formatTranslators(b.authors) && `, ${formatTranslators(b.authors)}`}
                 {b.publisher && `, ${b.place ? b.place + ', ' : ''}${b.publisher}`}
                 {b.journal && `, ${b.journal}`}
                 {b.volume && `, ${b.volume}`}
@@ -344,11 +367,20 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
     line-height: 1.08;
     font-weight: 600;
     letter-spacing: -0.7px;
-    margin: 0 0 20px;
+    margin: 0 0 12px;
   }
   article.post h1 em {
     font-weight: 500;
     color: var(--color-accent);
+  }
+  /* Byline « par X et Y » entre le titre et le chapô. Style sobre,
+     italique muted. Cf issue #2. */
+  article.post .byline {
+    font-family: var(--font-serif);
+    font-size: 16px;
+    font-style: italic;
+    color: var(--color-muted);
+    margin: 0 0 20px;
   }
   article.post .deck {
     font-family: var(--font-serif);

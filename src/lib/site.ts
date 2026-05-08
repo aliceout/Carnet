@@ -101,3 +101,90 @@ export function formatHeroTitle(s: string): string {
 export function formatHeroLede(s: string): string {
   return escapeHtml(s).replace(/\r?\n/g, '<br />');
 }
+
+/**
+ * Liste d'auteur·ices d'un billet (cf issue #2). Chaque entrée est soit
+ * un user du Carnet (kind=user, user populé avec displayName), soit
+ * une personne externe (kind=external, name + affiliation libres).
+ */
+export type PostAuthorEntry = {
+  kind?: 'user' | 'external';
+  user?: { displayName?: string; email?: string } | number | string | null;
+  name?: string;
+  affiliation?: string;
+};
+
+/**
+ * Renvoie le nom affichable d'une entrée auteur·ice, sans rattachement.
+ * - kind=user : displayName si dispo, sinon email, sinon vide.
+ * - kind=external : name brut.
+ */
+function authorDisplayName(a: PostAuthorEntry): string {
+  if ((a.kind ?? 'user') === 'user') {
+    if (a.user && typeof a.user === 'object') {
+      return a.user.displayName?.trim() || a.user.email?.trim() || '';
+    }
+    return '';
+  }
+  return (a.name ?? '').trim();
+}
+
+/**
+ * Byline lisible pour le bandeau sous le titre :
+ *   1 auteur·ice  → « Alice Aussel Delamaide »
+ *   2            → « Alice Aussel Delamaide et Aïcha Touré »
+ *   3+           → « Alice Aussel Delamaide, Aïcha Touré et Marie Dupont »
+ *   externe avec rattachement → « Aïcha Touré (LATTS) »
+ *
+ * Filtre les entrées vides (user non sélectionné, name vide).
+ */
+export function formatPostByline(authors: PostAuthorEntry[] | null | undefined): string {
+  if (!authors || authors.length === 0) return '';
+  const parts = authors
+    .map((a) => {
+      const name = authorDisplayName(a);
+      if (!name) return '';
+      const aff = a.kind === 'external' && a.affiliation?.trim();
+      return aff ? `${name} (${aff.trim()})` : name;
+    })
+    .filter(Boolean);
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return parts[0];
+  if (parts.length === 2) return `${parts[0]} et ${parts[1]}`;
+  return `${parts.slice(0, -1).join(', ')} et ${parts[parts.length - 1]}`;
+}
+
+/**
+ * Format Chicago author-date pour le bloc « Pour citer cet article ».
+ * On essaie de reconstruire « Nom, P. » à partir du displayName ou du
+ * name (fonctionne pour les noms simples « Prénom Nom » ; pour les
+ * cas complexes — particules, pseudonymes — l'autrice peut surcharger
+ * via le champ Site.identity.authorCitation pour le primary).
+ *
+ *   « Aussel Delamaide, A. & Touré, A. »  (2 auteur·ices)
+ *   « Aussel Delamaide, A., Touré, A. & Dupont, M. »  (3+)
+ */
+export function formatPostCitationChicago(
+  authors: PostAuthorEntry[] | null | undefined,
+): string {
+  if (!authors || authors.length === 0) return '';
+  const parts = authors
+    .map((a) => {
+      const full = authorDisplayName(a);
+      if (!full) return '';
+      // Heuristique : dernier mot = nom, mots précédents = prénoms initialés.
+      const tokens = full.split(/\s+/).filter(Boolean);
+      if (tokens.length === 1) return tokens[0];
+      const last = tokens[tokens.length - 1];
+      const initials = tokens
+        .slice(0, -1)
+        .map((t) => t[0]?.toUpperCase() + '.')
+        .join(' ');
+      return `${last}, ${initials}`;
+    })
+    .filter(Boolean);
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return parts[0];
+  if (parts.length === 2) return `${parts[0]} & ${parts[1]}`;
+  return `${parts.slice(0, -1).join(', ')} & ${parts[parts.length - 1]}`;
+}

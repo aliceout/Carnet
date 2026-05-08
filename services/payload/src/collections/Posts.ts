@@ -42,25 +42,40 @@ export const Posts: CollectionConfig = {
     // assigne max+1. S'exécute en `beforeValidate` (donc avant le
     // check `required: true`) pour qu'un billet créé sans numero
     // dans le payload passe la validation.
+    //
+    // Auteur·ice par défaut : on auto-assigne req.user comme premier
+    // auteur·ice (kind=user) si la liste est vide à la création. La
+    // signataire peut ensuite ajouter co-auteur·ices (du Carnet ou
+    // externes). Cf issue #2.
     beforeValidate: [
       async ({ data, req, operation }) => {
-        if (operation !== 'create') return data;
-        if (data && typeof data.numero === 'number' && data.numero > 0) return data;
-        try {
-          const existing = await req.payload.find({
-            collection: 'posts',
-            sort: '-numero',
-            limit: 1,
-            depth: 0,
-          });
-          const top = existing.docs[0] as { numero?: number } | undefined;
-          const max = typeof top?.numero === 'number' ? top.numero : 0;
-          return { ...(data ?? {}), numero: max + 1 };
-        } catch {
-          // Fallback prudent : on laisse Payload échouer sur le
-          // required, plutôt que d'écrire un numéro arbitraire.
-          return data;
+        let next = data;
+        if (operation === 'create') {
+          // Numéro auto
+          if (!next || typeof next.numero !== 'number' || next.numero <= 0) {
+            try {
+              const existing = await req.payload.find({
+                collection: 'posts',
+                sort: '-numero',
+                limit: 1,
+                depth: 0,
+              });
+              const top = existing.docs[0] as { numero?: number } | undefined;
+              const max = typeof top?.numero === 'number' ? top.numero : 0;
+              next = { ...(next ?? {}), numero: max + 1 };
+            } catch {
+              // Fallback prudent : on laisse Payload échouer sur le
+              // required, plutôt que d'écrire un numéro arbitraire.
+            }
+          }
+          // Auteur·ice par défaut
+          const authors = (next as { authors?: unknown[] } | undefined)?.authors;
+          const userId = (req.user as { id?: number | string } | null | undefined)?.id;
+          if ((!authors || authors.length === 0) && userId) {
+            next = { ...(next ?? {}), authors: [{ kind: 'user', user: userId }] };
+          }
         }
+        return next;
       },
     ],
   },
@@ -159,6 +174,64 @@ export const Posts: CollectionConfig = {
         description:
           'Mots-clés libres, ajoutés à la volée depuis l’édition du billet. Différents des thèmes (qui sont structurants).',
       },
+    },
+    {
+      // Auteur·ices d'un billet — chaque entrée est soit un user du
+      // Carnet (relation Users), soit un·e auteur·ice externe (texte
+      // libre + rattachement optionnel). Ordre = ordre de signature.
+      // Au create, on auto-assigne req.user comme premier·ère auteur·ice
+      // (cf hook beforeValidate). L'admin peut ensuite ajouter, retirer,
+      // réordonner. Cf issue #2.
+      name: 'authors',
+      type: 'array',
+      label: 'Auteur·ices',
+      minRows: 1,
+      admin: {
+        description:
+          'Au moins un·e. La première entrée est auto-remplie au create avec l’utilisateur·rice connecté·e. Pour les externes (collègues hors Carnet), choisir « Externe » et saisir le nom + rattachement.',
+      },
+      fields: [
+        {
+          name: 'kind',
+          type: 'radio',
+          required: true,
+          defaultValue: 'user',
+          options: [
+            { label: 'Membre du Carnet', value: 'user' },
+            { label: 'Externe', value: 'external' },
+          ],
+          admin: { layout: 'horizontal' },
+        },
+        {
+          name: 'user',
+          type: 'relationship',
+          relationTo: 'users',
+          required: false,
+          admin: {
+            condition: (_, sibling) => sibling?.kind === 'user',
+          },
+        },
+        {
+          name: 'name',
+          type: 'text',
+          required: false,
+          label: 'Nom complet',
+          admin: {
+            condition: (_, sibling) => sibling?.kind === 'external',
+            description: 'Ex. « Aïcha Touré »',
+          },
+        },
+        {
+          name: 'affiliation',
+          type: 'text',
+          required: false,
+          label: 'Rattachement',
+          admin: {
+            condition: (_, sibling) => sibling?.kind === 'external',
+            description: 'Optionnel, ex. « LATTS ».',
+          },
+        },
+      ],
     },
     {
       name: 'publishedAt',
