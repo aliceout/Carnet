@@ -52,13 +52,6 @@ const TYPE_LABELS: Record<Post['type'], string> = {
   fiche: 'Fiche',
 };
 
-function pad3(n: number | string | undefined): string {
-  if (n === undefined || n === null || n === '') return '—';
-  const num = typeof n === 'string' ? parseInt(n, 10) : n;
-  if (Number.isNaN(num)) return String(n);
-  return String(num).padStart(3, '0');
-}
-
 function isoDate(d: string): string {
   if (!d) return '—';
   return d.slice(0, 10);
@@ -256,11 +249,10 @@ export default function PostListViewClient(): React.ReactElement {
 
       <div className="carnet-listview__table" role="table">
         <div className="carnet-listview__row carnet-listview__row--head" role="row">
-          <div role="columnheader">N°</div>
           <div role="columnheader">Date</div>
           <div role="columnheader">Type</div>
-          <div role="columnheader">Thème</div>
           <div role="columnheader">Titre</div>
+          <div role="columnheader">Thème</div>
           <div role="columnheader">Statut</div>
         </div>
 
@@ -279,17 +271,11 @@ export default function PostListViewClient(): React.ReactElement {
                 className="carnet-listview__row"
                 role="row"
               >
-                <div role="cell" className="num">
-                  n° {pad3(p.numero)}
-                </div>
                 <div role="cell" className="date">
                   {isoDate(p.publishedAt)}
                 </div>
                 <div role="cell" className="type">
                   {TYPE_LABELS[p.type]}
-                </div>
-                <div role="cell" className="theme">
-                  {primaryTheme?.name ?? '—'}
                 </div>
                 <div role="cell" className="title">
                   {p.title}
@@ -301,6 +287,9 @@ export default function PostListViewClient(): React.ReactElement {
                       brouillon
                     </span>
                   )}
+                </div>
+                <div role="cell" className="theme">
+                  {primaryTheme?.name ?? '—'}
                 </div>
                 <div role="cell" className="status">
                   <span className={`carnet-status carnet-status--${status}`}>
