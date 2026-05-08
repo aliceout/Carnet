@@ -197,7 +197,7 @@ export const Posts: CollectionConfig = {
           required: true,
           defaultValue: 'user',
           options: [
-            { label: 'Membre du Carnet', value: 'user' },
+            { label: 'Interne', value: 'user' },
             { label: 'Externe', value: 'external' },
           ],
           admin: { layout: 'horizontal' },

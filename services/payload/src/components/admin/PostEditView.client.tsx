@@ -212,13 +212,33 @@ export default function PostEditViewClient({
       .then((r) => r.json())
       .then((data: { docs: CarnetUser[] }) => setAllUsers(data.docs ?? []))
       .catch(() => setAllUsers([]));
+    // User·rice connecté·e — sert à pré-remplir authors[] dès l'ouverture
+    // d'un nouveau billet (sinon l'auto-assign n'arrive qu'au save).
+    const meP = fetch('/cms/api/users/me', { credentials: 'include' })
+      .then((r) => r.json())
+      .then(
+        (data: { user?: { id?: number | string } | null }) =>
+          (data.user?.id as number | string | undefined) ?? null,
+      )
+      .catch(() => null);
 
     if (!docId) {
-      // Création : pas de fetch post, on part de EMPTY_DRAFT
-      Promise.all([themesP, tagsP, biblioP, usersP]).finally(() => {
-        setInitialJson(JSON.stringify(EMPTY_DRAFT));
-        setLoading(false);
-      });
+      // Création : pas de fetch post, on part de EMPTY_DRAFT enrichi
+      // par le user connecté comme premier·ère auteur·ice.
+      Promise.all([themesP, tagsP, biblioP, usersP, meP])
+        .then(([, , , , meId]) => {
+          if (meId != null) {
+            const draft: typeof EMPTY_DRAFT = {
+              ...EMPTY_DRAFT,
+              authors: [{ kind: 'user', user: meId }],
+            };
+            setPost(draft);
+            setInitialJson(JSON.stringify(draft));
+          } else {
+            setInitialJson(JSON.stringify(EMPTY_DRAFT));
+          }
+        })
+        .finally(() => setLoading(false));
       return;
     }
 
@@ -245,7 +265,9 @@ export default function PostEditViewClient({
         setError(err instanceof Error ? err.message : 'Erreur inconnue');
       });
 
-    Promise.all([themesP, tagsP, biblioP, usersP, postP]).finally(() => setLoading(false));
+    Promise.all([themesP, tagsP, biblioP, usersP, meP, postP]).finally(() =>
+      setLoading(false),
+    );
   }, [docId]);
 
   const dirty = JSON.stringify(post) !== initialJson;
@@ -1048,7 +1070,7 @@ export default function PostEditViewClient({
                             })
                           }
                         >
-                          <option value="user">Membre du Carnet</option>
+                          <option value="user">Interne</option>
                           <option value="external">Externe</option>
                         </select>
                         <div className="authors-list__moves">
@@ -1117,7 +1139,7 @@ export default function PostEditViewClient({
                 })}
                 <div className="authors-list__add">
                   <button type="button" onClick={() => addAuthor('user')}>
-                    + Membre
+                    + Interne
                   </button>
                   <button type="button" onClick={() => addAuthor('external')}>
                     + Externe
