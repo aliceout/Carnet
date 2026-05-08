@@ -1,123 +1,126 @@
-# Carnet — site de recherche
+# Carnet
 
 Carnet de recherche personnel auto-hébergé, équivalent self-hosted d'un carnet
-Hypothèses. Publie des billets longs en français — analyses, notes de lecture,
-fiches thématiques — autour du genre, de la géopolitique et des droits LGBTQI+
-dans les rapports internationaux.
+Hypothèses. Astro SSR + Payload, dockerisé, sans pisteur.
 
+## Stack
 
-Stack : **Astro 6 SSR** (Node standalone) + **Payload CMS v3** + **Postgres 16**,
-self-hosté en Docker. Aucun pisteur, aucune dépendance externe inutile, lisible
-sans JavaScript.
+- **Astro 6** (SSR Node standalone) — site public
+- **Payload CMS v3** (Next.js 16 + Lexical) — admin + API sous `/cms/*`
+- **Postgres 16** — bind mount, `push: true` (pas de migration formelle)
+- Tout dockerisé. Zéro build CI sur le serveur.
 
----
-
-## Démarrage en local
+## Dev
 
 Prérequis : Node 22+, pnpm 10+, Docker.
 
 ```bash
-# 1. Récupérer les secrets dev dans .env (via DvSetup VS Code ou infisical CLI)
+# Secrets (Dev Setup VS Code ou infisical CLI)
+infisical export --env=dev --path=/ --format=dotenv > .env
 
-# 2. Installer les deps (1× par service)
+# Deps
 pnpm install
 pnpm --dir services/payload install
 
-# 3. Postgres + Mailpit en arrière-plan
+# Postgres + Mailpit en bg
 docker compose -f compose.dev.yml up -d
 
-# 4. Lancer (un terminal par process)
-pnpm dev:api    # admin Payload   → http://localhost:3001/cms/admin
-pnpm dev:web    # site Astro      → http://localhost:4321
+# Dev servers (un terminal par)
+pnpm dev:api    # Payload → http://localhost:3001/cms/admin
+pnpm dev:web    # Astro   → http://localhost:4321
 ```
 
-Mailpit (capture les mails d'auth envoyés en local — invitations, OTP 2FA) :
-<http://localhost:8025>. Payload envoie ses mails via SMTP intégré
-(`@payloadcms/email-nodemailer`), pas besoin de service mail séparé.
+Mailpit (capture des mails d'auth en local) : <http://localhost:8025>.
 
----
+À chaque modif de schéma Payload :
 
-## Déploiement en prod
+```bash
+pnpm --dir services/payload generate:types
+pnpm --dir services/payload generate:importmap
+```
 
-Push sur `main` → CI build les images Docker → push GHCR → webhook VPS →
-`scripts/deploy.sh` fetch les secrets Infisical (env `prod`), pull les nouvelles
-images, `compose up -d`. **Aucun build sur le serveur.**
+Seed de démo (idempotent, refuse en prod) : `pnpm --dir services/payload seed:dev`
 
-Données persistantes en bind mount sous `$HOME/data/carnet/` (Postgres + uploads
-Payload), backup `restic` cron côté infra VPS (hors compose).
+## Prod
 
-Voir [`compose.yml`](compose.yml) et [`scripts/deploy.sh`](scripts/deploy.sh)
-pour le détail. Voir aussi [`INSTALL.md`](INSTALL.md) pour le setup complet.
+Push sur `main` → GitHub Actions build les images → push GHCR → webhook VPS →
+[`scripts/deploy.sh`](scripts/deploy.sh) fetch les secrets Infisical, pull les
+nouvelles images, `docker compose up -d`.
 
----
+Sample nginx (TLS terminé en amont, ports pilotés par Infisical
+`prod/infra`) :
+
+```nginx
+server {
+  listen 443 ssl http2;
+  server_name <ton-domaine>;
+  ssl_certificate     /etc/letsencrypt/live/<ton-domaine>/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/<ton-domaine>/privkey.pem;
+
+  location /cms/ { proxy_pass http://127.0.0.1:${PORT_PAYLOAD}; }
+  location /     { proxy_pass http://127.0.0.1:${PORT_SITE}; }
+}
+```
+
+Setup initial du VPS (1×) : cloner le repo, écrire les creds Infisical
+Universal Auth dans `~/.config/infisical/carnet.env`, lancer
+`./scripts/deploy.sh`. Cf. [`compose.yml`](compose.yml) pour les ports
+internes / volumes.
 
 ## Structure
 
 ```
 src/                       App Astro SSR (pages, components, layouts)
-services/
-└── payload/               CMS Payload (Next.js + Postgres) → /cms/admin
-public/                    Assets statiques + fonts self-hostées
-scripts/deploy.sh          Script de déploiement VPS
+services/payload/          CMS Payload (Next.js + Postgres) → /cms/admin
+public/                    Assets statiques
+scripts/deploy.sh          Déploiement VPS
 compose.yml                Compose prod (db, payload, site)
 compose.dev.yml            Compose dev (postgres + mailpit)
+.env.example               Vars d'env consommées par la stack
 ```
 
----
+## Backup
 
-## Contenu
+Données persistantes en bind mount sous `$DATA_DIR` (= `$HOME/data/carnet/`
+par défaut) :
 
-Édité depuis **`/cms/admin`**, persisté en Postgres, lu par Astro en
-SSR à chaque requête (pas de rebuild, modifs visibles immédiatement).
+- `$DATA_DIR/postgres/` — DB Payload
+- `$DATA_DIR/payload-media/` — uploads
 
-Collections Payload :
+Backup recommandé via `restic` cron côté VPS (hors compose). Restore manuel :
 
-- **Posts** — billets du carnet : `numero`, `titre`, `slug`, `type`
-  (analyse / note / fiche), `themes` (relation multi vers `Themes`),
-  `published_at`, `updated_at`, `lede`, `body` (Lexical), `bibliography`
-  (relations vers `Bibliography`), `reading_time` auto, `id_carnet` auto.
-- **Themes** — taxonomie multivaluée des sujets (slug, nom, description).
-- **Bibliography** — références académiques réutilisables entre billets
-  (auteur, année, titre, éditeur, lieu, pages, type).
-- **Pages** — pages éditoriales libres avec blocks Lexical (À propos,
-  Colophon, Mentions légales, Accessibilité, RGPD).
-- **Media** — uploads.
-- **Users** — auth-enabled (cf. ci-dessous).
+```bash
+docker compose down
+restic restore <snapshot-id> --target /
+docker compose up -d
+```
 
-Global **Site** — réglages (footer, baseline, liens sociaux, copyright).
+## Migrations
 
-**Comptes admin** : invitations par mail uniquement (lien valable 7 jours,
-2FA email par défaut, TOTP en option). Le premier user créé sur une base
-neuve devient `root` automatiquement au boot suivant.
+`postgres-adapter` en mode `push: true` : schéma DB synchronisé avec le code
+à chaque boot. **Pas de migration à générer.**
 
----
+Trade-off conscient : data peu critique (contenu éditorial), schéma sous
+code review (toute évolution passe par PR), single-user. Voir
+[issue #18](https://github.com/aliceout/carnet/issues/18) pour le débat
+v2 sur les migrations formelles.
 
 ## Charte
 
-Tokens du design (cf [`src/styles/global.css`](src/styles/global.css), à venir) :
+Tokens dans [`src/styles/global.css`](src/styles/global.css). Couleur
+d'accent et fond éditables depuis `/cms/admin/globals/site` (section
+*Branding*) — palette de 5 teintes accent + 6 teintes fond.
 
-| Token | Valeur | Usage |
-|---|---|---|
-| `--b-ink` | `#1a1d28` | Texte principal, titres |
-| `--b-bg` | `#fdfcf8` | Fond global |
-| `--b-paper` | `#ffffff` | Bloc citation |
-| `--b-rule` | `#d6d3c8` | Filets, bordures |
-| `--b-muted` | `#5e6373` | Métadonnées, légendes |
-| `--b-accent` | `#5a3a7a` | Liens externes, kicker, signature |
-
-Typographies (self-hostées via `@fontsource/*`) :
-
-- **Source Serif 4** (400 / 500 / 600) — corps article, titres éditoriaux
-- **Inter** (400 / 500 / 600) — UI : nav, méta, kicker, footer, chips
-- **JetBrains Mono** (400 / 500) — IDs, tags, mono technique
-
----
+Polices self-hostées via `@fontsource` : Source Serif 4 (corps), Inter
+(UI), JetBrains Mono (technique).
 
 ## Sobriété, accessibilité, RGPD
 
 WCAG AA visé. Aucun Google Fonts, aucun tracker, aucun cookie tiers. Sitemap
 auto, OG par page, mentions légales + politique confidentialité présentes.
-Pas de pop-up cookies (rien à consentir).
+Pas de pop-up cookies — rien à consentir.
 
-Code sous **AGPLv3** ([`LICENSE`](LICENSE)). Contenu (billets) sous
+## Licence
+
+Code : **AGPL-3.0** ([`LICENSE`](LICENSE)). Contenu (billets) :
 **CC BY-NC-SA 4.0**.
