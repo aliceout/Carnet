@@ -399,21 +399,29 @@ function ZoteroSection(): React.ReactElement {
         setError(data.error || `Échec du sync (HTTP ${res.status}).`);
         return;
       }
+      // Defensive defaults : un endpoint ancien (image prod pas encore
+      // redéployée) pourrait ne pas renvoyer deleted/keptCited.
+      const added = data.added ?? 0;
+      const updated = data.updated ?? 0;
+      const deleted = data.deleted ?? 0;
+      const errors = data.errors ?? [];
+      const keptCited = data.keptCited ?? [];
+
       const parts: string[] = [];
-      if (data.added > 0) parts.push(`${data.added} ajoutée${data.added > 1 ? 's' : ''}`);
-      if (data.updated > 0) parts.push(`${data.updated} mise${data.updated > 1 ? 's' : ''} à jour`);
-      if (data.deleted > 0) parts.push(`${data.deleted} supprimée${data.deleted > 1 ? 's' : ''}`);
+      if (added > 0) parts.push(`${added} ajoutée${added > 1 ? 's' : ''}`);
+      if (updated > 0) parts.push(`${updated} mise${updated > 1 ? 's' : ''} à jour`);
+      if (deleted > 0) parts.push(`${deleted} supprimée${deleted > 1 ? 's' : ''}`);
       if (parts.length === 0) parts.push('rien de neuf depuis Zotero');
       let msg = `Sync terminé — ${parts.join(', ')}.`;
-      if (data.keptCited.length > 0) {
-        msg += ` ${data.keptCited.length} ref${data.keptCited.length > 1 ? 's' : ''} supprimée${data.keptCited.length > 1 ? 's' : ''} côté Zotero mais conservée${data.keptCited.length > 1 ? 's' : ''} (encore citée${data.keptCited.length > 1 ? 's' : ''}) — voir le détail ci-dessous.`;
+      if (keptCited.length > 0) {
+        msg += ` ${keptCited.length} ref${keptCited.length > 1 ? 's' : ''} supprimée${keptCited.length > 1 ? 's' : ''} côté Zotero mais conservée${keptCited.length > 1 ? 's' : ''} (encore citée${keptCited.length > 1 ? 's' : ''}) — voir le détail ci-dessous.`;
       }
-      if (data.errors.length > 0) {
-        msg += ` ${data.errors.length} item${data.errors.length > 1 ? 's' : ''} ignoré${data.errors.length > 1 ? 's' : ''} — voir le détail ci-dessous.`;
+      if (errors.length > 0) {
+        msg += ` ${errors.length} item${errors.length > 1 ? 's' : ''} ignoré${errors.length > 1 ? 's' : ''} — voir le détail ci-dessous.`;
       }
       setInfo(msg);
-      setSyncErrors(data.errors);
-      setSyncKeptCited(data.keptCited);
+      setSyncErrors(errors);
+      setSyncKeptCited(keptCited);
       refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue.');

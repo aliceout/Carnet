@@ -145,6 +145,8 @@ const zoteroSyncEndpoint: Endpoint = {
         ok: true,
         added: result.added,
         updated: result.updated,
+        deleted: result.deleted,
+        keptCited: result.keptCited,
         errors: result.errors,
         newVersion: result.newVersion,
       });
