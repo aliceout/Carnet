@@ -5,7 +5,7 @@
 // pour l'active state qui change quand on navigue (sans full reload).
 //
 // Fetch /cms/api/users/me au mount pour afficher le footer user
-// (avatar carré avec initiale + displayName + rôle muted) cf maquette
+// (displayName + rôle muted) cf maquette
 // Design/design_handoff_admin/carnet-admin.html → footer sidebar.
 //
 // C'est aussi ici qu'on pose data-theme et data-accent sur <html> au
@@ -17,6 +17,8 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+
+import ZoteroAutoSync from './ZoteroAutoSync.client';
 
 type Me = {
   user?: {
@@ -71,7 +73,7 @@ export default function NavClient({ activePath: serverActive, counts }: Props): 
   const clientPath = usePathname();
   const activePath = clientPath || serverActive;
 
-  // User courant pour le footer (avatar + nom + rôle).
+  // User courant pour le footer (nom + rôle).
   const [me, setMe] = useState<Me['user'] | null>(null);
   useEffect(() => {
     fetch('/cms/api/users/me', { credentials: 'include' })
@@ -126,8 +128,6 @@ export default function NavClient({ activePath: serverActive, counts }: Props): 
       });
   }, []);
 
-  const userInitial =
-    (me?.displayName ?? me?.email ?? '?').trim().charAt(0).toUpperCase() || '?';
   const userName = me?.displayName?.trim() || me?.email?.split('@')[0] || '—';
   const userRole = me?.role ?? '';
 
@@ -166,6 +166,10 @@ export default function NavClient({ activePath: serverActive, counts }: Props): 
 
   return (
     <nav className="carnet-nav" aria-label="Navigation principale">
+      {/* Auto-sync Zotero invisible : se déclenche au login et toutes
+          les 30 min de navigation. Cf ZoteroAutoSync.client.tsx. */}
+      <ZoteroAutoSync />
+
       <Link href={ADMIN} className="carnet-nav__brand">
         Carnet<span className="dot">.</span>
       </Link>
@@ -196,9 +200,6 @@ export default function NavClient({ activePath: serverActive, counts }: Props): 
 
       {me && (
         <div className="carnet-nav__footer">
-          <div className="carnet-nav__avatar" aria-hidden="true">
-            {userInitial}
-          </div>
           <div className="carnet-nav__user">
             <div className="carnet-nav__user-name">{userName}</div>
             {userRole && <div className="carnet-nav__user-role">{userRole}</div>}
