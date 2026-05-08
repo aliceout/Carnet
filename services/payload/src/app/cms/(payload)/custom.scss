@@ -1,10 +1,11 @@
 // Overrides CSS de l'admin Payload — applique la palette + typographie
 // Carnet par-dessus le thème natif Payload.
 //
-// Réf : Design/design_handoff_admin/README.md (handoff). Important :
-// l'admin Carnet a un accent NEUTRE NOIR (#1a1d28) — pas le violet
-// #5a3a7a du frontend public, choix éditorial pour que l'interface
-// d'écriture reste sobre et que l'accent du site garde sa charge.
+// Réf : Design/design_handoff_admin/README.md (handoff).
+//
+// L'accent admin reprend désormais celui choisi côté front (Site →
+// Branding) — le mapping est piloté par data-accent sur <html>, posé
+// par Nav.client.tsx au mount. Idem pour le dark mode (data-theme).
 
 // ─── Tokens Carnet en :root ──────────────────────────────────────
 // On utilise un sélecteur :root,html pour bien override les vars
@@ -25,12 +26,73 @@ html {
   --b-paper: #fbfaf6;
   --b-rule: #d6d3c8;
   --b-muted: #5e6373;
-  --b-accent: #1a1d28; /* admin = noir, pas violet */
-  --b-accent-tint: rgba(26, 29, 40, 0.06);
+  --b-accent: #5a3a7a; /* défaut violet, surchargé par data-accent */
+  --b-accent-tint: rgba(90, 58, 122, 0.08);
 
   --font-serif: 'Source Serif 4', Georgia, serif;
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', 'Menlo', ui-monospace, monospace;
+}
+
+// ─── Variantes d'accent (light) ──────────────────────────────────
+// data-accent est posé sur <html> par Nav.client.tsx au mount,
+// d'après la valeur Site → Branding → Couleur d'accentuation.
+[data-accent='violet'] {
+  --b-accent: #5a3a7a;
+  --b-accent-tint: rgba(90, 58, 122, 0.08);
+}
+[data-accent='rouge'] {
+  --b-accent: #8a3a3a;
+  --b-accent-tint: rgba(138, 58, 58, 0.08);
+}
+[data-accent='bleu'] {
+  --b-accent: #1f3a5a;
+  --b-accent-tint: rgba(31, 58, 90, 0.08);
+}
+[data-accent='gris'] {
+  --b-accent: #3a3a3a;
+  --b-accent-tint: rgba(58, 58, 58, 0.08);
+}
+[data-accent='vert'] {
+  --b-accent: #2d5a3d;
+  --b-accent-tint: rgba(45, 90, 61, 0.08);
+}
+
+// ─── Dark mode ───────────────────────────────────────────────────
+// data-theme="dark" posé sur <html> par Nav.client.tsx (toggle dans
+// le footer de la sidebar). Palette warm dark cohérente avec le
+// front public, accent éclairci pour rester lisible.
+[data-theme='dark'] {
+  --b-ink: #e8e6e0;
+  --b-bg: #22242e;
+  --b-paper: #2a2c38;
+  --b-rule: #3d4150;
+  --b-muted: #9aa0ad;
+  --b-accent: #a888c8; /* défaut violet éclairci */
+  --b-accent-tint: rgba(168, 136, 200, 0.14);
+}
+
+// Variantes dark per-accent — calibrées comme côté front pour rester
+// cohérent (cf. src/styles/global.css côté Astro).
+[data-theme='dark'][data-accent='violet'] {
+  --b-accent: #a888c8;
+  --b-accent-tint: rgba(168, 136, 200, 0.14);
+}
+[data-theme='dark'][data-accent='rouge'] {
+  --b-accent: #d49a9a;
+  --b-accent-tint: rgba(212, 154, 154, 0.14);
+}
+[data-theme='dark'][data-accent='bleu'] {
+  --b-accent: #7ea4cc;
+  --b-accent-tint: rgba(126, 164, 204, 0.14);
+}
+[data-theme='dark'][data-accent='gris'] {
+  --b-accent: #b8b8b8;
+  --b-accent-tint: rgba(184, 184, 184, 0.14);
+}
+[data-theme='dark'][data-accent='vert'] {
+  --b-accent: #8ec4a4;
+  --b-accent-tint: rgba(142, 196, 164, 0.14);
 }
 
 // ─── Override des CSS vars Payload ───────────────────────────────
@@ -416,6 +478,34 @@ textarea.field-type__input {
     color: var(--b-muted);
     text-transform: lowercase;
     margin-top: 2px;
+  }
+
+  // Toggle dark/light dans le footer de la sidebar (à droite du user
+  // info, opposé à l'avatar). Discret : pas de bordure, pas de fond
+  // par défaut, pastille au hover.
+  &__theme-toggle {
+    flex-shrink: 0;
+    margin-left: auto;
+    background: transparent;
+    border: 0;
+    padding: 6px;
+    color: var(--b-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    transition: color 0.12s, background-color 0.12s;
+
+    &:hover {
+      color: var(--b-ink);
+      background: var(--b-accent-tint);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--b-accent);
+      outline-offset: 2px;
+    }
   }
 }
 
