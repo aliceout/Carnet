@@ -182,8 +182,9 @@ export default function PostEditViewClient({
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  // Accordéon « Tutoriel » à droite du header bib-block. Fermé par
-  // défaut — le tutoriel ne sert que la première fois.
+  // Accordéons « Tutoriel » à droite des headers fn-block et bib-block.
+  // Fermés par défaut — le tutoriel ne sert que la première fois.
+  const [fnHelpOpen, setFnHelpOpen] = useState(false);
   const [bibHelpOpen, setBibHelpOpen] = useState(false);
 
   // Tick toutes les 30s pour rafraîchir le « il y a X min »
@@ -845,14 +846,27 @@ export default function PostEditViewClient({
             <div className="fn-block">
               <div className="fn-block__h">
                 <span>Notes de bas de page ({footnotes.length})</span>
+                <button
+                  type="button"
+                  className="fn-block__help-toggle"
+                  onClick={() => setFnHelpOpen((o) => !o)}
+                  aria-expanded={fnHelpOpen}
+                >
+                  Tutoriel
+                  <span className="caret" aria-hidden="true">
+                    {fnHelpOpen ? '▴' : '▾'}
+                  </span>
+                </button>
               </div>
-              <div className="fn-block__help">
-                Pour ajouter une note dans le corps : tapez <kbd>/</kbd> puis
-                « Note de bas de page » — écrivez le contenu dans le panneau
-                qui s’ouvre.
-                <br />
-                Les notes apparaissent ici, numérotées automatiquement.
-              </div>
+              {fnHelpOpen && (
+                <div className="fn-block__help">
+                  Pour ajouter une note dans le corps : tapez <kbd>/</kbd> puis
+                  « Note de bas de page » — écrivez le contenu dans le panneau
+                  qui s’ouvre.
+                  <br />
+                  Les notes apparaissent ici, numérotées automatiquement.
+                </div>
+              )}
               {footnotes.length === 0 ? (
                 <div className="fn-block__empty">Aucune note pour le moment.</div>
               ) : (
