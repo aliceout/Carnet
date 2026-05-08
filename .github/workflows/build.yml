@@ -84,7 +84,7 @@ jobs:
       - name: Fetch build-time secrets from Infisical
         uses: Infisical/secrets-action@v1.0.7
         with:
-          method: universal-auth
+          method: universal
           domain: ${{ secrets.INFISICAL_API_URL }}
           client-id: ${{ secrets.INFISICAL_CI_CLIENT_ID }}
           client-secret: ${{ secrets.INFISICAL_CI_CLIENT_SECRET }}
