@@ -310,7 +310,7 @@ export interface Page {
             image?: (number | null) | Media;
             legende?: string | null;
             /**
-             * Ex : « Photo : Michel Rose,  » ou « © UN Photo / Eskinder Debebe ».
+             * Ex : « Photo : Michel Rose, Paris, 2017 » ou « © UN Photo / Eskinder Debebe ».
              */
             credit?: string | null;
             align?: ('left' | 'center' | 'wide') | null;
@@ -702,6 +702,16 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
  */
 export interface Site {
   id: number;
+  identity?: {
+    /**
+     * Affiché en signature dans la baseline du footer et la description meta (ex. « Marie Dupont »).
+     */
+    authorName?: string | null;
+    /**
+     * Format Chicago author-date « Nom, Prénom » utilisé dans la citation des billets (« Pour citer cet article »).
+     */
+    authorCitation?: string | null;
+  };
   branding?: {
     /**
      * Teinte d'accent appliquée à tout le site (point de la marque, item nav actif, kickers, liens dans les billets, boutons actifs, etc.).
@@ -784,6 +794,12 @@ export interface Site {
  * via the `definition` "site_select".
  */
 export interface SiteSelect<T extends boolean = true> {
+  identity?:
+    | T
+    | {
+        authorName?: T;
+        authorCitation?: T;
+      };
   branding?:
     | T
     | {

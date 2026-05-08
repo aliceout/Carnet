@@ -464,9 +464,9 @@ const SITE_GLOBAL = {
     'Carnet de recherche de Michel Rose. Genre, géopolitique, droits LGBTQI+, humanitaire, migrations. Auto-hébergé. Sans pisteur.',
   copyrightLine: 'carnet.example.com · CC BY-NC-SA 4.0',
   navFooter: [
-    { label: 'Tous les billets', href: '/', external: false },
     { label: 'Thèmes', href: '/themes/', external: false },
     { label: 'Archives', href: '/archives/', external: false },
+    { label: 'Admin', href: '/cms/admin', external: false },
   ],
 };
 

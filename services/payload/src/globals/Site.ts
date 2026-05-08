@@ -113,11 +113,10 @@ export const Site: GlobalConfig = {
           type: 'textarea',
           required: false,
           label: 'Titre du hero',
-          defaultValue:
-            'Notes de recherche en *études de genre* et en relations internationales.',
+          defaultValue: 'Notes de recherche',
           admin: {
             description:
-              'H1 de la page d\'accueil. Entourer une portion de "*" pour la mettre en italique (ex. *études de genre*).',
+              'H1 de la page d\'accueil. Entourer une portion de "*" pour la mettre en italique.',
           },
         },
         {
@@ -126,7 +125,7 @@ export const Site: GlobalConfig = {
           required: false,
           label: 'Texte de présentation (lede)',
           defaultValue:
-            'Analyses longues, notes de lecture et fiches thématiques sur le genre, la géopolitique et les droits LGBTQI+ dans les rapports internationaux. Principalement en français.',
+            'Analyses longues, notes de lecture et fiches thématiques.',
           admin: {
             description: "Paragraphe sous le titre de la page d'accueil.",
           },
@@ -196,7 +195,7 @@ export const Site: GlobalConfig = {
       type: 'textarea',
       required: false,
       label: 'Baseline',
-      defaultValue: 'Carnet de recherche. Auto-hébergé. Sans pisteur.',
+      defaultValue: 'Carnet de recherche. Auto-hébergé.',
       admin: { description: 'Affichée dans le footer (col 1).' },
     },
     {
@@ -249,9 +248,9 @@ export const Site: GlobalConfig = {
         { name: 'external', type: 'checkbox', defaultValue: false },
       ],
       defaultValue: [
-        { label: 'Tous les billets', href: '/', external: false },
         { label: 'Thèmes', href: '/themes/', external: false },
         { label: 'Archives', href: '/archives/', external: false },
+        { label: 'Admin', href: '/cms/admin', external: false },
       ],
     },
   ],

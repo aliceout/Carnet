@@ -35,13 +35,12 @@ type SiteGlobal = {
 // si le global Site n'a pas encore été rempli côté admin. Le contenu
 // réel (avec le nom de l'auteur·ice, le domaine prod) vient toujours
 // de Payload Site → ces strings ne devraient jamais s'afficher en prod.
-const DEFAULT_BASELINE =
-  'Carnet de recherche. Auto-hébergé. Sans pisteur.';
+const DEFAULT_BASELINE = 'Carnet de recherche. Auto-hébergé.';
 const DEFAULT_COPYRIGHT = 'CC BY-NC-SA 4.0';
 const DEFAULT_NAV: NavFooterLink[] = [
-  { label: 'Tous les billets', href: '/' },
   { label: 'Thèmes', href: '/themes/' },
   { label: 'Archives', href: '/archives/' },
+  { label: 'Admin', href: '/cms/admin' },
 ];
 
 let site: SiteGlobal = {};
@@ -57,7 +56,11 @@ const navFooter = site.navFooter && site.navFooter.length > 0 ? site.navFooter :
 const social = site.social ?? {};
 
 const socialLinks = [
-  { label: 'Flux RSS', href: '/rss/' },
+  // Footer "Suivre" : Flux RSS pointe directement sur le flux brut
+  // /rss.xml (lecture par les feed readers). La page /suivre/ regroupe
+  // ces mêmes liens + une intro pour les humains, accessible depuis
+  // la nav du header.
+  { label: 'Flux RSS', href: '/rss.xml' },
   social.mastodon ? { label: 'Mastodon', href: social.mastodon, external: true } : null,
   social.bluesky ? { label: 'Bluesky', href: social.bluesky, external: true } : null,
   social.orcid ? { label: 'ORCID', href: social.orcid, external: true } : null,
