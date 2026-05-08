@@ -337,7 +337,17 @@ export default function PostEditViewClient({
           {STATUS_LABEL[status]}
         </span>
         <div className="carnet-postedit__spacer" />
-        <div className="carnet-postedit__acts">
+        <div
+          className="carnet-postedit__acts"
+          // Le state initial (loading=true, post.draft=true,
+          // savedAt=null...) diverge entre SSR et client après que
+          // useEffect(fetch) ait commencé à mettre à jour : React
+          // 19 est strict sur la cohérence hydration des `disabled`
+          // booléens et du texte ternaire. La valeur converge
+          // correctement après mount — on supprime juste le warning
+          // bruyant en dev.
+          suppressHydrationWarning
+        >
           {savedLabel && !dirty && (
             <span className="carnet-postedit__saved" aria-live="polite">
               {savedLabel}
@@ -364,6 +374,7 @@ export default function PostEditViewClient({
             onClick={() => void save()}
             disabled={!dirty || saving || loading}
             title="Sauvegarder (⌘S)"
+            suppressHydrationWarning
           >
             {saving ? 'Enregistrement…' : 'Sauvegarder'}
             <span className="kbd" aria-hidden="true">⌘S</span>
@@ -373,6 +384,7 @@ export default function PostEditViewClient({
             className="carnet-btn carnet-btn--accent"
             onClick={() => void save({ publish: true })}
             disabled={saving || loading}
+            suppressHydrationWarning
           >
             {post.draft ? 'Publier' : 'Publier les modifications'}
           </button>
@@ -450,7 +462,10 @@ export default function PostEditViewClient({
               </div>
               {footnotes.length === 0 ? (
                 <div className="fn-block__empty">
-                  Insère une note depuis le slash menu (⌘/) du corps de l’article.
+                  Tape <kbd>/</kbd> dans le corps de l’article puis « Note de bas de page »
+                  (ou raccourci <kbd>F</kbd>) — la note s’insère, clique dessus pour
+                  écrire son contenu. Elle apparaîtra ici, numérotée
+                  automatiquement.
                 </div>
               ) : (
                 footnotes.map((f) => (
@@ -460,6 +475,81 @@ export default function PostEditViewClient({
                   </div>
                 ))
               )}
+            </div>
+
+            <div className="bib-block">
+              <div className="bib-block__h">
+                <span>Bibliographie liée ({biblioIds.length})</span>
+              </div>
+              <div className="bib-block__help">
+                Pour <em>citer</em> une référence dans le corps : tape <kbd>/</kbd>{' '}
+                puis « Bibliographie inline » (raccourci <kbd>B</kbd>) — choisis
+                la référence dans le popover. Pour <em>lister</em> une référence en
+                pied d’article (sans la citer dans le corps) : ajoute-la directement
+                ci-dessous.
+              </div>
+              <div className="biblio-list">
+                {biblioIds.length === 0 && (
+                  <div className="b-row b-row--empty">Aucune référence liée.</div>
+                )}
+                {biblioIds.map((id) => {
+                  const e = biblioOptions.find((b) => b.id === id);
+                  if (!e)
+                    return (
+                      <div key={String(id)} className="b-row">
+                        <span className="muted">Réf. #{String(id)}</span>
+                        <button
+                          type="button"
+                          className="x"
+                          onClick={() => toggleBiblio(id)}
+                          aria-label="Retirer"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    );
+                  return (
+                    <div key={String(id)} className="b-row">
+                      <span className="au">{e.author ?? '—'}</span>
+                      {e.year && <> ({e.year})</>}
+                      {e.title && (
+                        <>
+                          , <span className="ti">{e.title}</span>
+                        </>
+                      )}
+                      .
+                      <button
+                        type="button"
+                        className="x"
+                        onClick={() => toggleBiblio(id)}
+                        aria-label="Retirer"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+              <details className="add-rel-wrap">
+                <summary className="add-rel">+ Ajouter une référence…</summary>
+                <div className="add-rel-list">
+                  {biblioOptions
+                    .filter((b) => !biblioIds.includes(b.id))
+                    .slice(0, 50)
+                    .map((b) => (
+                      <button
+                        key={b.id}
+                        type="button"
+                        className="add-rel-item"
+                        onClick={() => toggleBiblio(b.id)}
+                      >
+                        <span className="au">{b.author ?? '—'}</span>
+                        {b.year && <> ({b.year})</>}
+                        {b.title && <> · <span className="ti">{b.title}</span></>}
+                      </button>
+                    ))}
+                </div>
+              </details>
             </div>
           </div>
 
@@ -566,71 +656,6 @@ export default function PostEditViewClient({
                 <div className="auto">{isoDate(post.updatedAt)}</div>
               </div>
             )}
-
-            <hr />
-            <h3>Bibliographie liée</h3>
-            <div className="biblio-list">
-              {biblioIds.length === 0 && (
-                <div className="b-row b-row--empty">Aucune référence liée.</div>
-              )}
-              {biblioIds.map((id) => {
-                const e = biblioOptions.find((b) => b.id === id);
-                if (!e)
-                  return (
-                    <div key={String(id)} className="b-row">
-                      <span className="muted">Réf. #{String(id)}</span>
-                      <button
-                        type="button"
-                        className="x"
-                        onClick={() => toggleBiblio(id)}
-                        aria-label="Retirer"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  );
-                return (
-                  <div key={String(id)} className="b-row">
-                    <span className="au">{e.author ?? '—'}</span>
-                    {e.year && <> ({e.year})</>}
-                    {e.title && (
-                      <>
-                        , <span className="ti">{e.title}</span>
-                      </>
-                    )}
-                    .
-                    <button
-                      type="button"
-                      className="x"
-                      onClick={() => toggleBiblio(id)}
-                      aria-label="Retirer"
-                    >
-                      ×
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-            <details className="add-rel-wrap">
-              <summary className="add-rel">+ Ajouter une référence…</summary>
-              <div className="add-rel-list">
-                {biblioOptions
-                  .filter((b) => !biblioIds.includes(b.id))
-                  .slice(0, 50)
-                  .map((b) => (
-                    <button
-                      key={b.id}
-                      type="button"
-                      className="add-rel-item"
-                      onClick={() => toggleBiblio(b.id)}
-                    >
-                      <span className="au">{b.author ?? '—'}</span>
-                      {b.year && <> ({b.year})</>}
-                      {b.title && <> · <span className="ti">{b.title}</span></>}
-                    </button>
-                  ))}
-              </div>
-            </details>
 
             <hr />
             <h3>Auto-calculé</h3>

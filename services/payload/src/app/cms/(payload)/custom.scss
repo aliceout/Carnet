@@ -2194,7 +2194,7 @@ button.btn--style-primary,
   &__meta {
     border-left: 1px solid var(--b-rule);
     background: var(--b-bg);
-    padding: 24px 22px;
+    padding: 24px 22px 10px 22px;
     // Sticky : reste visible quand on scroll le corps du billet.
     // top = hauteur du header sticky (56px) pour s'aligner dessous.
     position: sticky;
@@ -2997,73 +2997,13 @@ button.btn--style-primary,
     display: inline-block;
   }
 
-  // ─── Slash menu ───────────────────────────────────────────────
-  .ed-slash {
-    width: 320px;
-    background: var(--b-paper);
-    border: 1px solid var(--b-rule);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-    padding: 6px 0;
-    font-family: var(--font-sans);
-
-    &__lbl {
-      padding: 8px 14px 4px;
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--b-muted);
-    }
-
-    &__opt {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      width: 100%;
-      padding: 8px 14px;
-      background: transparent;
-      border: 0;
-      cursor: pointer;
-      text-align: left;
-      font-family: inherit;
-
-      &.on,
-      &:hover {
-        background: var(--b-accent-tint);
-      }
-
-      .ic {
-        flex: 0 0 28px;
-        font-family: var(--font-mono);
-        font-size: 11px;
-        text-align: center;
-        color: var(--b-accent);
-      }
-
-      .lab {
-        flex: 1;
-        font-size: 13px;
-        color: var(--b-ink);
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-
-        .desc {
-          font-size: 11px;
-          color: var(--b-muted);
-        }
-      }
-
-      .kbd {
-        font-family: var(--font-mono);
-        font-size: 11px;
-        color: var(--b-muted);
-      }
-    }
-  }
-
-  // ─── .fn-block sous l'ed-card ────────────────────────────────
-  .fn-block {
+  // ─── .fn-block et .bib-block sous l'ed-card ───────────────────
+  // Deux panneaux pied de billet alignés sur le même style : la liste
+  // des notes de bas de page (fn-block) et la bibliographie liée
+  // (bib-block, déplacée du sidebar de droite pour mieux refléter ce
+  // qu'on lit en pied d'article côté frontend).
+  .fn-block,
+  .bib-block {
     max-width: 820px;
     margin: 24px 0 0;
     border: 1px solid var(--b-rule);
@@ -3083,10 +3023,48 @@ button.btn--style-primary,
     }
 
     &__empty {
-      padding: 16px 20px;
+      padding: 14px 20px;
       color: var(--b-muted);
-      font-size: 12px;
-      font-style: italic;
+      font-size: 12.5px;
+      line-height: 1.5;
+
+      kbd {
+        display: inline-block;
+        padding: 1px 6px;
+        margin: 0 2px;
+        background: var(--b-bg);
+        border: 1px solid var(--b-rule);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--b-ink);
+        border-radius: 3px;
+      }
+    }
+
+    &__help {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--b-rule);
+      color: var(--b-muted);
+      font-size: 11.5px;
+      line-height: 1.5;
+      background: var(--b-bg);
+
+      kbd {
+        display: inline-block;
+        padding: 1px 6px;
+        margin: 0 2px;
+        background: var(--b-paper);
+        border: 1px solid var(--b-rule);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--b-ink);
+        border-radius: 3px;
+      }
+
+      em {
+        font-style: italic;
+        color: var(--b-ink);
+      }
     }
 
     .fn-row {
@@ -3121,6 +3099,38 @@ button.btn--style-primary,
     }
   }
 
+  // bib-block : variantes spécifiques (liste de références + picker)
+  .bib-block {
+    .biblio-list {
+      border-top: 0;
+      border-bottom: 1px solid var(--b-rule);
+      max-height: none;
+
+      .b-row {
+        padding: 10px 36px 10px 20px;
+        font-size: 13px;
+        line-height: 1.5;
+        font-family: var(--font-serif);
+
+        .x {
+          right: 12px;
+        }
+      }
+    }
+
+    .add-rel-wrap {
+      padding: 10px 20px;
+
+      .add-rel {
+        font-size: 12px;
+      }
+
+      .add-rel-list {
+        margin-top: 6px;
+      }
+    }
+  }
+
   @media (max-width: 1100px) {
     &__doc {
       grid-template-columns: 1fr;
@@ -3132,6 +3142,74 @@ button.btn--style-primary,
   }
 }
 
+// ─── Slash menu (au top-level car rendu via portal dans <body>) ──
+// Le slash menu de l'éditeur Lexical est portalé hors de la
+// hiérarchie .carnet-postedit pour échapper aux parents avec
+// overflow/transform qui le clipperaient. Donc CSS au top-level.
+.ed-slash {
+  width: 320px;
+  background: var(--b-paper);
+  border: 1px solid var(--b-rule);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  padding: 6px 0;
+  font-family: var(--font-sans);
+
+  &__lbl {
+    padding: 8px 14px 4px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--b-muted);
+  }
+
+  &__opt {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 8px 14px;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+
+    &.on,
+    &:hover {
+      background: var(--b-accent-tint);
+    }
+
+    .ic {
+      flex: 0 0 28px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-align: center;
+      color: var(--b-accent);
+    }
+
+    .lab {
+      flex: 1;
+      font-size: 13px;
+      color: var(--b-ink);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      .desc {
+        font-size: 11px;
+        color: var(--b-muted);
+      }
+    }
+
+    .kbd {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--b-muted);
+    }
+  }
+}
+
 // ─── Misc cleanup ────────────────────────────────────────────────
 
 // Désactive les rayons sur les blocs natifs Payload pour rester dans
@@ -3139,4 +3217,13 @@ button.btn--style-primary,
 .gutter--left .field-type,
 .field-type__wrap {
   border-radius: 0;
+}
+
+// Cache le bouton de pliage de la nav (NavToggler de Payload). Notre
+// nav custom ne respecte pas l'état "collapsed" : cliquer le bouton
+// décalait le panneau central sous la nav. Le design Carnet n'a pas
+// de mécanisme de pliage de toute façon.
+.nav-toggler,
+[class*='mobile-nav-toggler'] {
+  display: none !important;
 }

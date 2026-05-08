@@ -17,7 +17,11 @@ export const Figure: Block = {
       name: 'image',
       type: 'upload',
       relationTo: 'media',
-      required: true,
+      // Optionnel côté schéma : le slash menu de l'éditeur insère
+      // d'abord une figure vide, l'utilisatrice colle l'ID média
+      // ensuite via le popover inline. Côté rendu Astro, une figure
+      // sans image est masquée.
+      required: false,
     },
     {
       name: 'legende',

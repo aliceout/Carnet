@@ -307,7 +307,7 @@ export interface Page {
             blockType: 'prose';
           }
         | {
-            image: number | Media;
+            image?: (number | null) | Media;
             legende?: string | null;
             /**
              * Ex : « Photo : Alice Aussel Delamaide, Bangui, 2017 » ou « © UN Photo / Eskinder Debebe ».

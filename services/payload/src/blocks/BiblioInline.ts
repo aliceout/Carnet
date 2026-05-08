@@ -19,7 +19,11 @@ export const BiblioInline: Block = {
       name: 'entry',
       type: 'relationship',
       relationTo: 'bibliography',
-      required: true,
+      // Optionnel côté schéma : le slash menu de l'éditeur insère
+      // d'abord un block vide, l'utilisatrice choisit la référence
+      // ensuite via le popover inline. Côté rendu Astro, un
+      // biblio_inline sans entry est rendu en « (réf. manquante) ».
+      required: false,
       label: 'Entrée bibliographique',
     },
     {

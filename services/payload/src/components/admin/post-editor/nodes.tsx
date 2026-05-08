@@ -26,6 +26,8 @@ import type {
 } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 
+import { useBiblioOptions } from './context';
+
 // ─── Types ────────────────────────────────────────────────────────
 
 export type FootnoteFields = { content: string };
@@ -164,6 +166,7 @@ function BiblioInlineRenderer({
   const [local, patch] = useNodeFields<BiblioInlineFields>(nodeKey, fields);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
+  const biblioOptions = useBiblioOptions();
 
   useEffect(() => {
     function onDoc(e: MouseEvent) {
@@ -174,7 +177,14 @@ function BiblioInlineRenderer({
     return () => document.removeEventListener('mousedown', onDoc);
   }, [open]);
 
-  const label = local.entry ? `@biblio: ${String(local.entry)}` : '@biblio: —';
+  // Affichage : (auteur, année) si la référence est trouvée, sinon
+  // « (réf. à choisir) ».
+  const selected = local.entry
+    ? biblioOptions.find((b) => String(b.id) === String(local.entry))
+    : null;
+  const label = selected
+    ? `(${selected.author ?? '—'}${selected.year ? `, ${selected.year}` : ''})`
+    : '(réf. à choisir)';
 
   return (
     <span ref={ref} className="ed-bi">
@@ -195,12 +205,21 @@ function BiblioInlineRenderer({
       {open && (
         <span className="ed-bi__pop">
           <span className="lbl">Référence bibliographique</span>
-          <input
-            type="text"
-            value={String(local.entry ?? '')}
-            placeholder="ID ou clé de la référence…"
-            onChange={(e) => patch({ entry: e.target.value || null })}
-          />
+          <select
+            value={local.entry == null ? '' : String(local.entry)}
+            onChange={(e) =>
+              patch({ entry: e.target.value === '' ? null : Number(e.target.value) || e.target.value })
+            }
+          >
+            <option value="">— aucune —</option>
+            {biblioOptions.map((b) => (
+              <option key={b.id} value={String(b.id)}>
+                {b.author ?? '—'}
+                {b.year ? ` (${b.year})` : ''}
+                {b.title ? ` · ${b.title}` : ''}
+              </option>
+            ))}
+          </select>
           <span className="lbl">Préfixe</span>
           <input
             type="text"

@@ -13,6 +13,7 @@
 // se fait via une popover inline que ce module rend lui-même.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
@@ -27,12 +28,12 @@ import { ListNode, ListItemNode } from '@lexical/list';
 import {
   $getSelection,
   $isRangeSelection,
+  $isTextNode,
   COMMAND_PRIORITY_LOW,
   KEY_DOWN_COMMAND,
   FORMAT_TEXT_COMMAND,
   $insertNodes,
   type EditorState,
-  type LexicalEditor,
   type SerializedLexicalNode,
 } from 'lexical';
 
@@ -44,6 +45,7 @@ import {
   type CarnetBlockData,
   type CarnetInlineBlockData,
 } from './nodes';
+import { BiblioOptionsContext, type BibEntry } from './context';
 
 // ─── Types publics ────────────────────────────────────────────────
 
@@ -58,13 +60,7 @@ export type LexicalState = {
   };
 };
 
-export type BibEntry = {
-  id: number | string;
-  key?: string;
-  au?: string;
-  an?: string;
-  ti?: string;
-};
+export type { BibEntry } from './context';
 
 // ─── Theme ────────────────────────────────────────────────────────
 // Classes CSS appliquées par Lexical aux nodes natifs. Toutes scoped
@@ -160,7 +156,11 @@ type SlashItem = {
   label: string;
   desc?: string;
   kbd?: string;
-  exec: (editor: LexicalEditor, ctx: { biblioOptions: BibEntry[] }) => void;
+  // doInsert : appelé À L'INTÉRIEUR d'un editor.update existant. Ne
+  // doit PAS appeler editor.update lui-même. La sélection est déjà
+  // ajustée pour couvrir `/filter` — $insertNodes remplace donc
+  // proprement le slash + filter par le nouveau node.
+  doInsert: () => void;
 };
 
 const SLASH_ITEMS: SlashItem[] = [
@@ -171,14 +171,13 @@ const SLASH_ITEMS: SlashItem[] = [
     label: 'Note de bas de page',
     desc: 'Note numérotée, retour automatique',
     kbd: 'F',
-    exec: (editor) => {
-      editor.update(() => {
-        const node = $createCarnetInlineBlockNode({
+    doInsert: () => {
+      $insertNodes([
+        $createCarnetInlineBlockNode({
           blockType: 'footnote',
           fields: { content: '' },
-        });
-        $insertNodes([node]);
-      });
+        }),
+      ]);
     },
   },
   {
@@ -188,14 +187,13 @@ const SLASH_ITEMS: SlashItem[] = [
     label: 'Citation longue',
     desc: 'Bloc filet gauche accent',
     kbd: 'Q',
-    exec: (editor) => {
-      editor.update(() => {
-        const node = $createCarnetBlockNode({
+    doInsert: () => {
+      $insertNodes([
+        $createCarnetBlockNode({
           blockType: 'citation_bloc',
           fields: { text: '', source: '' },
-        });
-        $insertNodes([node]);
-      });
+        }),
+      ]);
     },
   },
   {
@@ -205,14 +203,13 @@ const SLASH_ITEMS: SlashItem[] = [
     label: 'Bibliographie inline',
     desc: 'Insère une référence par sa clé',
     kbd: 'B',
-    exec: (editor) => {
-      editor.update(() => {
-        const node = $createCarnetInlineBlockNode({
+    doInsert: () => {
+      $insertNodes([
+        $createCarnetInlineBlockNode({
           blockType: 'biblio_inline',
           fields: { entry: null, prefix: '', suffix: '' },
-        });
-        $insertNodes([node]);
-      });
+        }),
+      ]);
     },
   },
   {
@@ -222,14 +219,13 @@ const SLASH_ITEMS: SlashItem[] = [
     label: 'Figure',
     desc: 'Image + légende',
     kbd: 'I',
-    exec: (editor) => {
-      editor.update(() => {
-        const node = $createCarnetBlockNode({
+    doInsert: () => {
+      $insertNodes([
+        $createCarnetBlockNode({
           blockType: 'figure',
           fields: { image: null, legende: '', credit: '', align: 'corps' },
-        });
-        $insertNodes([node]);
-      });
+        }),
+      ]);
     },
   },
   {
@@ -238,13 +234,10 @@ const SLASH_ITEMS: SlashItem[] = [
     ic: 'H2',
     label: 'Titre de section',
     kbd: '⌥1',
-    exec: (editor) => {
-      editor.update(() => {
-        const sel = $getSelection();
-        if (!$isRangeSelection(sel)) return;
-        const h = $createHeadingNode('h2');
-        sel.insertNodes([h]);
-      });
+    doInsert: () => {
+      const sel = $getSelection();
+      if (!$isRangeSelection(sel)) return;
+      sel.insertNodes([$createHeadingNode('h2')]);
     },
   },
   {
@@ -253,13 +246,10 @@ const SLASH_ITEMS: SlashItem[] = [
     ic: 'H3',
     label: 'Sous-titre',
     kbd: '⌥2',
-    exec: (editor) => {
-      editor.update(() => {
-        const sel = $getSelection();
-        if (!$isRangeSelection(sel)) return;
-        const h = $createHeadingNode('h3');
-        sel.insertNodes([h]);
-      });
+    doInsert: () => {
+      const sel = $getSelection();
+      if (!$isRangeSelection(sel)) return;
+      sel.insertNodes([$createHeadingNode('h3')]);
     },
   },
   {
@@ -267,16 +257,36 @@ const SLASH_ITEMS: SlashItem[] = [
     group: 'Mise en forme',
     ic: '”',
     label: 'Citation simple',
-    exec: (editor) => {
-      editor.update(() => {
-        const sel = $getSelection();
-        if (!$isRangeSelection(sel)) return;
-        const q = $createQuoteNode();
-        sel.insertNodes([q]);
-      });
+    doInsert: () => {
+      const sel = $getSelection();
+      if (!$isRangeSelection(sel)) return;
+      sel.insertNodes([$createQuoteNode()]);
     },
   },
 ];
+
+// Étend la sélection courante pour couvrir le `/filter` typé, en
+// remontant du curseur jusqu'à l'index du dernier `/` qui le précède.
+// Ainsi, l'insertion ($insertNodes) qui suit remplace la sélection —
+// le slash et le filtre disparaissent, le texte AUTOUR (avant le /
+// et après le curseur) est préservé. À appeler à l'intérieur d'un
+// editor.update.
+function $consumeSlashFilter(): boolean {
+  const sel = $getSelection();
+  if (!$isRangeSelection(sel)) return false;
+  const node = sel.anchor.getNode();
+  if (!$isTextNode(node)) return false;
+  const offset = sel.anchor.offset;
+  const text = node.getTextContent();
+  // Le `/` est nécessairement avant le curseur (l'utilisateur a tapé
+  // /filtre, le curseur est à la fin du filtre).
+  const slashIdx = text.lastIndexOf('/', offset - 1);
+  if (slashIdx < 0) return false;
+  const key = node.getKey();
+  sel.anchor.set(key, slashIdx, 'text');
+  sel.focus.set(key, offset, 'text');
+  return true;
+}
 
 function SlashMenuPlugin({ biblioOptions }: { biblioOptions: BibEntry[] }) {
   const [editor] = useLexicalComposerContext();
@@ -327,19 +337,13 @@ function SlashMenuPlugin({ biblioOptions }: { biblioOptions: BibEntry[] }) {
               event.preventDefault();
               const it = items[activeIdx];
               if (it) {
-                // Supprime le `/...` saisi avant d'insérer
                 editor.update(() => {
-                  const sel = $getSelection();
-                  if ($isRangeSelection(sel) && triggerRef.current) {
-                    const node = sel.anchor.getNode();
-                    const text = node.getTextContent();
-                    const before = text.slice(0, triggerRef.current.start);
-                    if ('setTextContent' in node && typeof node.setTextContent === 'function') {
-                      (node as { setTextContent: (s: string) => void }).setTextContent(before);
-                    }
-                  }
+                  // Étend la sélection sur /filter, puis insère —
+                  // $insertNodes remplace la sélection donc préserve
+                  // le texte autour.
+                  $consumeSlashFilter();
+                  it.doInsert();
                 });
-                it.exec(editor, { biblioOptions });
                 setOpen(false);
                 setQuery('');
               }
@@ -347,13 +351,19 @@ function SlashMenuPlugin({ biblioOptions }: { biblioOptions: BibEntry[] }) {
             }
           }
           if (event.key === '/') {
-            // Délai d'un tick pour que le `/` soit dans le doc avant calcul pos
+            // Délai d'un tick pour que le `/` soit dans le doc avant
+            // calcul pos. Coords document (scrollY/X inclus) car le
+            // menu est rendu via portal dans <body> avec
+            // position: absolute → il suit le scroll comme le texte.
             setTimeout(() => {
               const sel = window.getSelection();
               if (!sel || sel.rangeCount === 0) return;
               const range = sel.getRangeAt(0);
               const rect = range.getBoundingClientRect();
-              setPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX });
+              setPos({
+                top: rect.bottom + window.scrollY + 4,
+                left: rect.left + window.scrollX,
+              });
               setOpen(true);
               setQuery('');
               triggerRef.current = { start: 0, end: 0 };
@@ -400,7 +410,13 @@ function SlashMenuPlugin({ biblioOptions }: { biblioOptions: BibEntry[] }) {
     groups[it.group].push(it);
   });
 
-  return (
+  // Rendu via portal dans <body> pour échapper aux parents positionnés
+  // (.ed-body / .ed-card / .carnet-postedit__center qui ont des
+  // overflow et des transforms qui clipperaient le menu). Avec
+  // position: absolute + coords document, le menu reste accroché au
+  // point où on a tapé `/` et suit le scroll comme le texte.
+  if (typeof document === 'undefined') return null;
+  return createPortal(
     <div
       className="ed-slash"
       style={{ position: 'absolute', top: pos.top, left: pos.left, zIndex: 50 }}
@@ -422,18 +438,9 @@ function SlashMenuPlugin({ biblioOptions }: { biblioOptions: BibEntry[] }) {
                 onMouseDown={(e) => {
                   // mouseDown plutôt que click pour ne pas perdre le focus du contenteditable
                   e.preventDefault();
-                  it.exec(editor, { biblioOptions });
-                  // Cleanup le slash typé
                   editor.update(() => {
-                    const sel = $getSelection();
-                    if ($isRangeSelection(sel) && triggerRef.current) {
-                      const node = sel.anchor.getNode();
-                      const text = node.getTextContent();
-                      const before = text.slice(0, triggerRef.current.start);
-                      if ('setTextContent' in node && typeof node.setTextContent === 'function') {
-                        (node as { setTextContent: (s: string) => void }).setTextContent(before);
-                      }
-                    }
+                    $consumeSlashFilter();
+                    it.doInsert();
                   });
                   setOpen(false);
                   setQuery('');
@@ -450,7 +457,8 @@ function SlashMenuPlugin({ biblioOptions }: { biblioOptions: BibEntry[] }) {
           })}
         </React.Fragment>
       ))}
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -556,23 +564,25 @@ export default function PostBodyEditor({
   // focus à chaque frappe).
 
   return (
-    <div className="ed-body">
-      <LexicalComposer initialConfig={initialConfig}>
-        <RichTextPlugin
-          contentEditable={<ContentEditable className="ed-body__ce" spellCheck />}
-          placeholder={
-            <div className="ed-body__placeholder">
-              Commence à taper, ou tape « / » pour insérer un bloc Carnet…
-            </div>
-          }
-          ErrorBoundary={LexicalErrorBoundary}
-        />
-        <HistoryPlugin />
-        <OnChangePlugin onChange={handleChange} />
-        <KeyboardPlugin />
-        <SlashMenuPlugin biblioOptions={biblioOptions} />
-      </LexicalComposer>
-    </div>
+    <BiblioOptionsContext.Provider value={biblioOptions}>
+      <div className="ed-body">
+        <LexicalComposer initialConfig={initialConfig}>
+          <RichTextPlugin
+            contentEditable={<ContentEditable className="ed-body__ce" spellCheck />}
+            placeholder={
+              <div className="ed-body__placeholder">
+                Commence à taper, ou tape « / » pour insérer un bloc Carnet…
+              </div>
+            }
+            ErrorBoundary={LexicalErrorBoundary}
+          />
+          <HistoryPlugin />
+          <OnChangePlugin onChange={handleChange} />
+          <KeyboardPlugin />
+          <SlashMenuPlugin biblioOptions={biblioOptions} />
+        </LexicalComposer>
+      </div>
+    </BiblioOptionsContext.Provider>
   );
 }
 
