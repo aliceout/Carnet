@@ -309,11 +309,24 @@ export const Users: CollectionConfig = {
             // Idempotent : si la valeur arrive déjà sous forme `zenc:…`
             // on ne re-chiffre pas. Vide ou null laisse passer (efface
             // la clé). Sinon on chiffre avant d'écrire en DB.
+            //
+            // Cas piège : Payload lit le doc avant un update partiel
+            // pour merger les fields non fournis. Cette lecture passe
+            // par afterRead → la valeur masquée `••••••••XXXX` est
+            // re-soumise au beforeChange → on chiffrerait des bullets.
+            // Si on détecte une valeur masquée, on conserve le ciphertext
+            // d'origine (originalDoc) au lieu de la corrompre.
             beforeChange: [
-              ({ value }) => {
+              ({ value, originalDoc }) => {
                 if (value === null || value === undefined || value === '') return value;
                 if (typeof value !== 'string') return value;
                 if (isEncrypted(value)) return value;
+                if (value.startsWith('•')) {
+                  const orig = (originalDoc as { zotero?: { apiKey?: string } } | undefined)
+                    ?.zotero?.apiKey;
+                  if (typeof orig === 'string' && isEncrypted(orig)) return orig;
+                  return value;
+                }
                 return encrypt(value);
               },
             ],
@@ -323,16 +336,18 @@ export const Users: CollectionConfig = {
             // de présence.
             //
             // Exception : les endpoints serveur qui ont besoin de la
-            // valeur chiffrée brute (test, sync) lisent le doc avec
-            // `req.context.zoteroRawRead = true`. Sans ce bypass, le
-            // hook masque la valeur avant que `decrypt()` puisse être
-            // appelé, et tout le sync casse.
+            // valeur chiffrée brute (test, sync) appellent l'opération
+            // avec `context: { zoteroRawRead: true }`. Payload v3 passe
+            // ce context directement comme argument du field hook (pas
+            // via req.context) — on lit les deux pour être robuste.
             afterRead: [
-              ({ value, req }) => {
+              ({ value, req, context }) => {
                 if (value === null || value === undefined || value === '') return '';
-                const raw = (req?.context as { zoteroRawRead?: boolean } | undefined)
+                const fromHook = (context as { zoteroRawRead?: boolean } | undefined)
                   ?.zoteroRawRead === true;
-                if (raw) return value;
+                const fromReq = (req?.context as { zoteroRawRead?: boolean } | undefined)
+                  ?.zoteroRawRead === true;
+                if (fromHook || fromReq) return value;
                 return maskSecret(value);
               },
             ],
@@ -341,7 +356,7 @@ export const Users: CollectionConfig = {
         {
           name: 'libraryId',
           type: 'text',
-          label: 'ID de bibliothèque Zotero',
+          label: 'ID utilisateur Zotero',
           admin: {
             description:
               'Identifiant numérique — visible dans l’URL https://www.zotero.org/<userId>/library.',

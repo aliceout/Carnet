@@ -580,7 +580,7 @@ export default function SiteEditViewClient(): React.ReactElement {
                 <div className="carnet-editview__empty">Aucun lien.</div>
               )}
               {(data.navFooter ?? []).map((row, idx) => (
-                <div key={idx} className="carnet-editview__row">
+                <div key={idx} className="carnet-editview__rowitem">
                   <label className="carnet-editview__field carnet-editview__field--inline">
                     <span className="lbl">Label</span>
                     <input
@@ -605,7 +605,7 @@ export default function SiteEditViewClient(): React.ReactElement {
                     />
                     <span className="lbl">Externe</span>
                   </label>
-                  <div className="carnet-editview__row-actions">
+                  <div className="carnet-editview__rowitem-actions">
                     <button
                       type="button"
                       className="carnet-btn carnet-btn--ghost"

@@ -20,6 +20,7 @@ type BiblioEntry = {
   type: string;
   publisher?: string;
   journal?: string;
+  source?: 'manual' | 'zotero';
 };
 
 type FetchResult<T> = {
@@ -161,6 +162,14 @@ export default function BibliographyListViewClient(): React.ReactElement {
               </div>
               <div role="cell" className="title">
                 {b.title}
+                {b.source === 'zotero' && (
+                  <span
+                    className="carnet-zotero-badge"
+                    title="Importée depuis Zotero — éditable uniquement dans Zotero."
+                  >
+                    Z
+                  </span>
+                )}
               </div>
               <div role="cell" className="venue">
                 {b.publisher || b.journal || '—'}

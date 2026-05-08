@@ -127,6 +127,11 @@ export default function PostListViewClient(): React.ReactElement {
   // ID de l'utilisateur·rice connecté·e — sert à filtrer « Mes billets ».
   // Récupéré via /cms/api/users/me. null tant que pas chargé.
   const [currentUserId, setCurrentUserId] = useState<number | string | null>(null);
+  // True dès que /me a résolu (succès ou échec). Sert à attendre la
+  // valeur de currentUserId avant le premier fetch quand le scope par
+  // défaut est « mine » — sinon on flash tous les billets pendant que
+  // /me se charge.
+  const [meResolved, setMeResolved] = useState(false);
 
   // Fetch initial des thèmes (pour le filtre Pôle) + user courant
   useEffect(() => {
@@ -141,11 +146,16 @@ export default function PostListViewClient(): React.ReactElement {
       })
       .catch(() => {
         // Silencieux : si /me échoue, on désactive juste le filtre.
-      });
+      })
+      .finally(() => setMeResolved(true));
   }, []);
 
   // Fetch des posts à chaque changement de filtre/tri/page
   useEffect(() => {
+    // Quand scope='mine', attendre que /me ait résolu pour ne pas
+    // afficher tous les billets l'instant d'avant que le filtre author
+    // ne soit appliqué. On reste sur l'état loading.
+    if (scope === 'mine' && !meResolved) return;
     setLoading(true);
     setError(null);
 
@@ -197,7 +207,7 @@ export default function PostListViewClient(): React.ReactElement {
         setPosts([]);
       })
       .finally(() => setLoading(false));
-  }, [type, pole, statut, scope, currentUserId, page, search, refreshTick]);
+  }, [type, pole, statut, scope, currentUserId, meResolved, page, search, refreshTick]);
 
   // Reset page=1 quand un filtre change (sinon on peut être sur p2 d'un filtre vide)
   useEffect(() => {

@@ -68,6 +68,9 @@ type Bib = {
   url?: string;
   doi?: string;
   annotation?: string;
+  source?: 'manual' | 'zotero';
+  zoteroKey?: string;
+  zoteroVersion?: number;
 };
 
 type UsedInPost = { id: number | string; numero?: number; title?: string };
@@ -86,6 +89,7 @@ const EMPTY: Bib = {
   url: '',
   doi: '',
   annotation: '',
+  source: 'manual',
 };
 
 function formatChicago(b: Bib): string {
@@ -296,6 +300,12 @@ export default function BibliographyEditViewClient({
   const isJournalLike = data.type === 'article' || data.type === 'paper';
   const middleFieldLabel = isJournalLike ? 'Numéro' : 'Collection';
 
+  // Refs venues du sync Zotero — verrouillées en édition côté Carnet
+  // (les modifs se font dans Zotero puis un nouveau sync les remonte).
+  // La suppression reste possible : l'autrice peut décider de retirer
+  // une ref du Carnet sans toucher Zotero.
+  const isZoteroRef = data.source === 'zotero';
+
   return (
     <div className="carnet-editview carnet-editview--biblio">
       <CarnetTopbar
@@ -327,16 +337,18 @@ export default function BibliographyEditViewClient({
             {deleting ? 'Suppression…' : 'Supprimer'}
           </button>
         )}
-        <button
-          type="button"
-          className="carnet-btn carnet-btn--accent"
-          onClick={() => void save()}
-          disabled={!dirty || saving || loading}
-          title="Sauvegarder"
-          suppressHydrationWarning
-        >
-          {saving ? 'Enregistrement…' : 'Sauvegarder'}
-        </button>
+        {!isZoteroRef && (
+          <button
+            type="button"
+            className="carnet-btn carnet-btn--accent"
+            onClick={() => void save()}
+            disabled={!dirty || saving || loading}
+            title="Sauvegarder"
+            suppressHydrationWarning
+          >
+            {saving ? 'Enregistrement…' : 'Sauvegarder'}
+          </button>
+        )}
       </CarnetTopbar>
 
       {error && <div className="carnet-editview__error">Erreur : {error}</div>}
@@ -352,7 +364,17 @@ export default function BibliographyEditViewClient({
           }}
         >
           <div className="carnet-editview__hero">
-            <h1 className="carnet-h1">Référence bibliographique</h1>
+            <h1 className="carnet-h1">
+              Référence bibliographique
+              {isZoteroRef && (
+                <span
+                  className="carnet-zotero-badge"
+                  title="Importée depuis Zotero — éditable uniquement dans Zotero."
+                >
+                  Z
+                </span>
+              )}
+            </h1>
             {data.slug && (
               <p className="carnet-editview__hero-key">
                 clé : <span className="mono">{data.slug}</span>
@@ -360,6 +382,16 @@ export default function BibliographyEditViewClient({
             )}
           </div>
 
+          {isZoteroRef && (
+            <div className="carnet-zotero-banner">
+              Cette référence est importée depuis Zotero. Pour la modifier,
+              éditez-la dans Zotero puis lancez un nouveau sync depuis votre
+              page Compte. La suppression reste disponible si vous voulez la
+              retirer du Carnet sans toucher à Zotero.
+            </div>
+          )}
+
+          <fieldset className="carnet-editview__fieldset" disabled={isZoteroRef}>
           <section className="carnet-editview__section">
             <h2 className="carnet-editview__section-title">Identification</h2>
 
@@ -584,6 +616,7 @@ export default function BibliographyEditViewClient({
             <div className="carnet-biblio-preview__lbl">Aperçu (style biblio)</div>
             <div className="carnet-biblio-preview__body">{formatChicago(data)}</div>
           </div>
+          </fieldset>
 
           {data.id != null && (
             <div className="carnet-biblio-usedin">

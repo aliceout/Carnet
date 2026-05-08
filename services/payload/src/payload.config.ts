@@ -14,6 +14,7 @@ import { Bibliography } from './collections/Bibliography';
 import { Pages } from './collections/Pages';
 import { Site } from './globals/Site';
 import { authEndpoints } from './auth/endpoints';
+import { zoteroEndpoints } from './zotero/endpoints';
 import { buildEmailAdapter } from './auth/transport';
 import { startCleanupJob } from './auth/cleanup';
 import { bootstrapRootUser } from './auth/bootstrap';
@@ -36,7 +37,7 @@ const ADDRESS = /^https?:\/\//.test(RAW_ADDRESS)
 const baseEndpoints = Array.isArray(Users.endpoints) ? Users.endpoints : [];
 const UsersWithEndpoints = {
   ...Users,
-  endpoints: [...baseEndpoints, ...authEndpoints],
+  endpoints: [...baseEndpoints, ...authEndpoints, ...zoteroEndpoints],
   admin: {
     ...Users.admin,
     components: {

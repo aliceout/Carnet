@@ -1982,7 +1982,7 @@ button.btn--style-primary,
 
 .carnet-media-preview {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-template-columns: minmax(0, 1fr) 320px;
   gap: 24px;
   align-items: start;
 
@@ -2006,11 +2006,37 @@ button.btn--style-primary,
     color: var(--b-muted);
   }
 
-  &__meta {
-    margin: 0;
+  // Colonne droite : champs éditables (Titre + Alt) en haut, puis
+  // meta read-only (Type / Taille / Dims) sous une fine règle.
+  // Les .carnet-editview__field qui vivent ici perdent leur max-width
+  // 640 (la colonne fait 320).
+  &__side {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 22px;
+
+    .carnet-editview__field {
+      max-width: none;
+      margin-bottom: 0;
+      gap: 8px;
+    }
+  }
+
+  &__rule {
+    border: 0;
+    border-top: 1px solid var(--b-rule);
+    margin: 4px 0 0;
+    width: 100%;
+  }
+
+  &__meta {
+    margin: 0;
+    padding: 14px 16px;
+    background: var(--b-bg);
+    border: 1px solid var(--b-rule);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
 
     div {
       display: flex;

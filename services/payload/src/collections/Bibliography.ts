@@ -22,6 +22,23 @@ export const Bibliography: CollectionConfig = {
     update: authenticated,
     delete: authenticated,
   },
+  hooks: {
+    // Verrouillage des refs Zotero : le Carnet est lecteur seul pour
+    // tout ce qui vient du sync. Les modifs doivent passer par Zotero
+    // puis un nouveau sync. Le endpoint `/users/me/zotero-sync` met
+    // `req.context.zoteroSync = true` pour bypass cette protection.
+    beforeChange: [
+      ({ data, originalDoc, operation, req }) => {
+        if (operation !== 'update') return data;
+        if (originalDoc?.source !== 'zotero') return data;
+        const fromSync = (req?.context as { zoteroSync?: boolean } | undefined)?.zoteroSync === true;
+        if (fromSync) return data;
+        throw new Error(
+          'Cette référence vient de Zotero et ne peut pas être modifiée depuis le Carnet. Modifiez-la dans Zotero puis lancez un nouveau sync.',
+        );
+      },
+    ],
+  },
   admin: {
     useAsTitle: 'displayLabel',
     defaultColumns: ['displayLabel', 'authorLabel', 'year', 'type', 'updatedAt'],
@@ -205,6 +222,66 @@ export const Bibliography: CollectionConfig = {
       admin: {
         description:
           "Optionnel — note de lecture, raison de l'inclusion, mémo de contexte. Non publié.",
+      },
+    },
+
+    // ─── Provenance & sync Zotero ────────────────────────────────────
+    // `source` distingue les refs saisies à la main au Carnet de celles
+    // importées depuis Zotero. Pour les Zotero, le Carnet est lecture
+    // seule : les modifs se font dans Zotero, puis un nouveau sync les
+    // remonte. Cette règle est appliquée par le hook beforeChange en
+    // fin de fichier (refuse les updates sauf si req.context.zoteroSync).
+    {
+      name: 'source',
+      type: 'select',
+      required: true,
+      defaultValue: 'manual',
+      label: 'Source',
+      options: [
+        { label: 'Saisie manuelle', value: 'manual' },
+        { label: 'Importée de Zotero', value: 'zotero' },
+      ],
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        description: "Posée à la création — détermine si la ref est éditable au Carnet ou pilotée par Zotero.",
+      },
+    },
+    {
+      name: 'zoteroKey',
+      type: 'text',
+      required: false,
+      index: true,
+      label: 'Clé Zotero',
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        condition: (data) => data?.source === 'zotero',
+        description: 'Identifiant interne Zotero — sert de pivot pour le sync.',
+      },
+    },
+    {
+      name: 'zoteroVersion',
+      type: 'number',
+      required: false,
+      label: 'Version Zotero',
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        condition: (data) => data?.source === 'zotero',
+        description: 'Numéro de version Zotero — sert au diff incrémental.',
+      },
+    },
+    {
+      name: 'owner',
+      type: 'relationship',
+      relationTo: 'users',
+      required: false,
+      label: 'Propriétaire',
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        description: "Renseigné pour les refs synchronisées — l'auteur du sync. Sert à scoper le picker biblio par user (cf v2).",
       },
     },
 

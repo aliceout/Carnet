@@ -282,6 +282,25 @@ export interface User {
   };
   lastActivityAt?: string | null;
   lastLoginAt?: string | null;
+  zotero?: {
+    apiKey?: string | null;
+    /**
+     * Identifiant numérique — visible dans l’URL https://www.zotero.org/<userId>/library.
+     */
+    libraryId?: string | null;
+    libraryType?: ('user' | 'group') | null;
+    /**
+     * Mis à jour automatiquement à chaque synchronisation.
+     */
+    lastSyncAt?: string | null;
+    /**
+     * Sert au diff incrémental côté Zotero (param `since`).
+     */
+    lastSyncVersion?: number | null;
+    lastSyncAdded?: number | null;
+    lastSyncUpdated?: number | null;
+    lastSyncError?: string | null;
+  };
   trustedDevices?:
     | {
         deviceId: string;
@@ -348,6 +367,22 @@ export interface Bibliography {
    * Optionnel — note de lecture, raison de l'inclusion, mémo de contexte. Non publié.
    */
   annotation?: string | null;
+  /**
+   * Posée à la création — détermine si la ref est éditable au Carnet ou pilotée par Zotero.
+   */
+  source: 'manual' | 'zotero';
+  /**
+   * Identifiant interne Zotero — sert de pivot pour le sync.
+   */
+  zoteroKey?: string | null;
+  /**
+   * Numéro de version Zotero — sert au diff incrémental.
+   */
+  zoteroVersion?: number | null;
+  /**
+   * Renseigné pour les refs synchronisées — l'auteur du sync. Sert à scoper le picker biblio par user (cf v2).
+   */
+  owner?: (number | null) | User;
   authorLabel?: string | null;
   displayLabel?: string | null;
   updatedAt: string;
@@ -442,6 +477,10 @@ export interface Page {
  */
 export interface Media {
   id: number;
+  /**
+   * Optionnel. Si vide à la sauvegarde, le texte alternatif est utilisé.
+   */
+  title?: string | null;
   alt: string;
   updatedAt: string;
   createdAt: string;
@@ -626,6 +665,10 @@ export interface BibliographySelect<T extends boolean = true> {
   url?: T;
   doi?: T;
   annotation?: T;
+  source?: T;
+  zoteroKey?: T;
+  zoteroVersion?: T;
+  owner?: T;
   authorLabel?: T;
   displayLabel?: T;
   updatedAt?: T;
@@ -700,6 +743,18 @@ export interface UsersSelect<T extends boolean = true> {
       };
   lastActivityAt?: T;
   lastLoginAt?: T;
+  zotero?:
+    | T
+    | {
+        apiKey?: T;
+        libraryId?: T;
+        libraryType?: T;
+        lastSyncAt?: T;
+        lastSyncVersion?: T;
+        lastSyncAdded?: T;
+        lastSyncUpdated?: T;
+        lastSyncError?: T;
+      };
   trustedDevices?:
     | T
     | {
@@ -727,6 +782,7 @@ export interface UsersSelect<T extends boolean = true> {
  * via the `definition` "media_select".
  */
 export interface MediaSelect<T extends boolean = true> {
+  title?: T;
   alt?: T;
   updatedAt?: T;
   createdAt?: T;

@@ -197,10 +197,333 @@ export default function AccountViewClient(): React.ReactElement {
           </section>
 
           <section className="carnet-editview__section">
+            <h2 className="carnet-editview__section-title">Bibliothèque Zotero</h2>
+            <ZoteroSection />
+          </section>
+
+          <section className="carnet-editview__section">
             <h2 className="carnet-editview__section-title">Sécurité</h2>
             <AccountSecurity />
           </section>
         </form>
+      )}
+    </div>
+  );
+}
+
+// ─── Section Zotero (sous-composant) ──────────────────────────────────
+// Saisie de la clé API + ID de bibliothèque + type, plus actions :
+// tester la connexion, sauvegarder, synchroniser maintenant, déconnecter.
+//
+// La clé API est masquée à la lecture (hook afterRead côté serveur la
+// remplace par `••••••••XXXX`). Si l'utilisatrice tape dans le champ
+// Clé API, la nouvelle valeur écrase la précédente. Si elle laisse vide,
+// la clé persistée est conservée.
+
+const API_ZOTERO = '/cms/api/users/me/zotero';
+
+type ZoteroState = {
+  apiKey?: string | null; // masqué côté serveur
+  libraryId?: string | null;
+  libraryType?: 'user' | 'group' | null;
+  lastSyncAt?: string | null;
+  lastSyncVersion?: number | null;
+  lastSyncAdded?: number | null;
+  lastSyncUpdated?: number | null;
+  lastSyncError?: string | null;
+};
+
+type SyncResult = {
+  ok: boolean;
+  added: number;
+  updated: number;
+  errors: Array<{ key: string; reason: string }>;
+  newVersion: number;
+};
+
+type TestResult = {
+  ok: boolean;
+  error?: string;
+  itemCount?: number;
+};
+
+function ZoteroSection(): React.ReactElement {
+  const [state, setState] = useState<ZoteroState>({});
+  const [loaded, setLoaded] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [libraryIdInput, setLibraryIdInput] = useState('');
+  const [busy, setBusy] = useState<null | 'save' | 'test' | 'sync' | 'disconnect'>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
+
+  const refresh = React.useCallback(() => {
+    setError(null);
+    fetch('/cms/api/users/me?depth=0', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((res: { user?: { zotero?: ZoteroState } } | null) => {
+        const z = res?.user?.zotero ?? {};
+        setState(z);
+        setLibraryIdInput(z.libraryId ?? '');
+        setLoaded(true);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'Erreur inconnue.');
+        setLoaded(true);
+      });
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const hasKey = !!(state.apiKey && state.apiKey.length > 0);
+  const dirty =
+    apiKeyInput.length > 0 ||
+    libraryIdInput !== (state.libraryId ?? '');
+
+  async function save() {
+    setBusy('save');
+    setError(null);
+    setInfo(null);
+    try {
+      // libraryType: toujours 'user' (les bibliothèques de groupe sont
+      // hors scope du Carnet — la biblio Zotero est intrinsèquement perso).
+      const body: Record<string, unknown> = {
+        libraryId: libraryIdInput.trim(),
+        libraryType: 'user',
+      };
+      if (apiKeyInput.trim().length > 0) {
+        body.apiKey = apiKeyInput.trim();
+      }
+      const res = await fetch(API_ZOTERO, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(`HTTP ${res.status} — ${t.slice(0, 200)}`);
+      }
+      setApiKeyInput('');
+      setInfo('Configuration enregistrée.');
+      refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function test() {
+    setBusy('test');
+    setError(null);
+    setInfo(null);
+    try {
+      const res = await fetch(`${API_ZOTERO}-test`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = (await res.json()) as TestResult;
+      if (!res.ok || !data.ok) {
+        setError(data.error || `Échec du test (HTTP ${res.status}).`);
+        return;
+      }
+      setInfo(
+        data.itemCount !== undefined
+          ? `Connexion OK — ${data.itemCount} item${data.itemCount > 1 ? 's' : ''} dans la bibliothèque Zotero.`
+          : 'Connexion OK.',
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function sync() {
+    setBusy('sync');
+    setError(null);
+    setInfo(null);
+    try {
+      const res = await fetch(`${API_ZOTERO}-sync`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = (await res.json()) as SyncResult & { error?: string };
+      if (!res.ok || !data.ok) {
+        setError(data.error || `Échec du sync (HTTP ${res.status}).`);
+        return;
+      }
+      const parts: string[] = [];
+      if (data.added > 0) parts.push(`${data.added} ajoutée${data.added > 1 ? 's' : ''}`);
+      if (data.updated > 0) parts.push(`${data.updated} mise${data.updated > 1 ? 's' : ''} à jour`);
+      if (parts.length === 0) parts.push('rien de neuf depuis Zotero');
+      let msg = `Sync terminé — ${parts.join(', ')}.`;
+      if (data.errors.length > 0) {
+        msg += ` ${data.errors.length} item${data.errors.length > 1 ? 's' : ''} ignoré${data.errors.length > 1 ? 's' : ''} (titre, année ou auteur manquant côté Zotero).`;
+      }
+      setInfo(msg);
+      refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function disconnect() {
+    if (typeof window === 'undefined') return;
+    if (!window.confirm('Déconnecter Zotero ? La clé API sera effacée. Les références déjà importées dans le Carnet ne seront pas supprimées.')) return;
+    setBusy('disconnect');
+    setError(null);
+    setInfo(null);
+    try {
+      const res = await fetch(API_ZOTERO, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(`HTTP ${res.status} — ${t.slice(0, 200)}`);
+      }
+      setApiKeyInput('');
+      setInfo('Zotero déconnecté.');
+      refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  if (!loaded) {
+    return <div className="carnet-zotero__loading">Chargement…</div>;
+  }
+
+  return (
+    <div className="carnet-zotero">
+      <p className="carnet-zotero__intro">
+        Connectez votre bibliothèque Zotero pour qu’elle alimente
+        automatiquement la liste de références disponibles dans le slash
+        menu et le picker biblio des billets. Les modifications faites dans
+        Zotero descendent au prochain sync ; les références importées sont
+        en lecture seule côté Carnet.
+      </p>
+
+      <div className={`carnet-zotero__status carnet-zotero__status--${hasKey ? 'on' : 'off'}`}>
+        <span className="dot" aria-hidden="true" />
+        {hasKey ? 'Connecté à Zotero' : 'Non connecté'}
+      </div>
+
+      <div className="carnet-editview__row carnet-editview__row--2">
+        <label className="carnet-editview__field">
+          <span className="lbl">Clé API</span>
+          <input
+            type="password"
+            value={apiKeyInput}
+            placeholder={hasKey ? (state.apiKey ?? '••••••••') : 'Collez votre clé Zotero'}
+            onChange={(e) => setApiKeyInput(e.target.value)}
+            autoComplete="off"
+          />
+          <span className="hint">
+            À générer sur{' '}
+            <a
+              href="https://www.zotero.org/settings/keys"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="carnet-link"
+            >
+              zotero.org/settings/keys
+            </a>
+            . Stockée chiffrée.
+          </span>
+        </label>
+
+        <label className="carnet-editview__field">
+          <span className="lbl">ID utilisateur Zotero</span>
+          <input
+            type="text"
+            value={libraryIdInput}
+            onChange={(e) => setLibraryIdInput(e.target.value)}
+            placeholder="12345678"
+          />
+          <span className="hint">
+            Numéro affiché en haut de{' '}
+            <a
+              href="https://www.zotero.org/settings/keys"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="carnet-link"
+            >
+              zotero.org/settings/keys
+            </a>
+            {' '}— « Your userID for use in API calls is … ».
+          </span>
+        </label>
+      </div>
+
+      <div className="carnet-zotero__actions">
+        <button
+          type="button"
+          className="carnet-btn carnet-btn--accent"
+          onClick={save}
+          disabled={busy !== null || !dirty}
+        >
+          {busy === 'save' ? 'Enregistrement…' : 'Enregistrer'}
+        </button>
+        <button
+          type="button"
+          className="carnet-btn carnet-btn--ghost"
+          onClick={test}
+          disabled={busy !== null}
+          title="Tester la connexion Zotero (utilise les credentials enregistrés)."
+        >
+          {busy === 'test' ? 'Test…' : 'Tester la connexion'}
+        </button>
+        <button
+          type="button"
+          className="carnet-btn carnet-btn--accent"
+          onClick={sync}
+          disabled={busy !== null}
+          title="Synchroniser depuis Zotero (utilise les credentials enregistrés)."
+        >
+          {busy === 'sync' ? 'Sync en cours…' : 'Synchroniser maintenant'}
+        </button>
+        {hasKey && (
+          <button
+            type="button"
+            className="carnet-btn carnet-btn--ghost"
+            onClick={disconnect}
+            disabled={busy !== null}
+          >
+            {busy === 'disconnect' ? 'Déconnexion…' : 'Déconnecter'}
+          </button>
+        )}
+      </div>
+
+      {error && <div className="carnet-zotero__error">Erreur : {error}</div>}
+      {info && <div className="carnet-zotero__info">{info}</div>}
+
+      {hasKey && state.lastSyncAt && (
+        <div className="carnet-zotero__last">
+          <span className="lbl">Dernier sync :</span>{' '}
+          <span className="mono">{isoDateTime(state.lastSyncAt)}</span>
+          {(state.lastSyncAdded || state.lastSyncUpdated) && (
+            <>
+              {' — '}
+              {state.lastSyncAdded ? `${state.lastSyncAdded} ajoutée${state.lastSyncAdded > 1 ? 's' : ''}` : null}
+              {state.lastSyncAdded && state.lastSyncUpdated ? ', ' : null}
+              {state.lastSyncUpdated ? `${state.lastSyncUpdated} mise${state.lastSyncUpdated > 1 ? 's' : ''} à jour` : null}
+            </>
+          )}
+          {state.lastSyncVersion ? (
+            <>
+              {' '}
+              · version <span className="mono">{state.lastSyncVersion}</span>
+            </>
+          ) : null}
+        </div>
       )}
     </div>
   );
