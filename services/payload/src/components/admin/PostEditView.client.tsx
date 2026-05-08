@@ -568,6 +568,28 @@ export default function PostEditViewClient({
     }
   }
 
+  // Suppression définitive du billet courant. Sur succès, redirige
+  // vers la liste — le billet n'existe plus, rester sur l'URL d'édit
+  // donnerait un 404. Échec = on garde la modale ouverte avec l'erreur.
+  async function deletePost() {
+    if (post.id == null) return;
+    setDeleteSubmitting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(`${API_POSTS}/${encodeURIComponent(String(post.id))}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (typeof window !== 'undefined') {
+        window.location.href = '/cms/admin/collections/posts';
+      }
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Erreur inconnue');
+      setDeleteSubmitting(false);
+    }
+  }
+
   // Raccourci ⌘S / Ctrl+S
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -852,13 +874,18 @@ export default function PostEditViewClient({
               <div className="bib-block__h">
                 <span>Bibliographie liée ({biblioIds.length})</span>
               </div>
+              <BiblioSearchPicker
+                options={biblioOptions}
+                attachedIds={biblioIds}
+                onPick={(id) => toggleBiblio(id)}
+              />
               <div className="bib-block__help">
                 Pour <em>citer</em> une référence dans le corps : tapez <kbd>/</kbd>{' '}
                 puis « Bibliographie inline » — choisissez-la dans le panneau qui
                 s’ouvre.
                 <br />
                 Pour <em>lister</em> une référence sans la citer dans le corps :
-                ajoutez-la directement ci-dessous.
+                ajoutez-la directement ci-dessus.
               </div>
               <div className="biblio-list">
                 {biblioIds.length === 0 && (
@@ -919,11 +946,6 @@ export default function PostEditViewClient({
                   );
                 })}
               </div>
-              <BiblioSearchPicker
-                options={biblioOptions}
-                attachedIds={biblioIds}
-                onPick={(id) => toggleBiblio(id)}
-              />
             </div>
           </div>
 
@@ -1169,7 +1191,87 @@ export default function PostEditViewClient({
                 {post.readingTime ? `≈ ${post.readingTime} min` : '— (calculé au save)'}
               </div>
             </div>
+
+            {post.id != null && (
+              <>
+                <hr />
+                <div className="field">
+                  <button
+                    type="button"
+                    className="carnet-postedit__delete"
+                    onClick={() => {
+                      setDeleteOpen(true);
+                      setDeleteError(null);
+                    }}
+                  >
+                    Supprimer ce billet
+                  </button>
+                </div>
+              </>
+            )}
           </aside>
+        </div>
+      )}
+
+      {deleteOpen && (
+        <div
+          className="carnet-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !deleteSubmitting) {
+              setDeleteOpen(false);
+              setDeleteError(null);
+            }
+          }}
+        >
+          <div className="carnet-modal" role="dialog" aria-modal="true">
+            <header className="carnet-modal__header">
+              <h2>Supprimer ce billet ?</h2>
+              <button
+                type="button"
+                className="carnet-modal__close"
+                onClick={() => {
+                  if (deleteSubmitting) return;
+                  setDeleteOpen(false);
+                  setDeleteError(null);
+                }}
+                aria-label="Fermer"
+              >
+                ×
+              </button>
+            </header>
+
+            {deleteError && (
+              <div className="carnet-modal__error">Erreur : {deleteError}</div>
+            )}
+
+            <div className="carnet-modal__body">
+              <p>
+                «&nbsp;{post.title || 'Sans titre'}&nbsp;» sera définitivement supprimé. Cette action est irréversible.
+              </p>
+            </div>
+
+            <footer className="carnet-modal__footer">
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--ghost"
+                onClick={() => {
+                  setDeleteOpen(false);
+                  setDeleteError(null);
+                }}
+                disabled={deleteSubmitting}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--danger"
+                onClick={() => void deletePost()}
+                disabled={deleteSubmitting}
+              >
+                {deleteSubmitting ? 'Suppression…' : 'Supprimer'}
+              </button>
+            </footer>
+          </div>
         </div>
       )}
     </div>

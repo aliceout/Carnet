@@ -2735,6 +2735,7 @@ button.btn--style-primary,
     input[type='email'],
     input[type='url'],
     input[type='number'],
+    input[type='password'],
     select,
     textarea {
       width: 100%;
@@ -4119,13 +4120,14 @@ button.btn--style-primary,
       }
     }
 
-    // Search picker biblio (remplace le <details> static). Input
-    // texte qui filtre live dans biblioOptions. Pas de saisie = pas
-    // de menu déroulé. Cf échange #2.
+    // Search picker biblio (remplace le <details> static). Placé
+    // entre l'en-tête .bib-block__h et le bloc d'aide .bib-block__help
+    // pour que l'ajout d'une référence soit l'action principale,
+    // pas planquée en pied. Cf échange #2.
     .bib-picker {
       position: relative;
       padding: 10px 20px;
-      border-top: 1px solid var(--b-rule);
+      border-bottom: 1px solid var(--b-rule);
 
       &__input {
         width: 100%;
@@ -4150,7 +4152,7 @@ button.btn--style-primary,
         position: absolute;
         left: 20px;
         right: 20px;
-        top: calc(100% - 2px);
+        top: 100%;
         z-index: 20;
         max-height: 320px;
         overflow: auto;
