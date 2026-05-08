@@ -292,6 +292,44 @@ export default function PostEditViewClient({
     });
   }
 
+  // ─── Normalisation Lexical avant save ────────────────────────
+  // Quand on charge un billet (depth=1), les blocks Lexical qui
+  // contiennent une relationship (biblio_inline.entry, figure.image)
+  // arrivent avec le doc populé en objet. Si on renvoie ce JSON tel
+  // quel à Payload pour un PATCH, le validateur du field rejette
+  // l'objet — il attend un ID. On walke donc le body avant save et
+  // on remplace les objets populés par leur id. Cf erreur 400
+  // « inlineBlock node failed to validate: entry … » apparue après
+  // la refonte de la collection bibliography.
+  function normalizeLexicalBody(input: LexicalState | null): LexicalState | null {
+    if (!input) return null;
+    function walk(node: unknown): unknown {
+      if (!node || typeof node !== 'object') return node;
+      const n = node as Record<string, unknown>;
+      const fields = n.fields as Record<string, unknown> | undefined;
+      const blockType = fields?.blockType as string | undefined;
+      if (
+        (n.type === 'inlineBlock' || n.type === 'block') &&
+        fields &&
+        (blockType === 'biblio_inline' || blockType === 'figure')
+      ) {
+        const relKey = blockType === 'biblio_inline' ? 'entry' : 'image';
+        const v = fields[relKey];
+        if (v && typeof v === 'object' && 'id' in (v as Record<string, unknown>)) {
+          n.fields = { ...fields, [relKey]: (v as { id: number | string }).id };
+        }
+      }
+      if (Array.isArray(n.children)) {
+        n.children = (n.children as unknown[]).map(walk);
+      }
+      return n;
+    }
+    // Le root JSON Lexical est { root: { children: [...] } }
+    const cloned = JSON.parse(JSON.stringify(input)) as LexicalState;
+    walk(cloned.root);
+    return cloned;
+  }
+
   // ─── Auteur·ices ─────────────────────────────────────────────
   function addAuthor(kind: 'user' | 'external') {
     setPost((p) => {
@@ -426,7 +464,7 @@ export default function PostEditViewClient({
         })),
         publishedAt: post.publishedAt,
         lede: post.lede,
-        body: post.body,
+        body: normalizeLexicalBody(post.body ?? null),
         bibliography: (post.bibliography ?? []).map((b) => (typeof b === 'object' ? b.id : b)),
         draft: opts.publish ? false : post.draft,
       };
