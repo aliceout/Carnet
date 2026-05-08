@@ -18,6 +18,8 @@ import Link from 'next/link';
 
 import AccountSecurity from '@/components/auth/AccountSecurity.client';
 
+import CarnetTopbar from './CarnetTopbar';
+
 const API_USERS = '/cms/api/users';
 
 type UserRole = 'root' | 'admin' | 'editor';
@@ -115,35 +117,28 @@ export default function AccountViewClient(): React.ReactElement {
 
   return (
     <div className="carnet-editview carnet-editview--account">
-      <header className="carnet-editview__header">
-        <div className="carnet-editview__crumbs">
-          <Link href="/cms/admin">Carnet</Link>
-          <span className="sep" aria-hidden="true">
-            /
+      <CarnetTopbar
+        crumbs={[{ href: '/cms/admin', label: 'Carnet' }, { label: 'Mon compte' }]}
+      >
+        {dirty && (
+          <span className="carnet-editview__dirty" aria-live="polite">
+            Modifications non enregistrées
           </span>
-          <span className="cur">Mon compte</span>
-        </div>
-        <div className="carnet-editview__actions">
-          {dirty && (
-            <span className="carnet-editview__dirty" aria-live="polite">
-              Modifications non enregistrées
-            </span>
-          )}
-          {!dirty && savedAt && (
-            <span className="carnet-editview__saved" aria-live="polite">
-              Enregistré
-            </span>
-          )}
-          <button
-            type="button"
-            className="carnet-btn carnet-btn--accent"
-            onClick={save}
-            disabled={!dirty || saving || loading}
-          >
-            {saving ? 'Enregistrement…' : 'Enregistrer'}
-          </button>
-        </div>
-      </header>
+        )}
+        {!dirty && savedAt && (
+          <span className="carnet-editview__saved" aria-live="polite">
+            Enregistré
+          </span>
+        )}
+        <button
+          type="button"
+          className="carnet-btn carnet-btn--accent"
+          onClick={save}
+          disabled={!dirty || saving || loading}
+        >
+          {saving ? 'Enregistrement…' : 'Enregistrer'}
+        </button>
+      </CarnetTopbar>
 
       {error && <div className="carnet-editview__error">Erreur : {error}</div>}
 

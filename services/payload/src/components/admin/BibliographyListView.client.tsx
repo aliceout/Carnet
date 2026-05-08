@@ -6,6 +6,8 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 
+import CarnetTopbar from './CarnetTopbar';
+
 const PER_PAGE = 25;
 
 type BiblioEntry = {
@@ -81,23 +83,16 @@ export default function BibliographyListViewClient(): React.ReactElement {
 
   return (
     <div className="carnet-listview carnet-listview--biblio">
-      <header className="carnet-listview__header">
-        <div className="carnet-listview__crumbs">
-          <Link href="/cms/admin">Carnet</Link>
-          <span className="sep" aria-hidden="true">
-            /
-          </span>
-          <span className="cur">Bibliographie</span>
-        </div>
-        <div className="carnet-listview__actions">
-          <Link
-            href="/cms/admin/collections/bibliography/create"
-            className="carnet-btn carnet-btn--accent"
-          >
-            Nouvelle référence
-          </Link>
-        </div>
-      </header>
+      <CarnetTopbar
+        crumbs={[{ href: '/cms/admin', label: 'Carnet' }, { label: 'Bibliographie' }]}
+      >
+        <Link
+          href="/cms/admin/collections/bibliography/create"
+          className="carnet-btn carnet-btn--accent"
+        >
+          Nouvelle référence
+        </Link>
+      </CarnetTopbar>
 
       <div className="carnet-listview__toolbar">
         <div className="carnet-listview__search">

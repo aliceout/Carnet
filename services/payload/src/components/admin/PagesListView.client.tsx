@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 
+import CarnetTopbar from './CarnetTopbar';
+
 const PER_PAGE = 25;
 
 type Page = {
@@ -67,23 +69,16 @@ export default function PagesListViewClient(): React.ReactElement {
 
   return (
     <div className="carnet-listview carnet-listview--pages">
-      <header className="carnet-listview__header">
-        <div className="carnet-listview__crumbs">
-          <Link href="/cms/admin">Carnet</Link>
-          <span className="sep" aria-hidden="true">
-            /
-          </span>
-          <span className="cur">Pages éditoriales</span>
-        </div>
-        <div className="carnet-listview__actions">
-          <Link
-            href="/cms/admin/collections/pages/create"
-            className="carnet-btn carnet-btn--accent"
-          >
-            Nouvelle page
-          </Link>
-        </div>
-      </header>
+      <CarnetTopbar
+        crumbs={[{ href: '/cms/admin', label: 'Carnet' }, { label: 'Pages éditoriales' }]}
+      >
+        <Link
+          href="/cms/admin/collections/pages/create"
+          className="carnet-btn carnet-btn--accent"
+        >
+          Nouvelle page
+        </Link>
+      </CarnetTopbar>
 
       <div className="carnet-listview__toolbar">
         <div className="carnet-listview__search">

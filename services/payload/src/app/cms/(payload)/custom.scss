@@ -894,56 +894,12 @@ button.btn--style-primary,
 // Remplace la liste native Payload par le tableau éditorial du handoff.
 
 .carnet-listview {
-  padding: 20px 24px 64px 0;
+  padding: 0 24px 64px 0;
   font-family: var(--font-sans);
   background: var(--b-bg);
   min-height: 100vh;
-
-  &__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 0 14px 24px;
-    margin-bottom: 0;
-    font-size: 12px;
-    color: var(--b-muted);
-    // Sticky : la topbar (crumbs + actions) reste visible quand on
-    // scroll la liste. Background opaque pour masquer le tableau
-    // qui défile dessous.
-    position: sticky;
-    top: 0;
-    background: var(--b-bg);
-    z-index: 5;
-  }
-
-  &__crumbs {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    a {
-      color: var(--b-muted);
-      text-decoration: none;
-      transition: color 0.12s;
-
-      &:hover {
-        color: var(--b-ink);
-      }
-    }
-
-    .sep {
-      color: var(--b-rule);
-    }
-
-    .cur {
-      color: var(--b-ink);
-    }
-  }
-
-  &__actions {
-    display: flex;
-    gap: 8px;
-  }
+  // Topbar (.carnet-topbar) maintenant rendue par <CarnetTopbar/> en
+  // sibling — plus de &__header / &__crumbs / &__actions ici.
 
   &__h1 {
     font-family: var(--font-serif);
@@ -960,7 +916,8 @@ button.btn--style-primary,
     align-items: center;
     gap: 10px;
     padding: 12px 0 12px 24px;
-    border-top: 1px solid var(--b-rule);
+    // Pas de border-top : le .carnet-topbar au-dessus a déjà un
+    // border-bottom — éviter la double ligne.
     margin-bottom: 0;
   }
 
@@ -1814,54 +1771,11 @@ button.btn--style-primary,
 // et payload.config admin.components.views.account.
 
 .carnet-editview {
-  padding: 20px 24px 64px 0;
+  padding: 0 24px 64px 0;
   font-family: var(--font-sans);
   background: var(--b-bg);
   min-height: 100vh;
-
-  &__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 0 14px 24px;
-    margin-bottom: 0;
-    font-size: 12px;
-    color: var(--b-muted);
-    position: sticky;
-    top: 0;
-    background: var(--b-bg);
-    z-index: 5;
-  }
-
-  &__crumbs {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    a {
-      color: var(--b-muted);
-      text-decoration: none;
-      transition: color 0.12s;
-
-      &:hover {
-        color: var(--b-ink);
-      }
-    }
-
-    .sep {
-      color: var(--b-rule);
-    }
-
-    .cur {
-      color: var(--b-ink);
-    }
-  }
-
-  &__actions {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
+  // Topbar (.carnet-topbar) maintenant rendue par <CarnetTopbar/>.
 
   &__dirty,
   &__saved {
@@ -2093,62 +2007,7 @@ button.btn--style-primary,
   font-family: var(--font-sans);
   background: var(--b-bg);
   min-height: 100vh;
-
-  &__top {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 0 24px;
-    height: 56px;
-    border-bottom: 1px solid var(--b-rule);
-    background: var(--b-bg);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    font-size: 12px;
-    color: var(--b-muted);
-  }
-
-  &__crumbs {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    a {
-      color: var(--b-muted);
-      text-decoration: none;
-      transition: color 0.12s;
-
-      &:hover {
-        color: var(--b-ink);
-      }
-    }
-
-    .sep {
-      color: var(--b-rule);
-    }
-
-    .cur {
-      color: var(--b-ink);
-    }
-  }
-
-  &__spacer {
-    flex: 1;
-  }
-
-  &__acts {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-
-    .kbd {
-      font-family: var(--font-mono);
-      font-size: 10.5px;
-      color: var(--b-muted);
-      margin-left: 6px;
-    }
-  }
+  // Topbar (.carnet-topbar) maintenant rendue par <CarnetTopbar/>.
 
   &__saved,
   &__dirty {
@@ -3209,6 +3068,68 @@ button.btn--style-primary,
     &__meta {
       border-left: 0;
       border-top: 1px solid var(--b-rule);
+    }
+  }
+}
+
+// ─── Topbar normalisée (CarnetTopbar) ─────────────────────────────
+// Seule barre supérieure utilisée dans tout l'admin Carnet — list
+// views, edit views, vue Édition Posts. Définie au top-level pour
+// que toutes les pages partagent EXACTEMENT le même style. Cf
+// services/payload/src/components/admin/CarnetTopbar.tsx.
+.carnet-topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 24px;
+  height: 56px;
+  border-bottom: 1px solid var(--b-rule);
+  background: var(--b-bg);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  font-size: 12px;
+  color: var(--b-muted);
+  font-family: var(--font-sans);
+
+  &__crumbs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    a {
+      color: var(--b-muted);
+      text-decoration: none;
+      transition: color 0.12s;
+
+      &:hover {
+        color: var(--b-ink);
+      }
+    }
+
+    .sep {
+      color: var(--b-rule);
+    }
+
+    .cur {
+      color: var(--b-ink);
+    }
+  }
+
+  &__spacer {
+    flex: 1;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    .kbd {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--b-muted);
+      margin-left: 6px;
     }
   }
 }

@@ -18,6 +18,8 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 
+import CarnetTopbar from './CarnetTopbar';
+
 const API_URL = '/cms/api/globals/site';
 
 type NavLink = {
@@ -27,6 +29,10 @@ type NavLink = {
 };
 
 type SiteData = {
+  home?: {
+    heroTitle?: string;
+    heroLede?: string;
+  };
   baseline?: string;
   copyrightLine?: string;
   social?: {
@@ -39,6 +45,7 @@ type SiteData = {
 };
 
 const EMPTY: SiteData = {
+  home: { heroTitle: '', heroLede: '' },
   baseline: '',
   copyrightLine: '',
   social: { mastodon: '', bluesky: '', orcid: '', hal: '' },
@@ -64,6 +71,10 @@ export default function SiteEditViewClient(): React.ReactElement {
       })
       .then((doc: SiteData) => {
         const normalized: SiteData = {
+          home: {
+            heroTitle: doc.home?.heroTitle ?? '',
+            heroLede: doc.home?.heroLede ?? '',
+          },
           baseline: doc.baseline ?? '',
           copyrightLine: doc.copyrightLine ?? '',
           social: {
@@ -95,6 +106,10 @@ export default function SiteEditViewClient(): React.ReactElement {
 
   function updateSocial(key: keyof NonNullable<SiteData['social']>, value: string) {
     setData((d) => ({ ...d, social: { ...(d.social ?? {}), [key]: value } }));
+  }
+
+  function updateHome(key: keyof NonNullable<SiteData['home']>, value: string) {
+    setData((d) => ({ ...d, home: { ...(d.home ?? {}), [key]: value } }));
   }
 
   function updateNav(idx: number, patch: Partial<NavLink>) {
@@ -147,6 +162,10 @@ export default function SiteEditViewClient(): React.ReactElement {
       // Payload renvoie soit { result, message } soit le doc direct selon la version
       const fresh: SiteData = (doc as { result?: SiteData }).result ?? (doc as SiteData);
       const normalized: SiteData = {
+        home: {
+          heroTitle: fresh.home?.heroTitle ?? '',
+          heroLede: fresh.home?.heroLede ?? '',
+        },
         baseline: fresh.baseline ?? '',
         copyrightLine: fresh.copyrightLine ?? '',
         social: {
@@ -173,35 +192,28 @@ export default function SiteEditViewClient(): React.ReactElement {
 
   return (
     <div className="carnet-editview">
-      <header className="carnet-editview__header">
-        <div className="carnet-editview__crumbs">
-          <Link href="/cms/admin">Carnet</Link>
-          <span className="sep" aria-hidden="true">
-            /
+      <CarnetTopbar
+        crumbs={[{ href: '/cms/admin', label: 'Carnet' }, { label: 'Site (global)' }]}
+      >
+        {dirty && (
+          <span className="carnet-editview__dirty" aria-live="polite">
+            Modifications non enregistrées
           </span>
-          <span className="cur">Site (global)</span>
-        </div>
-        <div className="carnet-editview__actions">
-          {dirty && (
-            <span className="carnet-editview__dirty" aria-live="polite">
-              Modifications non enregistrées
-            </span>
-          )}
-          {!dirty && savedAt && (
-            <span className="carnet-editview__saved" aria-live="polite">
-              Enregistré
-            </span>
-          )}
-          <button
-            type="button"
-            className="carnet-btn carnet-btn--accent"
-            onClick={save}
-            disabled={!dirty || saving || loading}
-          >
-            {saving ? 'Enregistrement…' : 'Enregistrer'}
-          </button>
-        </div>
-      </header>
+        )}
+        {!dirty && savedAt && (
+          <span className="carnet-editview__saved" aria-live="polite">
+            Enregistré
+          </span>
+        )}
+        <button
+          type="button"
+          className="carnet-btn carnet-btn--accent"
+          onClick={save}
+          disabled={!dirty || saving || loading}
+        >
+          {saving ? 'Enregistrement…' : 'Enregistrer'}
+        </button>
+      </CarnetTopbar>
 
       {error && <div className="carnet-editview__error">Erreur : {error}</div>}
 
@@ -215,6 +227,33 @@ export default function SiteEditViewClient(): React.ReactElement {
             void save();
           }}
         >
+          <section className="carnet-editview__section">
+            <h2 className="carnet-editview__section-title">Page d&apos;accueil</h2>
+            <p className="carnet-editview__section-help">
+              Titre principal et texte de présentation affichés en haut de la home.
+              Entourer une portion de <code>*</code> pour la mettre en italique
+              dans le titre (ex. <code>*études de genre*</code>).
+            </p>
+
+            <label className="carnet-editview__field">
+              <span className="lbl">Titre du hero</span>
+              <textarea
+                rows={3}
+                value={data.home?.heroTitle ?? ''}
+                onChange={(e) => updateHome('heroTitle', e.target.value)}
+              />
+            </label>
+
+            <label className="carnet-editview__field">
+              <span className="lbl">Texte de présentation (lede)</span>
+              <textarea
+                rows={4}
+                value={data.home?.heroLede ?? ''}
+                onChange={(e) => updateHome('heroLede', e.target.value)}
+              />
+            </label>
+          </section>
+
           <section className="carnet-editview__section">
             <h2 className="carnet-editview__section-title">Identité éditoriale</h2>
             <p className="carnet-editview__section-help">

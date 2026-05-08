@@ -17,6 +17,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 
+import CarnetTopbar from './CarnetTopbar';
+
 const PER_PAGE = 25;
 
 type Theme = { id: number | string; slug: string; name: string };
@@ -158,30 +160,23 @@ export default function PostListViewClient(): React.ReactElement {
 
   return (
     <div className="carnet-listview">
-      <header className="carnet-listview__header">
-        <div className="carnet-listview__crumbs">
-          <Link href="/cms/admin">Carnet</Link>
-          <span className="sep" aria-hidden="true">
-            /
-          </span>
-          <span className="cur">Billets</span>
-        </div>
-        <div className="carnet-listview__actions">
-          <button
-            type="button"
-            className="carnet-btn carnet-btn--ghost"
-            onClick={() => alert('Export à venir (issue v2)')}
-          >
-            Exporter
-          </button>
-          <Link
-            href="/cms/admin/collections/posts/create"
-            className="carnet-btn carnet-btn--accent"
-          >
-            Nouveau billet
-          </Link>
-        </div>
-      </header>
+      <CarnetTopbar
+        crumbs={[{ href: '/cms/admin', label: 'Carnet' }, { label: 'Billets' }]}
+      >
+        <button
+          type="button"
+          className="carnet-btn carnet-btn--ghost"
+          onClick={() => alert('Export à venir (issue v2)')}
+        >
+          Exporter
+        </button>
+        <Link
+          href="/cms/admin/collections/posts/create"
+          className="carnet-btn carnet-btn--accent"
+        >
+          Nouveau billet
+        </Link>
+      </CarnetTopbar>
 
       <div className="carnet-listview__toolbar">
         <div className="carnet-listview__search">

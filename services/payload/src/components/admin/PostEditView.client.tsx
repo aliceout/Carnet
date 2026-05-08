@@ -39,6 +39,7 @@ function useAutoGrow(value: string) {
 
 import { type LexicalEditor } from 'lexical';
 
+import CarnetTopbar from './CarnetTopbar';
 import PostBodyEditor, {
   deleteBiblioInlinesByEntry,
   deleteFootnoteByIndex,
@@ -378,74 +379,61 @@ export default function PostEditViewClient({
 
   return (
     <div className="carnet-postedit">
-      <header className="carnet-postedit__top">
-        <div className="carnet-postedit__crumbs">
-          <Link href="/cms/admin">Carnet</Link>
-          <span className="sep" aria-hidden="true">/</span>
-          <Link href="/cms/admin/collections/posts">Billets</Link>
-          <span className="sep" aria-hidden="true">/</span>
-          <span className="cur">
-            n°&nbsp;{pad3(post.numero ?? null)}
+      <CarnetTopbar
+        crumbs={[
+          { href: '/cms/admin', label: 'Carnet' },
+          { href: '/cms/admin/collections/posts', label: 'Billets' },
+          { label: <>n°&nbsp;{pad3(post.numero ?? null)}</> },
+        ]}
+        status={
+          <span className={`carnet-status carnet-status--${status}`}>
+            <span className="carnet-status__dot" aria-hidden="true" />
+            {STATUS_LABEL[status]}
           </span>
-        </div>
-        <span className={`carnet-status carnet-status--${status}`}>
-          <span className="carnet-status__dot" aria-hidden="true" />
-          {STATUS_LABEL[status]}
-        </span>
-        <div className="carnet-postedit__spacer" />
-        <div
-          className="carnet-postedit__acts"
-          // Le state initial (loading=true, post.draft=true,
-          // savedAt=null...) diverge entre SSR et client après que
-          // useEffect(fetch) ait commencé à mettre à jour : React
-          // 19 est strict sur la cohérence hydration des `disabled`
-          // booléens et du texte ternaire. La valeur converge
-          // correctement après mount — on supprime juste le warning
-          // bruyant en dev.
+        }
+        suppressHydrationWarningOnActions
+      >
+        {savedLabel && !dirty && (
+          <span className="carnet-postedit__saved" aria-live="polite">
+            {savedLabel}
+          </span>
+        )}
+        {dirty && (
+          <span className="carnet-postedit__dirty" aria-live="polite">
+            Modifications non enregistrées
+          </span>
+        )}
+        {post.slug && post.id != null && (
+          <a
+            className="carnet-btn carnet-btn--ghost"
+            href={`/billets/${post.slug}/`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Aperçu ↗
+          </a>
+        )}
+        <button
+          type="button"
+          className="carnet-btn"
+          onClick={() => void save()}
+          disabled={!dirty || saving || loading}
+          title="Sauvegarder (⌘S)"
           suppressHydrationWarning
         >
-          {savedLabel && !dirty && (
-            <span className="carnet-postedit__saved" aria-live="polite">
-              {savedLabel}
-            </span>
-          )}
-          {dirty && (
-            <span className="carnet-postedit__dirty" aria-live="polite">
-              Modifications non enregistrées
-            </span>
-          )}
-          {post.slug && post.id != null && (
-            <a
-              className="carnet-btn carnet-btn--ghost"
-              href={`/billets/${post.slug}/`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Aperçu ↗
-            </a>
-          )}
-          <button
-            type="button"
-            className="carnet-btn"
-            onClick={() => void save()}
-            disabled={!dirty || saving || loading}
-            title="Sauvegarder (⌘S)"
-            suppressHydrationWarning
-          >
-            {saving ? 'Enregistrement…' : 'Sauvegarder'}
-            <span className="kbd" aria-hidden="true">⌘S</span>
-          </button>
-          <button
-            type="button"
-            className="carnet-btn carnet-btn--accent"
-            onClick={() => void save({ publish: true })}
-            disabled={saving || loading}
-            suppressHydrationWarning
-          >
-            {post.draft ? 'Publier' : 'Publier les modifications'}
-          </button>
-        </div>
-      </header>
+          {saving ? 'Enregistrement…' : 'Sauvegarder'}
+          <span className="kbd" aria-hidden="true">⌘S</span>
+        </button>
+        <button
+          type="button"
+          className="carnet-btn carnet-btn--accent"
+          onClick={() => void save({ publish: true })}
+          disabled={saving || loading}
+          suppressHydrationWarning
+        >
+          {post.draft ? 'Publier' : 'Publier les modifications'}
+        </button>
+      </CarnetTopbar>
 
       {error && <div className="carnet-postedit__error">Erreur : {error}</div>}
 
