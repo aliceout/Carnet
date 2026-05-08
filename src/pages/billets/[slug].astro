@@ -21,7 +21,7 @@
 import Layout from '../../layouts/Layout.astro';
 import { fetchBySlug, fetchCollection } from '../../lib/payload';
 import { renderLexicalWithFootnotes, extractToc } from '../../lib/lexical';
-import { formatDateFr, formatNumero, formatIdCarnet } from '../../lib/site';
+import { formatDateFr, formatNumero } from '../../lib/site';
 
 type Theme = { id: number | string; slug: string; name: string };
 type BiblioEntry = {
@@ -53,7 +53,6 @@ type Post = {
   body?: unknown;
   bibliography?: BiblioEntry[] | null;
   readingTime?: number | null;
-  idCarnet?: string | null;
   draft?: boolean;
 };
 
@@ -79,7 +78,6 @@ const primaryTheme = themes[0];
 // Date FR + ISO
 const publishedFr = formatDateFr(post.publishedAt);
 const publishedIso = new Date(post.publishedAt).toISOString().slice(0, 10);
-const idCarnet = post.idCarnet ?? formatIdCarnet(new Date(post.publishedAt).getFullYear(), post.numero);
 const readingLabel = post.readingTime
   ? post.type === 'fiche'
     ? 'fiche'
@@ -119,8 +117,6 @@ if (primaryTheme) {
   }
 }
 
-// Crumbs label
-const crumbsTheme = primaryTheme?.name ?? 'Billets';
 const numLabel = formatNumero(post.numero);
 
 // Citation bibliographique du billet (Chicago author-date façon Carnet)
@@ -157,27 +153,8 @@ const citationText = `Aussel Delamaide, Alice. « ${post.title} », Carnet, ${nu
   <article class:list={['post', 'container', { 'no-toc': tocEntries.length === 0 }]}>
     <div class="crumbs">
       <a href="/">Carnet</a> &nbsp;/&nbsp;
-      {primaryTheme ? (
-        <a href={`/theme/${primaryTheme.slug}/`}>{crumbsTheme}</a>
-      ) : (
-        crumbsTheme
-      )}
-      &nbsp;/&nbsp; {numLabel}
-    </div>
-
-    <div class="kicker">
       {TYPE_LABEL[post.type]}
-      {themes.length > 0 && (
-        <>
-          {' · '}
-          {themes.map((t, i) => (
-            <>
-              {i > 0 && ', '}
-              <span class="theme-name">{t.name}</span>
-            </>
-          ))}
-        </>
-      )}
+      &nbsp;/&nbsp; {numLabel}
     </div>
 
     <h1>{post.title}</h1>
@@ -193,12 +170,12 @@ const citationText = `Aussel Delamaide, Alice. « ${post.title} », Carnet, ${nu
         {readingLabel ?? '—'}
       </div>
       <div>
-        <div class="lbl">{primaryTheme ? 'Thème' : 'Type'}</div>
-        {primaryTheme ? primaryTheme.name : TYPE_LABEL[post.type]}
+        <div class="lbl">Type</div>
+        {TYPE_LABEL[post.type]}
       </div>
       <div>
-        <div class="lbl">ID</div>
-        <span class="mono">{idCarnet}</span>
+        <div class="lbl">Thème</div>
+        {primaryTheme ? primaryTheme.name : '—'}
       </div>
     </div>
 
@@ -313,17 +290,6 @@ const citationText = `Aussel Delamaide, Alice. « ${post.title} », Carnet, ${nu
   article.post .crumbs a:hover {
     color: var(--color-ink);
   }
-  article.post .kicker {
-    font-family: var(--font-sans);
-    font-size: 11px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--color-accent);
-    margin-bottom: 14px;
-  }
-  article.post .kicker .theme-name {
-    color: var(--color-muted);
-  }
   article.post h1 {
     font-size: 52px;
     line-height: 1.08;
@@ -333,6 +299,7 @@ const citationText = `Aussel Delamaide, Alice. « ${post.title} », Carnet, ${nu
   }
   article.post h1 em {
     font-weight: 500;
+    color: var(--color-accent);
   }
   article.post .deck {
     font-family: var(--font-serif);
