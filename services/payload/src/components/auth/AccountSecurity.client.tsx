@@ -72,7 +72,7 @@ export default function AccountSecurityClient(): React.ReactElement {
       <Collapsible header={`Appareils de confiance (${devices.length})`} initCollapsed={true}>
         <div style={sectionInner}>
           <p style={{ margin: 0 }}>
-            Ces appareils ne te demandent pas de code à la connexion (validité 7 jours).
+            Ces appareils ne vous demandent pas de code à la connexion (validité 7 jours).
           </p>
           {devices.length === 0 && <p style={{ margin: 0, opacity: 0.7 }}>Aucun appareil de confiance.</p>}
           {devices.length > 0 && (

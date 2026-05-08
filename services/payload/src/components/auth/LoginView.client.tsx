@@ -47,8 +47,8 @@ export default function LoginView(): React.ReactElement {
         setStep('two-factor');
         setInfo(
           m === 'email'
-            ? 'Un code à 6 chiffres vient d\'être envoyé à ton adresse mail.'
-            : 'Saisis le code de ton application TOTP (Google Authenticator, Authy…).',
+            ? 'Un code à 6 chiffres vient d\'être envoyé à votre adresse mail.'
+            : 'Saisissez le code de votre application TOTP (Google Authenticator, Authy…).',
         );
       } else {
         throw new Error('Réponse inattendue du serveur');
