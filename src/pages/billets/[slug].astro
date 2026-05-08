@@ -347,6 +347,17 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
   article.post {
     padding: 48px 80px 0;
   }
+  /* Cibles d'ancres du Sommaire : on offre une marge de scroll pour
+     que l'élément cliqué arrive ~1/3 du haut de la fenêtre, plutôt
+     que collé sous la topbar sticky. */
+  article.post :global(h2),
+  article.post :global(h3),
+  article.post #intro,
+  article.post #notes,
+  article.post #biblio,
+  article.post #cite {
+    scroll-margin-top: 33vh;
+  }
   article.post .crumbs {
     font-family: var(--font-sans);
     font-size: 11px;
@@ -618,8 +629,7 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
 
   /* Notes en pied d'article (style classique) */
   .footnotes-wrap {
-    max-width: 720px;
-    margin: 48px auto 0;
+    margin: 48px 0 0;
   }
   .footnotes-wrap :global(.footnotes-classic) {
     border-top: 1px solid var(--color-rule);
@@ -906,17 +916,29 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
         }
       }
 
-      if ('IntersectionObserver' in window && sections.length > 0) {
-        const observer = new IntersectionObserver(
-          (entries) => {
-            const visible = entries
-              .filter((e) => e.isIntersecting)
-              .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-            if (visible[0]?.target.id) setActive(visible[0].target.id);
-          },
-          { rootMargin: '-20% 0px -70% 0px', threshold: 0 },
-        );
-        for (const sec of sections) observer.observe(sec);
+      // Scrollspy basé sur la position : on prend la dernière section
+      // dont le haut a dépassé la ligne 1/3 du viewport (cohérent avec
+      // `scroll-margin-top: 33vh`). Évite le bug où #intro (qui contient
+      // tous les h2/h3) gagnait en permanence avec IntersectionObserver.
+      if (sections.length > 0) {
+        let raf = 0;
+        const updateActive = () => {
+          raf = 0;
+          const line = window.innerHeight * 0.33;
+          let activeId = sections[0].id;
+          for (const sec of sections) {
+            if (sec.getBoundingClientRect().top <= line) activeId = sec.id;
+            else break;
+          }
+          setActive(activeId);
+        };
+        const onScroll = () => {
+          if (raf) return;
+          raf = requestAnimationFrame(updateActive);
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onScroll, { passive: true });
+        updateActive();
       }
 
       // Smooth scroll au clic
