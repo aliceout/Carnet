@@ -182,6 +182,10 @@ export default function PostEditViewClient({
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Accordéon « Tutoriel » à droite du header bib-block. Fermé par
+  // défaut — le tutoriel ne sert que la première fois.
+  const [bibHelpOpen, setBibHelpOpen] = useState(false);
+
   // Tick toutes les 30s pour rafraîchir le « il y a X min »
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30000);
@@ -873,20 +877,33 @@ export default function PostEditViewClient({
             <div className="bib-block">
               <div className="bib-block__h">
                 <span>Bibliographie liée ({biblioIds.length})</span>
+                <button
+                  type="button"
+                  className="bib-block__help-toggle"
+                  onClick={() => setBibHelpOpen((o) => !o)}
+                  aria-expanded={bibHelpOpen}
+                >
+                  Tutoriel
+                  <span className="caret" aria-hidden="true">
+                    {bibHelpOpen ? '▴' : '▾'}
+                  </span>
+                </button>
               </div>
+              {bibHelpOpen && (
+                <div className="bib-block__help">
+                  Pour <em>citer</em> une référence dans le corps : tapez <kbd>/</kbd>{' '}
+                  puis « Bibliographie inline » — choisissez-la dans le panneau qui
+                  s’ouvre.
+                  <br />
+                  Pour <em>lister</em> une référence sans la citer dans le corps :
+                  ajoutez-la directement ci-dessous.
+                </div>
+              )}
               <BiblioSearchPicker
                 options={biblioOptions}
                 attachedIds={biblioIds}
                 onPick={(id) => toggleBiblio(id)}
               />
-              <div className="bib-block__help">
-                Pour <em>citer</em> une référence dans le corps : tapez <kbd>/</kbd>{' '}
-                puis « Bibliographie inline » — choisissez-la dans le panneau qui
-                s’ouvre.
-                <br />
-                Pour <em>lister</em> une référence sans la citer dans le corps :
-                ajoutez-la directement ci-dessus.
-              </div>
               <div className="biblio-list">
                 {biblioIds.length === 0 && (
                   <div className="b-row b-row--empty">Aucune référence liée.</div>

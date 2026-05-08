@@ -3941,6 +3941,36 @@ button.btn--style-primary,
       align-items: center;
     }
 
+    // Bouton « Tutoriel ▾ » à droite du header — toggle l'accordéon
+    // bib-block__help. Style minimaliste pour rester subordonné au
+    // titre. Le caret pivote selon l'état ouvert/fermé.
+    &__help-toggle {
+      background: transparent;
+      border: 0;
+      padding: 0;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--b-muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: color 0.12s;
+
+      &:hover,
+      &[aria-expanded='true'] {
+        color: var(--b-accent);
+      }
+
+      .caret {
+        font-size: 10px;
+        line-height: 1;
+      }
+    }
+
     &__empty {
       padding: 14px 20px;
       color: var(--b-muted);
