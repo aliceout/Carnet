@@ -8,7 +8,7 @@
   },
   "packageManager": "pnpm@10.33.0",
   "scripts": {
-    "prepare": "husky",
+    "prepare": "husky || true",
     "dev": "astro dev",
     "dev:web": "astro dev",
     "dev:api": "pnpm --dir services/payload dev",
