@@ -52,6 +52,8 @@ type LexicalNode = {
       | string
       | null;
     prefix?: string;
+    /** Page(s) citée(s) dans ce passage (rendu « , p. 47 » dans la citation). */
+    pages?: string;
     suffix?: string;
     // Figure
     image?: { filename?: string; alt?: string } | number | string | null;
