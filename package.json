@@ -21,8 +21,7 @@
     "a11y": "node scripts/a11y-audit.mjs",
     "a11y:deep": "node scripts/a11y-deep.mjs",
     "format": "prettier --write \"src/**/*.{astro,ts,tsx,js,json,md}\" \"*.{md,mjs,ts,json}\"",
-    "lint": "eslint \"src/**/*.{astro,ts,tsx,js}\"",
-    "prepare": "husky"
+    "lint": "eslint \"src/**/*.{astro,ts,tsx,js}\""
   },
   "dependencies": {
     "@astrojs/node": "^10.0.6",
