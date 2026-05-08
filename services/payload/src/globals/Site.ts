@@ -16,10 +16,16 @@ export const Site: GlobalConfig = {
   },
   admin: {
     components: {
-      // Header custom (crumbs « Carnet / Site (global) ») inséré
-      // au-dessus de la barre d'actions native Payload.
-      elements: {
-        beforeDocumentControls: ['@/components/admin/SiteEditHeader#default'],
+      // Vue d'édition custom — remplace entièrement le rendu natif
+      // Payload pour /cms/admin/globals/site par le formulaire éditorial
+      // Carnet (header crumbs + sections + chips de statut). Même
+      // pattern que les list views custom (Posts/Themes/...).
+      views: {
+        edit: {
+          root: {
+            Component: '@/components/admin/SiteEditView#default',
+          },
+        },
       },
     },
   },

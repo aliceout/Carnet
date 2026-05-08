@@ -1,0 +1,347 @@
+'use client';
+
+// SiteEditView (client) — vue Édition custom du global Site qui matche
+// le langage visuel de l'admin Carnet (cf .carnet-listview / .carnet-btn).
+//
+// Layout :
+//   - Header : crumbs « Carnet / Site (global) », actions à droite (Save
+//     accent + indicateur de modifications)
+//   - Section Identité éditoriale : baseline (textarea), ligne copyright
+//   - Section Réseaux sociaux : mastodon, bluesky, orcid, hal
+//   - Section Liens du footer (col 2 « Naviguer ») : array {label, href,
+//     external}, ajout/suppression/réordonnancement
+//
+// Fetch via /cms/api/globals/site (cookies de session). Save via
+// POST /cms/api/globals/site (Payload accepte aussi PUT/PATCH mais la
+// REST API expose POST pour les globals).
+
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+
+const API_URL = '/cms/api/globals/site';
+
+type NavLink = {
+  label: string;
+  href: string;
+  external?: boolean;
+};
+
+type SiteData = {
+  baseline?: string;
+  copyrightLine?: string;
+  social?: {
+    mastodon?: string;
+    bluesky?: string;
+    orcid?: string;
+    hal?: string;
+  };
+  navFooter?: NavLink[];
+};
+
+const EMPTY: SiteData = {
+  baseline: '',
+  copyrightLine: '',
+  social: { mastodon: '', bluesky: '', orcid: '', hal: '' },
+  navFooter: [],
+};
+
+export default function SiteEditViewClient(): React.ReactElement {
+  const [data, setData] = useState<SiteData>(EMPTY);
+  const [initial, setInitial] = useState<SiteData>(EMPTY);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  // Charge l'état actuel du global au mount
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    fetch(`${API_URL}?depth=0`, { credentials: 'include' })
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((doc: SiteData) => {
+        const normalized: SiteData = {
+          baseline: doc.baseline ?? '',
+          copyrightLine: doc.copyrightLine ?? '',
+          social: {
+            mastodon: doc.social?.mastodon ?? '',
+            bluesky: doc.social?.bluesky ?? '',
+            orcid: doc.social?.orcid ?? '',
+            hal: doc.social?.hal ?? '',
+          },
+          navFooter: (doc.navFooter ?? []).map((n) => ({
+            label: n.label ?? '',
+            href: n.href ?? '',
+            external: Boolean(n.external),
+          })),
+        };
+        setData(normalized);
+        setInitial(normalized);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'Erreur inconnue');
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const dirty = JSON.stringify(data) !== JSON.stringify(initial);
+
+  function update<K extends keyof SiteData>(key: K, value: SiteData[K]) {
+    setData((d) => ({ ...d, [key]: value }));
+  }
+
+  function updateSocial(key: keyof NonNullable<SiteData['social']>, value: string) {
+    setData((d) => ({ ...d, social: { ...(d.social ?? {}), [key]: value } }));
+  }
+
+  function updateNav(idx: number, patch: Partial<NavLink>) {
+    setData((d) => {
+      const nav = [...(d.navFooter ?? [])];
+      nav[idx] = { ...nav[idx], ...patch };
+      return { ...d, navFooter: nav };
+    });
+  }
+
+  function addNav() {
+    setData((d) => ({
+      ...d,
+      navFooter: [...(d.navFooter ?? []), { label: '', href: '', external: false }],
+    }));
+  }
+
+  function removeNav(idx: number) {
+    setData((d) => ({
+      ...d,
+      navFooter: (d.navFooter ?? []).filter((_, i) => i !== idx),
+    }));
+  }
+
+  function moveNav(idx: number, delta: -1 | 1) {
+    setData((d) => {
+      const nav = [...(d.navFooter ?? [])];
+      const target = idx + delta;
+      if (target < 0 || target >= nav.length) return d;
+      [nav[idx], nav[target]] = [nav[target], nav[idx]];
+      return { ...d, navFooter: nav };
+    });
+  }
+
+  async function save() {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`HTTP ${res.status} — ${body.slice(0, 200)}`);
+      }
+      const doc = (await res.json()) as { result?: SiteData } | SiteData;
+      // Payload renvoie soit { result, message } soit le doc direct selon la version
+      const fresh: SiteData = (doc as { result?: SiteData }).result ?? (doc as SiteData);
+      const normalized: SiteData = {
+        baseline: fresh.baseline ?? '',
+        copyrightLine: fresh.copyrightLine ?? '',
+        social: {
+          mastodon: fresh.social?.mastodon ?? '',
+          bluesky: fresh.social?.bluesky ?? '',
+          orcid: fresh.social?.orcid ?? '',
+          hal: fresh.social?.hal ?? '',
+        },
+        navFooter: (fresh.navFooter ?? []).map((n) => ({
+          label: n.label ?? '',
+          href: n.href ?? '',
+          external: Boolean(n.external),
+        })),
+      };
+      setData(normalized);
+      setInitial(normalized);
+      setSavedAt(Date.now());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="carnet-editview">
+      <header className="carnet-editview__header">
+        <div className="carnet-editview__crumbs">
+          <Link href="/cms/admin">Carnet</Link>
+          <span className="sep" aria-hidden="true">
+            /
+          </span>
+          <span className="cur">Site (global)</span>
+        </div>
+        <div className="carnet-editview__actions">
+          {dirty && (
+            <span className="carnet-editview__dirty" aria-live="polite">
+              Modifications non enregistrées
+            </span>
+          )}
+          {!dirty && savedAt && (
+            <span className="carnet-editview__saved" aria-live="polite">
+              Enregistré
+            </span>
+          )}
+          <button
+            type="button"
+            className="carnet-btn carnet-btn--accent"
+            onClick={save}
+            disabled={!dirty || saving || loading}
+          >
+            {saving ? 'Enregistrement…' : 'Enregistrer'}
+          </button>
+        </div>
+      </header>
+
+      {error && <div className="carnet-editview__error">Erreur : {error}</div>}
+
+      {loading ? (
+        <div className="carnet-editview__loading">Chargement…</div>
+      ) : (
+        <form
+          className="carnet-editview__form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void save();
+          }}
+        >
+          <section className="carnet-editview__section">
+            <h2 className="carnet-editview__section-title">Identité éditoriale</h2>
+            <p className="carnet-editview__section-help">
+              Ces deux lignes apparaissent dans le footer du site (col 1).
+            </p>
+
+            <label className="carnet-editview__field">
+              <span className="lbl">Baseline</span>
+              <textarea
+                rows={3}
+                value={data.baseline ?? ''}
+                onChange={(e) => update('baseline', e.target.value)}
+              />
+            </label>
+
+            <label className="carnet-editview__field">
+              <span className="lbl">Ligne copyright</span>
+              <input
+                type="text"
+                value={data.copyrightLine ?? ''}
+                onChange={(e) => update('copyrightLine', e.target.value)}
+              />
+              <span className="hint">Affichée en mono sous la baseline.</span>
+            </label>
+          </section>
+
+          <section className="carnet-editview__section">
+            <h2 className="carnet-editview__section-title">Réseaux sociaux</h2>
+            <p className="carnet-editview__section-help">
+              URLs complètes — laisser vide pour masquer.
+            </p>
+
+            {(['mastodon', 'bluesky', 'orcid', 'hal'] as const).map((k) => (
+              <label key={k} className="carnet-editview__field">
+                <span className="lbl">{k.charAt(0).toUpperCase() + k.slice(1)}</span>
+                <input
+                  type="url"
+                  value={data.social?.[k] ?? ''}
+                  onChange={(e) => updateSocial(k, e.target.value)}
+                  placeholder={`https://…`}
+                />
+              </label>
+            ))}
+          </section>
+
+          <section className="carnet-editview__section">
+            <h2 className="carnet-editview__section-title">
+              Liens du footer (col 2 « Naviguer »)
+            </h2>
+            <p className="carnet-editview__section-help">
+              Lus par le footer Astro au SSR. L&apos;ordre ici détermine l&apos;ordre affiché.
+            </p>
+
+            <div className="carnet-editview__rows">
+              {(data.navFooter ?? []).length === 0 && (
+                <div className="carnet-editview__empty">Aucun lien.</div>
+              )}
+              {(data.navFooter ?? []).map((row, idx) => (
+                <div key={idx} className="carnet-editview__row">
+                  <label className="carnet-editview__field carnet-editview__field--inline">
+                    <span className="lbl">Label</span>
+                    <input
+                      type="text"
+                      value={row.label}
+                      onChange={(e) => updateNav(idx, { label: e.target.value })}
+                    />
+                  </label>
+                  <label className="carnet-editview__field carnet-editview__field--inline">
+                    <span className="lbl">Href</span>
+                    <input
+                      type="text"
+                      value={row.href}
+                      onChange={(e) => updateNav(idx, { href: e.target.value })}
+                    />
+                  </label>
+                  <label className="carnet-editview__field carnet-editview__field--inline carnet-editview__field--check">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(row.external)}
+                      onChange={(e) => updateNav(idx, { external: e.target.checked })}
+                    />
+                    <span className="lbl">Externe</span>
+                  </label>
+                  <div className="carnet-editview__row-actions">
+                    <button
+                      type="button"
+                      className="carnet-btn carnet-btn--ghost"
+                      onClick={() => moveNav(idx, -1)}
+                      disabled={idx === 0}
+                      aria-label="Monter"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className="carnet-btn carnet-btn--ghost"
+                      onClick={() => moveNav(idx, 1)}
+                      disabled={idx === (data.navFooter ?? []).length - 1}
+                      aria-label="Descendre"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      className="carnet-btn carnet-btn--ghost"
+                      onClick={() => removeNav(idx)}
+                      aria-label="Supprimer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="carnet-editview__rows-actions">
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--ghost"
+                onClick={addNav}
+              >
+                + Ajouter un lien
+              </button>
+            </div>
+          </section>
+        </form>
+      )}
+    </div>
+  );
+}

@@ -41,13 +41,17 @@ export const Posts: CollectionConfig = {
     defaultColumns: ['numero', 'title', 'type', 'publishedAt', 'draft', 'updatedAt'],
     listSearchableFields: ['title', 'slug', 'lede'],
     components: {
-      // Header custom (breadcrumb « Carnet / Billets / n° 042 » + chip
-      // statut) inséré au-dessus de la barre d'actions native Payload.
-      // Cf Design/design_handoff_admin/carnet-admin.html → ScreenDoc.
-      edit: {
-        beforeDocumentControls: ['@/components/admin/PostEditHeader#default'],
-      },
       views: {
+        // Vue d'édition entièrement custom — remplace tout le rendu
+        // natif Payload (form stacked + sidebar) par le layout éditorial
+        // du handoff : header + .ed-card (title/lede/Lexical custom)
+        // + meta sidebar 300px + .fn-block. Cf Design/design_handoff_admin/
+        // carnet-admin.html → ScreenDoc.
+        edit: {
+          root: {
+            Component: '@/components/admin/PostEditView#default',
+          },
+        },
         // List view custom — remplace entièrement la liste native Payload
         // par le tableau éditorial du handoff (toolbar 4 filtres, chips
         // de statut, pagination compacte).
@@ -59,17 +63,6 @@ export const Posts: CollectionConfig = {
     },
   },
   fields: [
-    {
-      // Field UI fantôme — rend la ligne mono « Billet n° 042 ·
-      // carnet:2026-042 » en haut du formulaire, comme la maquette.
-      name: 'metaLine',
-      type: 'ui',
-      admin: {
-        components: {
-          Field: '@/components/admin/PostMetaLine#default',
-        },
-      },
-    },
     {
       name: 'numero',
       type: 'number',

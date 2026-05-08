@@ -77,6 +77,14 @@ export default buildConfig({
         dashboard: {
           Component: '@/components/admin/Dashboard#default',
         },
+        // /cms/admin/account — vue Mon compte custom. Même pattern
+        // que les list views custom : remplace entièrement le rendu
+        // natif Payload, fetch via /cms/api/users/me, save via PATCH
+        // /cms/api/users/[id], embed le panneau Sécurité existant
+        // (2FA + trusted devices).
+        account: {
+          Component: '@/components/admin/AccountView#default',
+        },
       },
       // Keepalive injecté en barre d'actions globale → tourne sur toutes
       // les pages de l'admin tant qu'un onglet est ouvert.

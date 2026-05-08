@@ -1,0 +1,581 @@
+'use client';
+
+// Lexical editor custom — sans aucune chrome Payload (pas de field-type
+// wrapper, pas de toolbar Payload, pas de label, pas d'aide Payload).
+// Theme et nodes décorateur entièrement maison, slash menu maison.
+//
+// Format de stockage : Lexical JSON standard (root.children…). Compatible
+// avec ce que Payload BlocksFeature génère pour les posts existants —
+// on enregistre des decorator nodes pour les types `block` et
+// `inlineBlock` afin de round-tripper sans erreur les blocks existants
+// (Footnote, CitationBloc, BiblioInline, Figure). L'édition fine des
+// fields des blocks (ex : le textarea d'une note, le picker biblio)
+// se fait via une popover inline que ce module rend lui-même.
+
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { LexicalComposer } from '@lexical/react/LexicalComposer';
+import { ContentEditable } from '@lexical/react/LexicalContentEditable';
+import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
+import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
+import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
+import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { mergeRegister } from '@lexical/utils';
+import { HeadingNode, QuoteNode, $createHeadingNode, $createQuoteNode } from '@lexical/rich-text';
+import { LinkNode } from '@lexical/link';
+import { ListNode, ListItemNode } from '@lexical/list';
+import {
+  $getSelection,
+  $isRangeSelection,
+  COMMAND_PRIORITY_LOW,
+  KEY_DOWN_COMMAND,
+  FORMAT_TEXT_COMMAND,
+  $insertNodes,
+  type EditorState,
+  type LexicalEditor,
+  type SerializedLexicalNode,
+} from 'lexical';
+
+import {
+  CarnetBlockNode,
+  $createCarnetBlockNode,
+  CarnetInlineBlockNode,
+  $createCarnetInlineBlockNode,
+  type CarnetBlockData,
+  type CarnetInlineBlockData,
+} from './nodes';
+
+// ─── Types publics ────────────────────────────────────────────────
+
+export type LexicalState = {
+  root: {
+    type: 'root';
+    children: SerializedLexicalNode[];
+    direction: 'ltr' | 'rtl' | null;
+    format: '' | 'left' | 'center' | 'right' | 'justify' | 'start' | 'end';
+    indent: number;
+    version: number;
+  };
+};
+
+export type BibEntry = {
+  id: number | string;
+  key?: string;
+  au?: string;
+  an?: string;
+  ti?: string;
+};
+
+// ─── Theme ────────────────────────────────────────────────────────
+// Classes CSS appliquées par Lexical aux nodes natifs. Toutes scoped
+// sous .ed-body — cf custom.scss (.carnet-postedit .ed-body …).
+
+const carnetTheme = {
+  paragraph: 'ed-p',
+  heading: { h2: 'ed-h2', h3: 'ed-h3' },
+  quote: 'ed-quote',
+  text: {
+    bold: 'ed-bold',
+    italic: 'ed-italic',
+    underline: 'ed-underline',
+    strikethrough: 'ed-strike',
+    code: 'ed-code',
+  },
+  link: 'ed-link',
+  list: { ul: 'ed-ul', ol: 'ed-ol', listitem: 'ed-li' },
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────
+
+const EMPTY_STATE: LexicalState = {
+  root: {
+    type: 'root',
+    children: [
+      {
+        type: 'paragraph',
+        version: 1,
+        format: '',
+        indent: 0,
+        direction: null,
+        children: [],
+      } as unknown as SerializedLexicalNode,
+    ],
+    direction: null,
+    format: '',
+    indent: 0,
+    version: 1,
+  },
+};
+
+function safeInitialState(value: LexicalState | null): string {
+  try {
+    if (!value || !value.root) return JSON.stringify(EMPTY_STATE);
+    return JSON.stringify(value);
+  } catch {
+    return JSON.stringify(EMPTY_STATE);
+  }
+}
+
+// Walke le JSON pour extraire les Footnote dans l'ordre d'apparition.
+// Renvoie [{ key, index, content }]. La numérotation [1], [2] … est
+// dérivée de l'ordre, pas stockée — comme côté frontend Astro.
+export function extractFootnotes(
+  body: LexicalState | null | undefined,
+): Array<{ key: string; index: number; content: string }> {
+  const out: Array<{ key: string; index: number; content: string }> = [];
+  if (!body?.root) return out;
+  let i = 1;
+  function walk(node: unknown) {
+    if (!node || typeof node !== 'object') return;
+    const n = node as Record<string, unknown>;
+    const type = n.type as string | undefined;
+    const fields = (n.fields ?? {}) as Record<string, unknown>;
+    if (
+      (type === 'inlineBlock' || type === 'block') &&
+      (fields.blockType === 'footnote' || (n as { blockType?: string }).blockType === 'footnote')
+    ) {
+      out.push({
+        key: String(n.key ?? `fn-${out.length}`),
+        index: i++,
+        content: String(fields.content ?? ''),
+      });
+    }
+    const children = n.children;
+    if (Array.isArray(children)) for (const c of children) walk(c);
+  }
+  walk(body.root);
+  return out;
+}
+
+// ─── Slash menu ───────────────────────────────────────────────────
+// Trigger : touche `/` en début de paragraphe ou après un espace.
+// Affiché en popover sous le curseur. Items : structure (H2/H3/quote)
+// + blocks Carnet (Note de bas de page, Citation longue, Biblio inline,
+// Figure).
+
+type SlashItem = {
+  id: string;
+  group: 'Blocs Carnet' | 'Mise en forme';
+  ic: string;
+  label: string;
+  desc?: string;
+  kbd?: string;
+  exec: (editor: LexicalEditor, ctx: { biblioOptions: BibEntry[] }) => void;
+};
+
+const SLASH_ITEMS: SlashItem[] = [
+  {
+    id: 'fn',
+    group: 'Blocs Carnet',
+    ic: 'fn',
+    label: 'Note de bas de page',
+    desc: 'Note numérotée, retour automatique',
+    kbd: 'F',
+    exec: (editor) => {
+      editor.update(() => {
+        const node = $createCarnetInlineBlockNode({
+          blockType: 'footnote',
+          fields: { content: '' },
+        });
+        $insertNodes([node]);
+      });
+    },
+  },
+  {
+    id: 'cit',
+    group: 'Blocs Carnet',
+    ic: '«»',
+    label: 'Citation longue',
+    desc: 'Bloc filet gauche accent',
+    kbd: 'Q',
+    exec: (editor) => {
+      editor.update(() => {
+        const node = $createCarnetBlockNode({
+          blockType: 'citation_bloc',
+          fields: { text: '', source: '' },
+        });
+        $insertNodes([node]);
+      });
+    },
+  },
+  {
+    id: 'bi',
+    group: 'Blocs Carnet',
+    ic: '@',
+    label: 'Bibliographie inline',
+    desc: 'Insère une référence par sa clé',
+    kbd: 'B',
+    exec: (editor) => {
+      editor.update(() => {
+        const node = $createCarnetInlineBlockNode({
+          blockType: 'biblio_inline',
+          fields: { entry: null, prefix: '', suffix: '' },
+        });
+        $insertNodes([node]);
+      });
+    },
+  },
+  {
+    id: 'fig',
+    group: 'Blocs Carnet',
+    ic: '▢',
+    label: 'Figure',
+    desc: 'Image + légende',
+    kbd: 'I',
+    exec: (editor) => {
+      editor.update(() => {
+        const node = $createCarnetBlockNode({
+          blockType: 'figure',
+          fields: { image: null, legende: '', credit: '', align: 'corps' },
+        });
+        $insertNodes([node]);
+      });
+    },
+  },
+  {
+    id: 'h2',
+    group: 'Mise en forme',
+    ic: 'H2',
+    label: 'Titre de section',
+    kbd: '⌥1',
+    exec: (editor) => {
+      editor.update(() => {
+        const sel = $getSelection();
+        if (!$isRangeSelection(sel)) return;
+        const h = $createHeadingNode('h2');
+        sel.insertNodes([h]);
+      });
+    },
+  },
+  {
+    id: 'h3',
+    group: 'Mise en forme',
+    ic: 'H3',
+    label: 'Sous-titre',
+    kbd: '⌥2',
+    exec: (editor) => {
+      editor.update(() => {
+        const sel = $getSelection();
+        if (!$isRangeSelection(sel)) return;
+        const h = $createHeadingNode('h3');
+        sel.insertNodes([h]);
+      });
+    },
+  },
+  {
+    id: 'quote',
+    group: 'Mise en forme',
+    ic: '”',
+    label: 'Citation simple',
+    exec: (editor) => {
+      editor.update(() => {
+        const sel = $getSelection();
+        if (!$isRangeSelection(sel)) return;
+        const q = $createQuoteNode();
+        sel.insertNodes([q]);
+      });
+    },
+  },
+];
+
+function SlashMenuPlugin({ biblioOptions }: { biblioOptions: BibEntry[] }) {
+  const [editor] = useLexicalComposerContext();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const triggerRef = useRef<{ start: number; end: number } | null>(null);
+
+  // Filtre les items par query
+  const items = useMemo(() => {
+    const q = query.toLowerCase().trim();
+    if (!q) return SLASH_ITEMS;
+    return SLASH_ITEMS.filter(
+      (it) =>
+        it.label.toLowerCase().includes(q) ||
+        it.id.toLowerCase().includes(q) ||
+        (it.desc ?? '').toLowerCase().includes(q),
+    );
+  }, [query]);
+
+  useEffect(() => {
+    setActiveIdx(0);
+  }, [query, open]);
+
+  // Ouvre le menu quand on tape `/` au début d'un noeud / ligne
+  useEffect(() => {
+    return mergeRegister(
+      editor.registerCommand(
+        KEY_DOWN_COMMAND,
+        (event) => {
+          if (open) {
+            if (event.key === 'Escape') {
+              setOpen(false);
+              return true;
+            }
+            if (event.key === 'ArrowDown') {
+              event.preventDefault();
+              setActiveIdx((i) => Math.min(items.length - 1, i + 1));
+              return true;
+            }
+            if (event.key === 'ArrowUp') {
+              event.preventDefault();
+              setActiveIdx((i) => Math.max(0, i - 1));
+              return true;
+            }
+            if (event.key === 'Enter' || event.key === 'Tab') {
+              event.preventDefault();
+              const it = items[activeIdx];
+              if (it) {
+                // Supprime le `/...` saisi avant d'insérer
+                editor.update(() => {
+                  const sel = $getSelection();
+                  if ($isRangeSelection(sel) && triggerRef.current) {
+                    const node = sel.anchor.getNode();
+                    const text = node.getTextContent();
+                    const before = text.slice(0, triggerRef.current.start);
+                    if ('setTextContent' in node && typeof node.setTextContent === 'function') {
+                      (node as { setTextContent: (s: string) => void }).setTextContent(before);
+                    }
+                  }
+                });
+                it.exec(editor, { biblioOptions });
+                setOpen(false);
+                setQuery('');
+              }
+              return true;
+            }
+          }
+          if (event.key === '/') {
+            // Délai d'un tick pour que le `/` soit dans le doc avant calcul pos
+            setTimeout(() => {
+              const sel = window.getSelection();
+              if (!sel || sel.rangeCount === 0) return;
+              const range = sel.getRangeAt(0);
+              const rect = range.getBoundingClientRect();
+              setPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX });
+              setOpen(true);
+              setQuery('');
+              triggerRef.current = { start: 0, end: 0 };
+            }, 0);
+          }
+          return false;
+        },
+        COMMAND_PRIORITY_LOW,
+      ),
+    );
+  }, [editor, open, items, activeIdx, biblioOptions]);
+
+  // Met à jour la query selon ce qui est tapé après le `/`
+  useEffect(() => {
+    if (!open) return;
+    return editor.registerUpdateListener(({ editorState }) => {
+      editorState.read(() => {
+        const sel = $getSelection();
+        if (!$isRangeSelection(sel)) return;
+        const node = sel.anchor.getNode();
+        const text = node.getTextContent();
+        const slashIdx = text.lastIndexOf('/');
+        if (slashIdx < 0) {
+          setOpen(false);
+          return;
+        }
+        const after = text.slice(slashIdx + 1);
+        if (after.length > 30 || /\n/.test(after)) {
+          setOpen(false);
+          return;
+        }
+        setQuery(after);
+        triggerRef.current = { start: slashIdx, end: slashIdx + after.length + 1 };
+      });
+    });
+  }, [editor, open]);
+
+  if (!open || !pos || items.length === 0) return null;
+
+  // Group items
+  const groups: Record<string, SlashItem[]> = {};
+  items.forEach((it) => {
+    if (!groups[it.group]) groups[it.group] = [];
+    groups[it.group].push(it);
+  });
+
+  return (
+    <div
+      className="ed-slash"
+      style={{ position: 'absolute', top: pos.top, left: pos.left, zIndex: 50 }}
+      role="listbox"
+    >
+      {Object.entries(groups).map(([g, list]) => (
+        <React.Fragment key={g}>
+          <div className="ed-slash__lbl">{g}</div>
+          {list.map((it) => {
+            const idx = items.indexOf(it);
+            return (
+              <button
+                key={it.id}
+                type="button"
+                role="option"
+                aria-selected={idx === activeIdx}
+                className={`ed-slash__opt${idx === activeIdx ? ' on' : ''}`}
+                onMouseEnter={() => setActiveIdx(idx)}
+                onMouseDown={(e) => {
+                  // mouseDown plutôt que click pour ne pas perdre le focus du contenteditable
+                  e.preventDefault();
+                  it.exec(editor, { biblioOptions });
+                  // Cleanup le slash typé
+                  editor.update(() => {
+                    const sel = $getSelection();
+                    if ($isRangeSelection(sel) && triggerRef.current) {
+                      const node = sel.anchor.getNode();
+                      const text = node.getTextContent();
+                      const before = text.slice(0, triggerRef.current.start);
+                      if ('setTextContent' in node && typeof node.setTextContent === 'function') {
+                        (node as { setTextContent: (s: string) => void }).setTextContent(before);
+                      }
+                    }
+                  });
+                  setOpen(false);
+                  setQuery('');
+                }}
+              >
+                <span className="ic">{it.ic}</span>
+                <span className="lab">
+                  {it.label}
+                  {it.desc && <span className="desc">{it.desc}</span>}
+                </span>
+                {it.kbd && <span className="kbd">{it.kbd}</span>}
+              </button>
+            );
+          })}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+// ─── Raccourcis clavier (Cmd+B / Cmd+I, Alt+1 → H2, Alt+2 → H3) ──
+
+function KeyboardPlugin() {
+  const [editor] = useLexicalComposerContext();
+  useEffect(() => {
+    return mergeRegister(
+      editor.registerCommand(
+        KEY_DOWN_COMMAND,
+        (event) => {
+          const meta = event.metaKey || event.ctrlKey;
+          if (meta && event.key.toLowerCase() === 'b') {
+            event.preventDefault();
+            editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold');
+            return true;
+          }
+          if (meta && event.key.toLowerCase() === 'i') {
+            event.preventDefault();
+            editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic');
+            return true;
+          }
+          if (event.altKey && event.key === '1') {
+            event.preventDefault();
+            editor.update(() => {
+              const sel = $getSelection();
+              if (!$isRangeSelection(sel)) return;
+              sel.insertNodes([$createHeadingNode('h2')]);
+            });
+            return true;
+          }
+          if (event.altKey && event.key === '2') {
+            event.preventDefault();
+            editor.update(() => {
+              const sel = $getSelection();
+              if (!$isRangeSelection(sel)) return;
+              sel.insertNodes([$createHeadingNode('h3')]);
+            });
+            return true;
+          }
+          return false;
+        },
+        COMMAND_PRIORITY_LOW,
+      ),
+    );
+  }, [editor]);
+  return null;
+}
+
+// ─── Editor principal ────────────────────────────────────────────
+
+export default function PostBodyEditor({
+  value,
+  onChange,
+  biblioOptions,
+}: {
+  value: LexicalState | null;
+  onChange: (v: LexicalState) => void;
+  biblioOptions: BibEntry[];
+}): React.ReactElement {
+  const initialJsonRef = useRef<string>(safeInitialState(value));
+
+  const initialConfig = useMemo(
+    () => ({
+      namespace: 'CarnetPostBody',
+      theme: carnetTheme,
+      onError: (err: Error) => {
+        // Affiche l'erreur sans casser tout l'éditeur
+        // eslint-disable-next-line no-console
+        console.error('[CarnetPostBody]', err);
+      },
+      nodes: [
+        HeadingNode,
+        QuoteNode,
+        LinkNode,
+        ListNode,
+        ListItemNode,
+        CarnetBlockNode,
+        CarnetInlineBlockNode,
+      ],
+      editorState: initialJsonRef.current,
+    }),
+    // initialJsonRef.current capturé une fois — on ne ré-instancie pas
+    // l'éditeur quand `value` change, sinon on perd le focus à chaque
+    // frappe (chaque parent re-render).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  const handleChange = useCallback(
+    (state: EditorState) => {
+      const json = state.toJSON();
+      onChange(json as unknown as LexicalState);
+    },
+    [onChange],
+  );
+
+  // Note : pas de mécanisme de re-load externe. PostEditView ne monte
+  // ce composant qu'après le fetch initial (loading=false), donc value
+  // est déjà bon au mount. Les changements de value viennent de notre
+  // propre onChange — on ne veut pas re-injecter (sinon on perd le
+  // focus à chaque frappe).
+
+  return (
+    <div className="ed-body">
+      <LexicalComposer initialConfig={initialConfig}>
+        <RichTextPlugin
+          contentEditable={<ContentEditable className="ed-body__ce" spellCheck />}
+          placeholder={
+            <div className="ed-body__placeholder">
+              Commence à taper, ou tape « / » pour insérer un bloc Carnet…
+            </div>
+          }
+          ErrorBoundary={LexicalErrorBoundary}
+        />
+        <HistoryPlugin />
+        <OnChangePlugin onChange={handleChange} />
+        <KeyboardPlugin />
+        <SlashMenuPlugin biblioOptions={biblioOptions} />
+      </LexicalComposer>
+    </div>
+  );
+}
+
+// ─── Re-exports utiles ───────────────────────────────────────────
+
+export type { CarnetBlockData, CarnetInlineBlockData };
