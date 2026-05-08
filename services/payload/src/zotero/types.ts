@@ -49,7 +49,27 @@ export type ZoteroItem = {
 export type ZoteroSyncResult = {
   added: number;
   updated: number;
-  errors: Array<{ key: string; reason: string }>;
+  /** Refs supprimées côté Zotero ET pas citées dans des billets — effacées du Carnet. */
+  deleted: number;
+  /**
+   * Refs supprimées côté Zotero MAIS encore citées dans des billets : on
+   * les garde côté Carnet pour ne pas casser les citations existantes.
+   * L'autrice doit retirer la citation du billet (ou supprimer la ref
+   * manuellement) si elle veut s'en débarrasser.
+   */
+  keptCited: Array<{
+    key: string;
+    title: string;
+    /** Numéros des billets qui citent encore cette ref. */
+    postNumeros: number[];
+  }>;
+  errors: Array<{
+    key: string;
+    /** Titre Zotero (s'il existe) — sert à identifier la ref côté UI. */
+    title: string | null;
+    /** Raison précise pour laquelle l'item est ignoré (champ manquant, format invalide…). */
+    reason: string;
+  }>;
   /** Version Zotero la plus récente vue durant ce sync — sert de pivot pour le suivant. */
   newVersion: number;
 };

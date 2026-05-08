@@ -1,7 +1,10 @@
 'use client';
 
 // BibliographyListView (client) — vue Liste custom Bibliographie :
-// recherche + filtre par type, tableau slug/auteur/année/titre/type.
+// recherche par auteur, filtre par type + provenance, bouton × par
+// ligne pour supprimer (avec modale de confirmation). Les refs Zotero
+// supprimées reviennent au prochain sync — l'autrice peut donc nettoyer
+// sans crainte côté Carnet.
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -9,6 +12,7 @@ import Link from 'next/link';
 import CarnetTopbar from './CarnetTopbar';
 
 const PER_PAGE = 25;
+const API_BIBLIO = '/cms/api/bibliography';
 
 type BiblioEntry = {
   id: number | string;
@@ -31,6 +35,7 @@ type FetchResult<T> = {
 };
 
 type FilterType = 'all' | 'book' | 'chapter' | 'article' | 'paper' | 'web' | 'other';
+type FilterSource = 'all' | 'manual' | 'zotero';
 
 const TYPE_LABEL: Record<Exclude<FilterType, 'all'>, string> = {
   book: 'Livre',
@@ -50,6 +55,14 @@ export default function BibliographyListViewClient(): React.ReactElement {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [type, setType] = useState<FilterType>('all');
+  const [source, setSource] = useState<FilterSource>('all');
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // Modale de confirmation de suppression (target = ref à supprimer ;
+  // null = fermée). Pattern aligné sur TagListView.
+  const [deleteTarget, setDeleteTarget] = useState<BiblioEntry | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -61,8 +74,9 @@ export default function BibliographyListViewClient(): React.ReactElement {
     params.set('depth', '0');
     if (search.trim()) params.append('where[authorLabel][like]', search.trim());
     if (type !== 'all') params.append('where[type][equals]', type);
+    if (source !== 'all') params.append('where[source][equals]', source);
 
-    fetch(`/cms/api/bibliography?${params.toString()}`, { credentials: 'include' })
+    fetch(`${API_BIBLIO}?${params.toString()}`, { credentials: 'include' })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
@@ -77,9 +91,42 @@ export default function BibliographyListViewClient(): React.ReactElement {
         setEntries([]);
       })
       .finally(() => setLoading(false));
-  }, [page, search, type]);
+  }, [page, search, type, source, reloadKey]);
 
-  useEffect(() => setPage(1), [search, type]);
+  useEffect(() => setPage(1), [search, type, source]);
+
+  function openDelete(entry: BiblioEntry) {
+    setDeleteTarget(entry);
+    setDeleteError(null);
+  }
+
+  function closeDelete() {
+    if (deleteSubmitting) return;
+    setDeleteTarget(null);
+    setDeleteError(null);
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    setDeleteSubmitting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(`${API_BIBLIO}/${encodeURIComponent(String(deleteTarget.id))}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(`HTTP ${res.status} — ${t.slice(0, 200)}`);
+      }
+      setDeleteTarget(null);
+      setReloadKey((k) => k + 1);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Erreur inconnue');
+    } finally {
+      setDeleteSubmitting(false);
+    }
+  }
 
   const startIdx = (page - 1) * PER_PAGE + 1;
   const endIdx = Math.min(page * PER_PAGE, totalDocs);
@@ -121,6 +168,14 @@ export default function BibliographyListViewClient(): React.ReactElement {
             <option value="other">Autre</option>
           </select>
         </label>
+        <label className="carnet-listview__filter">
+          <span className="lbl">Provenance :</span>
+          <select value={source} onChange={(e) => setSource(e.target.value as FilterSource)}>
+            <option value="all">toutes</option>
+            <option value="manual">Saisie manuelle</option>
+            <option value="zotero">Zotero</option>
+          </select>
+        </label>
       </div>
 
       {error && <div className="carnet-listview__error">Erreur : {error}</div>}
@@ -133,6 +188,7 @@ export default function BibliographyListViewClient(): React.ReactElement {
           <div role="columnheader">Titre</div>
           <div role="columnheader">Éditeur / Revue</div>
           <div role="columnheader">Type</div>
+          <div role="columnheader" aria-label="Actions" />
         </div>
 
         {loading && entries.length === 0 ? (
@@ -144,40 +200,47 @@ export default function BibliographyListViewClient(): React.ReactElement {
             const first = b.authors?.[0];
             const hasMore = (b.authors?.length ?? 0) > 1;
             return (
-            <Link
-              key={b.id}
-              href={`/cms/admin/collections/bibliography/${b.id}`}
-              className="carnet-listview__row"
-              role="row"
-            >
-              <div role="cell" className="firstname">
-                {first?.firstName || '—'}
-              </div>
-              <div role="cell" className="lastname">
-                {first?.lastName || '—'}
-                {hasMore && <span className="lastname__etal"> et al.</span>}
-              </div>
-              <div role="cell" className="year">
-                {b.year}
-              </div>
-              <div role="cell" className="title">
-                {b.title}
-                {b.source === 'zotero' && (
-                  <span
-                    className="carnet-zotero-badge"
-                    title="Importée depuis Zotero — éditable uniquement dans Zotero."
+              <Link
+                key={b.id}
+                href={`/cms/admin/collections/bibliography/${b.id}`}
+                className="carnet-listview__row"
+                role="row"
+              >
+                <div role="cell" className="firstname">
+                  {first?.firstName || '—'}
+                </div>
+                <div role="cell" className="lastname">
+                  {first?.lastName || '—'}
+                  {hasMore && <span className="lastname__etal"> et al.</span>}
+                </div>
+                <div role="cell" className="year">
+                  {b.year}
+                </div>
+                <div role="cell" className="title">
+                  {b.title}
+                </div>
+                <div role="cell" className="venue">
+                  {b.publisher || b.journal || '—'}
+                </div>
+                <div role="cell" className="type-cell">
+                  {TYPE_LABEL[b.type as Exclude<FilterType, 'all'>] ?? b.type}
+                </div>
+                <div role="cell">
+                  <button
+                    type="button"
+                    className="row-delete"
+                    aria-label={`Supprimer ${b.title}`}
+                    title="Supprimer cette référence"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      openDelete(b);
+                    }}
                   >
-                    Z
-                  </span>
-                )}
-              </div>
-              <div role="cell" className="venue">
-                {b.publisher || b.journal || '—'}
-              </div>
-              <div role="cell" className="type-cell">
-                {TYPE_LABEL[b.type as Exclude<FilterType, 'all'>] ?? b.type}
-              </div>
-            </Link>
+                    ×
+                  </button>
+                </div>
+              </Link>
             );
           })
         )}
@@ -220,6 +283,64 @@ export default function BibliographyListViewClient(): React.ReactElement {
           </div>
         )}
       </div>
+
+      {deleteTarget && (
+        <div
+          className="carnet-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeDelete();
+          }}
+        >
+          <div className="carnet-modal" role="dialog" aria-modal="true">
+            <header className="carnet-modal__header">
+              <h2>Supprimer cette référence ?</h2>
+              <button
+                type="button"
+                className="carnet-modal__close"
+                onClick={closeDelete}
+                aria-label="Fermer"
+              >
+                ×
+              </button>
+            </header>
+
+            {deleteError && (
+              <div className="carnet-modal__error">Erreur : {deleteError}</div>
+            )}
+
+            <div className="carnet-modal__body">
+              <p>
+                «&nbsp;{deleteTarget.title}&nbsp;» sera supprimée du Carnet.
+                {deleteTarget.source === 'zotero' && (
+                  <>
+                    {' '}Cette référence vient de Zotero — elle sera
+                    réimportée au prochain sync.
+                  </>
+                )}
+              </p>
+            </div>
+
+            <footer className="carnet-modal__footer">
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--ghost"
+                onClick={closeDelete}
+                disabled={deleteSubmitting}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className="carnet-btn carnet-btn--danger"
+                onClick={() => void confirmDelete()}
+                disabled={deleteSubmitting}
+              >
+                {deleteSubmitting ? 'Suppression…' : 'Supprimer'}
+              </button>
+            </footer>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

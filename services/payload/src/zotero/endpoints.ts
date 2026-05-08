@@ -12,7 +12,7 @@
 import type { Endpoint } from 'payload';
 
 import { errorResponse, jsonResponse, readJsonBody, requireUser } from '../auth/helpers';
-import { decrypt } from '../lib/crypto';
+import { decrypt, isEncrypted } from '../lib/crypto';
 import { testConnection, type ZoteroLibraryType } from './api';
 import { syncZoteroForUser } from './sync';
 
@@ -21,7 +21,61 @@ type UserZoteroDoc = {
     apiKey?: string | null;
     libraryId?: string | null;
     libraryType?: ZoteroLibraryType | null;
+    lastSyncAt?: string | null;
+    lastSyncVersion?: number | null;
+    lastSyncAdded?: number | null;
+    lastSyncUpdated?: number | null;
+    lastSyncError?: string | null;
   };
+};
+
+// ─── GET /users/me/zotero-status ─────────────────────────────────────
+// État sanitisé pour l'UI : confirme la présence de la clé sans la
+// révéler. Renvoie `last4` (4 derniers caractères de la clé en clair)
+// pour donner un indice visuel à l'utilisatrice. Le déchiffrement n'a
+// lieu QUE côté serveur ici, jamais retourné brut.
+
+const zoteroStatusEndpoint: Endpoint = {
+  path: '/me/zotero-status',
+  method: 'get',
+  handler: async (req) => {
+    const actor = requireUser(req);
+    if (!actor) return errorResponse('Non authentifié', 401);
+
+    const userDoc = (await req.payload.findByID({
+      collection: 'users',
+      id: actor.id,
+      overrideAccess: true,
+      req,
+      depth: 0,
+    })) as UserZoteroDoc;
+
+    const z = userDoc.zotero ?? {};
+    let configured = false;
+    let last4: string | null = null;
+    if (typeof z.apiKey === 'string' && isEncrypted(z.apiKey)) {
+      try {
+        const plain = decrypt(z.apiKey);
+        configured = plain.length > 0;
+        last4 = plain.length >= 4 ? plain.slice(-4) : plain;
+      } catch {
+        // Clé corrompue (mauvais PAYLOAD_SECRET ?). On signale comme
+        // non configurée, l'utilisatrice devra re-saisir.
+      }
+    }
+
+    return jsonResponse({
+      configured,
+      last4,
+      libraryId: z.libraryId ?? '',
+      libraryType: z.libraryType ?? 'user',
+      lastSyncAt: z.lastSyncAt ?? null,
+      lastSyncVersion: z.lastSyncVersion ?? null,
+      lastSyncAdded: z.lastSyncAdded ?? null,
+      lastSyncUpdated: z.lastSyncUpdated ?? null,
+      lastSyncError: z.lastSyncError ?? null,
+    });
+  },
 };
 
 // ─── POST /users/me/zotero-test ──────────────────────────────────────
@@ -35,21 +89,11 @@ const zoteroTestEndpoint: Endpoint = {
     const actor = requireUser(req);
     if (!actor) return errorResponse('Non authentifié', 401);
 
-    // `zoteroRawRead` bypasse le hook afterRead qui masque la clé API.
-    // Sans ça on récupérerait `••••••••XXXX` au lieu de `zenc:…` et
-    // decrypt() planterait. On le met à la fois sur `req.context`
-    // (mutation directe) ET sur l'option `context` de findByID, parce
-    // que selon les versions de Payload v3 l'un ou l'autre est lu.
-    const reqCtx = (req.context ?? {}) as Record<string, unknown>;
-    reqCtx.zoteroRawRead = true;
-    (req as { context?: Record<string, unknown> }).context = reqCtx;
-
     const userDoc = (await req.payload.findByID({
       collection: 'users',
       id: actor.id,
       overrideAccess: true,
       req,
-      context: { zoteroRawRead: true },
       depth: 0,
     })) as UserZoteroDoc;
 
@@ -195,6 +239,7 @@ const zoteroSaveEndpoint: Endpoint = {
 };
 
 export const zoteroEndpoints: Endpoint[] = [
+  zoteroStatusEndpoint,
   zoteroTestEndpoint,
   zoteroSyncEndpoint,
   zoteroDisconnectEndpoint,

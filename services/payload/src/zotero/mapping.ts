@@ -146,19 +146,51 @@ export function makeSlug(userId: string | number, zoteroKey: string): string {
 }
 
 /**
- * Mappe un item Zotero complet vers le shape Bibliography. Renvoie
- * `null` si l'item est inutilisable (pas de titre, pas d'année valide,
- * pas d'auteurs — un de ces trois manquerait pour un rendu Chicago
- * minimal).
+ * Résultat du mapping : soit succès avec le doc Bibliography prêt à
+ * écrire, soit échec avec une raison précise (et le titre de l'item
+ * Zotero si dispo, pour que l'autrice puisse identifier la ref dans
+ * Zotero sans avoir à chercher par clé).
  */
-export function mapItem(item: ZoteroItem): MappedBibliography | null {
+export type MapResult =
+  | { ok: true; mapped: MappedBibliography; title: string }
+  | { ok: false; reason: string; title: string | null };
+
+/**
+ * Mappe un item Zotero complet vers le shape Bibliography. Renvoie
+ * `{ ok: false, reason }` avec une raison précise si l'item est
+ * inutilisable côté Carnet : pas de titre, année invalide ou hors
+ * plage 1700-3000, pas d'auteur·ice (l'auteur principal est requis
+ * pour la citation Chicago courte).
+ */
+export function mapItem(item: ZoteroItem): MapResult {
   const d: ZoteroItemData = item.data ?? (item as unknown as ZoteroItemData);
   const title = (d.title ?? '').trim();
-  if (!title) return null;
+  if (!title) {
+    return { ok: false, reason: 'titre manquant côté Zotero.', title: null };
+  }
+  if (!d.date || !d.date.trim()) {
+    return {
+      ok: false,
+      reason: 'date manquante côté Zotero (ajoutez au moins une année).',
+      title,
+    };
+  }
   const year = parseYear(d.date);
-  if (!year) return null;
+  if (!year) {
+    return {
+      ok: false,
+      reason: `année non reconnue dans « ${d.date.trim()} » (attendu : 4 chiffres entre 1700 et 3000).`,
+      title,
+    };
+  }
   const authors = mapCreators(d.creators);
-  if (authors.length === 0) return null;
+  if (authors.length === 0) {
+    return {
+      ok: false,
+      reason: 'aucun·e auteur·ice (champ Creators vide côté Zotero).',
+      title,
+    };
+  }
 
   // Pour les articles : Zotero met la revue dans publicationTitle
   // (et non publisher). Le Carnet a un seul champ `journal` qu'on
@@ -168,7 +200,7 @@ export function mapItem(item: ZoteroItem): MappedBibliography | null {
   // Volume + numéro Zotero → champ `volume` Carnet (concaténé).
   const volumeStr = [d.volume, d.issue].filter(Boolean).join(', ');
 
-  return {
+  const mapped: MappedBibliography = {
     zoteroKey: item.key,
     zoteroVersion: item.version,
     source: 'zotero',
@@ -184,4 +216,5 @@ export function mapItem(item: ZoteroItem): MappedBibliography | null {
     url: d.url || undefined,
     doi: d.DOI || undefined,
   };
+  return { ok: true, mapped, title };
 }

@@ -36,9 +36,14 @@ function authHeaders(apiKey: string): HeadersInit {
 }
 
 /**
- * Test léger de la connexion : appelle `/items?limit=1` et regarde
- * si Zotero répond OK. Renvoie `{ ok: true, libraryName? }` si tout
- * va bien, sinon `{ ok: false, error: '...' }`.
+ * Test léger de la connexion : appelle `/items/top?limit=1` et regarde
+ * si Zotero répond OK. On utilise `/items/top` (et non `/items`) parce
+ * qu'on ne s'intéresse qu'aux items bibliographiques racines — pas aux
+ * pièces jointes (PDF, snapshots) ni aux notes attachées, qui n'ont
+ * pas de titre ni d'auteur exploitable côté Carnet.
+ *
+ * Renvoie `{ ok: true, itemCount }` si tout va bien, sinon
+ * `{ ok: false, error: '...' }`.
  */
 export async function testConnection(creds: ZoteroCreds): Promise<{
   ok: boolean;
@@ -46,7 +51,7 @@ export async function testConnection(creds: ZoteroCreds): Promise<{
   itemCount?: number;
 }> {
   try {
-    const url = `${libraryPath(creds)}/items?limit=1&format=json`;
+    const url = `${libraryPath(creds)}/items/top?limit=1&format=json`;
     const res = await fetch(url, {
       method: 'GET',
       headers: authHeaders(creds.apiKey),
@@ -106,13 +111,15 @@ export async function fetchAllItems(
     });
     if (since > 0) params.set('since', String(since));
 
-    const url = `${libraryPath(creds)}/items?${params.toString()}`;
+    // /items/top → seulement les items racines (livres, articles…),
+    // pas les pièces jointes ni les notes attachées.
+    const url = `${libraryPath(creds)}/items/top?${params.toString()}`;
     const res = await fetch(url, {
       method: 'GET',
       headers: authHeaders(creds.apiKey),
     });
     if (!res.ok) {
-      throw new Error(`Zotero a répondu HTTP ${res.status} sur /items.`);
+      throw new Error(`Zotero a répondu HTTP ${res.status} sur /items/top.`);
     }
 
     if (firstResponse) {

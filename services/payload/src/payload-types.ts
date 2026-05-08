@@ -849,7 +849,7 @@ export interface Site {
   id: number;
   identity?: {
     /**
-     * Nom du laboratoire de recherche, de la personne, du collectif… selon le porteur du carnet. Affiché en signature dans la baseline du footer et la description meta.
+     * Nom du laboratoire de recherche, de la personne, du collectif… selon l'utilisation du carnet. Affiché en signature dans la baseline du footer et la description meta.
      */
     authorName?: string | null;
   };
