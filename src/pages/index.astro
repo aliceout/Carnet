@@ -12,6 +12,7 @@
  * Ajout d'une "Voir toutes les archives" en pied.
  */
 import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
 import PostCard from '../components/PostCard.astro';
 import { fetchCollection, fetchSite, filterPublished } from '../lib/payload';
 
@@ -98,10 +99,7 @@ const topThemes = [...themeUsage.values()]
   .slice(0, 6)
   .map((x) => x.theme);
 
-// Année du carnet (pour le hero meta) — plus ancien post
-const oldestYear = posts.length
-  ? Math.min(...posts.map((p) => new Date(p.publishedAt).getFullYear()))
-  : new Date().getFullYear();
+// Mois/année du plus ancien post — affiché dans le kicker meta « depuis … ».
 const monthLabel = (() => {
   if (!posts.length) return '';
   const oldest = posts.reduce((acc, p) =>
@@ -127,16 +125,11 @@ const monthLabel = (() => {
 ---
 
 <Layout bodyClass="justify">
-  <!-- Hero -->
-  <section class="hero">
-    <div class="container">
-      <div class="meta">
-        Carnet · {total} billet{total > 1 ? 's' : ''}{monthLabel ? ` · depuis ${monthLabel}` : ''}
-      </div>
-      <h1 set:html={heroTitleHtml}></h1>
-      <p class="lede" set:html={heroLedeHtml}></p>
-    </div>
-  </section>
+  <Hero
+    kicker={`Carnet · ${total} billet${total > 1 ? 's' : ''}${monthLabel ? ` · depuis ${monthLabel}` : ''}`}
+    title={heroTitleHtml}
+    lede={heroLedeHtml}
+  />
 
   <!-- Filtres -->
   <section class="filters" id="filters" data-total={total}>
@@ -210,43 +203,7 @@ const monthLabel = (() => {
     }
   }
 
-  /* Hero */
-  .hero {
-    padding: 72px 0 48px;
-    border-bottom: 1px solid var(--color-rule);
-  }
-  .hero .meta {
-    font-family: var(--font-sans);
-    font-size: 11px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--color-accent);
-    margin-bottom: 18px;
-  }
-  .hero h1 {
-    font-size: 64px;
-    line-height: 1.04;
-    font-weight: 600;
-    letter-spacing: -0.7px;
-    margin: 0 0 20px;
-    max-width: 1080px;
-  }
-  .hero h1 em {
-    font-weight: 500;
-  }
-  .hero p.lede {
-    font-family: var(--font-serif);
-    font-size: 20px;
-    line-height: 1.55;
-    color: var(--color-muted);
-    max-width: 1080px;
-    margin: 0;
-  }
-  @media (max-width: 720px) {
-    .hero h1 {
-      font-size: 40px;
-    }
-  }
+  /* Hero : styles centralisés dans src/components/Hero.astro */
 
   /* Filtres */
   .filters {
@@ -343,10 +300,15 @@ const monthLabel = (() => {
   // Sélection persistée en URL hash : #type=analyse&theme=queer-theory
   // Format compact : si 'all' partout, hash retiré.
   (function () {
-    const filters = document.getElementById('filters');
-    const countEl = document.getElementById('filter-count');
+    // Le narrow `if (!x) return` n'est pas conservé dans les closures
+    // imbriquées (applyFilters, syncChipsFromState). On rebinde après la
+    // garde pour donner un type non-nullable aux fonctions internes.
+    const filtersRaw = document.getElementById('filters');
+    const countElRaw = document.getElementById('filter-count');
     const items = Array.from(document.querySelectorAll<HTMLElement>('.item'));
-    if (!filters || !countEl || !items.length) return;
+    if (!filtersRaw || !countElRaw || !items.length) return;
+    const filters: HTMLElement = filtersRaw;
+    const countEl: HTMLElement = countElRaw;
 
     type State = { type: string; theme: string };
     const state: State = { type: 'all', theme: 'all' };

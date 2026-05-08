@@ -10,6 +10,7 @@
  * Réf : design_handoff_carnet/Carnet B.html → Archives.
  */
 import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
 import { fetchCollection, filterPublished } from '../lib/payload';
 import { formatDateIso } from '../lib/site';
 
@@ -60,17 +61,11 @@ const total = posts.length;
   title="Archives — Carnet"
   description="Tous les billets du Carnet, par année."
 >
-  <section class="hero">
-    <div class="container">
-      <div class="meta">Archives · {total} billet{total > 1 ? 's' : ''}</div>
-      <h1>Tous les billets, par&nbsp;année.</h1>
-      <p class="lede">
-        Le carnet est versionné : chaque billet a un numéro, une date de
-        publication et, le cas échéant, une date de mise à jour. Les fiches
-        thématiques sont régulièrement révisées.
-      </p>
-    </div>
-  </section>
+  <Hero
+    kicker={`Archives · ${total} billet${total > 1 ? 's' : ''}`}
+    title="Tous les billets, par&nbsp;année."
+    lede="Le carnet est versionné : chaque billet a un numéro, une date de publication et, le cas échéant, une date de mise à jour. Les fiches thématiques sont régulièrement révisées."
+  />
 
   <section class="container archives">
     {years.length === 0 ? (
@@ -112,34 +107,7 @@ const total = posts.length;
     padding: 0 80px;
   }
 
-  /* Hero compact */
-  .hero {
-    padding: 72px 0 32px;
-    border-bottom: 1px solid var(--color-rule);
-  }
-  .hero .meta {
-    font-family: var(--font-sans);
-    font-size: 11px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--color-accent);
-    margin-bottom: 18px;
-  }
-  .hero h1 {
-    font-size: 64px;
-    line-height: 1.04;
-    font-weight: 600;
-    letter-spacing: -0.7px;
-    margin: 0 0 20px;
-  }
-  .hero p.lede {
-    font-family: var(--font-serif);
-    font-size: 20px;
-    line-height: 1.55;
-    color: var(--color-muted);
-    max-width: 720px;
-    margin: 0;
-  }
+  /* Hero : centralisé dans src/components/Hero.astro */
 
   .archives {
     padding-top: 24px;

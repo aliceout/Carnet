@@ -9,6 +9,7 @@
  * Réf : design_handoff_carnet/Carnet B.html → PolePage (overview).
  */
 import Layout from '../../layouts/Layout.astro';
+import Hero from '../../components/Hero.astro';
 import { fetchCollection, filterPublished } from '../../lib/payload';
 
 type Theme = {
@@ -64,16 +65,11 @@ const total = sorted.length;
   title="Thèmes — Carnet"
   description="Les sujets de recherche du Carnet — taxonomie multivaluée et libre."
 >
-  <section class="hero">
-    <div class="container">
-      <div class="meta">Thèmes thématiques · {total} thème{total > 1 ? 's' : ''}</div>
-      <h1>Les <em>thèmes</em> du carnet.</h1>
-      <p class="lede">
-        Chaque billet est rattaché à un ou plusieurs thèmes. La taxonomie
-        est libre et évolue avec le carnet.
-      </p>
-    </div>
-  </section>
+  <Hero
+    kicker={`Thèmes thématiques · ${total} thème${total > 1 ? 's' : ''}`}
+    title="Les <em>thèmes</em> du carnet."
+    lede="Chaque billet est rattaché à un ou plusieurs thèmes. La taxonomie est libre et évolue avec le carnet."
+  />
 
   <section class="container themes-list">
     {sorted.length === 0 ? (
@@ -107,36 +103,7 @@ const total = sorted.length;
     padding: 0 80px;
   }
 
-  .hero {
-    padding: 72px 0 48px;
-    border-bottom: 1px solid var(--color-rule);
-  }
-  .hero .meta {
-    font-family: var(--font-sans);
-    font-size: 11px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--color-accent);
-    margin-bottom: 18px;
-  }
-  .hero h1 {
-    font-size: 64px;
-    line-height: 1.04;
-    font-weight: 600;
-    letter-spacing: -0.7px;
-    margin: 0 0 20px;
-  }
-  .hero h1 em {
-    font-weight: 500;
-  }
-  .hero p.lede {
-    font-family: var(--font-serif);
-    font-size: 20px;
-    line-height: 1.55;
-    color: var(--color-muted);
-    max-width: 720px;
-    margin: 0;
-  }
+  /* Hero : centralisé dans src/components/Hero.astro */
 
   .themes-list {
     padding-top: 40px;

@@ -10,6 +10,7 @@
  * Réf : design_handoff_carnet/Carnet B.html → PolePage (single).
  */
 import Layout from '../../layouts/Layout.astro';
+import Hero from '../../components/Hero.astro';
 import PostCard from '../../components/PostCard.astro';
 import { fetchBySlug, fetchCollection, filterPublished } from '../../lib/payload';
 
@@ -63,18 +64,18 @@ const total = posts.length;
   title={`${theme.name} — Carnet`}
   description={theme.description ?? `Tous les billets du Carnet sur le thème ${theme.name}.`}
 >
-  <section class="pole-hero">
-    <div class="container">
-      <div class="kicker mono">Thème · #{theme.slug}</div>
-      <h1>{theme.name}</h1>
-      {theme.description && <p class="desc">{theme.description}</p>}
-      <div class="meta">
-        <span>{total} billet{total > 1 ? 's' : ''}</span>
-        <span aria-hidden="true">·</span>
-        <a class="back mono" href="/themes/">← tous les thèmes</a>
-      </div>
+  <Hero
+    kicker={`Thème · #${theme.slug}`}
+    kickerVariant="mono"
+    title={theme.name}
+    lede={theme.description ?? undefined}
+  >
+    <div class="hero-bottom-meta">
+      <span>{total} billet{total > 1 ? 's' : ''}</span>
+      <span aria-hidden="true">·</span>
+      <a class="back mono" href="/themes/">← tous les thèmes</a>
     </div>
-  </section>
+  </Hero>
 
   <section class="container feed">
     {posts.length === 0 ? (
@@ -104,33 +105,10 @@ const total = posts.length;
     padding: 0 80px;
   }
 
-  .pole-hero {
-    padding: 64px 0 48px;
-    border-bottom: 1px solid var(--color-rule);
-  }
-  .pole-hero .kicker {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    letter-spacing: 0.04em;
-    color: var(--color-accent);
-    margin-bottom: 14px;
-  }
-  .pole-hero h1 {
-    font-size: 56px;
-    line-height: 1.05;
-    font-weight: 600;
-    letter-spacing: -0.6px;
-    margin: 0 0 18px;
-  }
-  .pole-hero .desc {
-    font-family: var(--font-serif);
-    font-size: 19px;
-    line-height: 1.55;
-    color: var(--color-muted);
-    max-width: 720px;
-    margin: 0;
-  }
-  .pole-hero .meta {
+  /* Hero : centralisé dans src/components/Hero.astro. Le pied de hero
+     spécifique à cette page (compteur + back link) est passé via le
+     <slot> et stylé ci-dessous. */
+  .hero-bottom-meta {
     font-family: var(--font-sans);
     font-size: 13px;
     color: var(--color-muted);
@@ -139,11 +117,11 @@ const total = posts.length;
     gap: 24px;
     align-items: center;
   }
-  .pole-hero .back {
+  .hero-bottom-meta .back {
     color: var(--color-accent);
     transition: color 0.12s;
   }
-  .pole-hero .back:hover {
+  .hero-bottom-meta .back:hover {
     color: var(--color-ink);
   }
 
@@ -157,9 +135,6 @@ const total = posts.length;
   @media (max-width: 900px) {
     .container {
       padding: 0 24px;
-    }
-    .pole-hero h1 {
-      font-size: 36px;
     }
   }
 </style>
