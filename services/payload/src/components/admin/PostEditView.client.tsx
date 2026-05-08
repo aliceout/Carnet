@@ -204,7 +204,7 @@ export default function PostEditViewClient({
       .then((r) => r.json())
       .then((data: { docs: Tag[] }) => setAllTags(data.docs ?? []))
       .catch(() => setAllTags([]));
-    const biblioP = fetch('/cms/api/bibliography?limit=200&depth=0&sort=authorLabel', {
+    const biblioP = fetch('/cms/api/bibliography?limit=1000&depth=0&sort=authorLabel', {
       credentials: 'include',
     })
       .then((r) => r.json())
