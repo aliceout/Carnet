@@ -221,7 +221,11 @@ function $walkLiveTree(cb: (node: LexicalNode) => void): void {
 export function deleteFootnoteByIndex(editor: LexicalEditor, index: number): void {
   editor.update(() => {
     let i = 0;
-    let target: LexicalNode | null = null;
+    // Cast à `LexicalNode | null` (et non LexicalNode | null directement)
+    // : TS narrowe agressivement target vers `null` après la passe initiale
+    // car les réassignations dans la callback de $walkLiveTree ne sont pas
+    // suivies par le control-flow analysis. On widen explicitement.
+    let target = null as LexicalNode | null;
     $walkLiveTree((node) => {
       if (target) return;
       if ($isCarnetInlineBlockNode(node) && node.__blockType === 'footnote') {
@@ -229,7 +233,7 @@ export function deleteFootnoteByIndex(editor: LexicalEditor, index: number): voi
         if (i === index) target = node;
       }
     });
-    target?.remove();
+    (target as LexicalNode | null)?.remove();
   });
 }
 

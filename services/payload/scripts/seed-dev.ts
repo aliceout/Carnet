@@ -40,7 +40,24 @@ const THEMES = [
   { slug: 'postcolonial', name: 'Postcolonial', description: 'Lectures situées des études postcoloniales.' },
 ];
 
-const BIBLIOGRAPHY = [
+// Type local pour le seed — aligné sur la collection Bibliography (cf.
+// payload-types.ts → interface Bibliography). Sans cette annotation, TS
+// élargit `type: 'book'` en `string` et payload.create({ data: entry })
+// rejette à la compilation.
+type BiblioSeed = {
+  slug: string;
+  author: string;
+  year: number;
+  title: string;
+  type: 'book' | 'chapter' | 'article' | 'paper' | 'web' | 'other';
+  publisher?: string;
+  place?: string;
+  journal?: string;
+  volume?: string;
+  pages?: string;
+};
+
+const BIBLIOGRAPHY: BiblioSeed[] = [
   {
     slug: 'farris-2017',
     author: 'Farris, Sara R.',
@@ -486,8 +503,8 @@ function buildLexicalBody(
           type: 'heading',
           tag: 'h2',
           version: 1,
-          direction: 'ltr',
-          format: '',
+          direction: 'ltr' as const,
+          format: '' as const,
           indent: 0,
           children: [textNode(node.text)],
         },
@@ -498,8 +515,8 @@ function buildLexicalBody(
         {
           type: 'quote',
           version: 1,
-          direction: 'ltr',
-          format: '',
+          direction: 'ltr' as const,
+          format: '' as const,
           indent: 0,
           children: [textNode(node.text)],
         },
@@ -510,8 +527,8 @@ function buildLexicalBody(
         {
           type: 'paragraph',
           version: 1,
-          direction: 'ltr',
-          format: '',
+          direction: 'ltr' as const,
+          format: '' as const,
           indent: 0,
           children: [textNode(node.text)],
         },
@@ -561,8 +578,8 @@ function buildLexicalBody(
       {
         type: 'paragraph',
         version: 1,
-        direction: 'ltr',
-        format: '',
+        direction: 'ltr' as const,
+        format: '' as const,
         indent: 0,
         children: inlineChildren,
       },
@@ -573,8 +590,8 @@ function buildLexicalBody(
     root: {
       type: 'root',
       version: 1,
-      direction: 'ltr',
-      format: '',
+      direction: 'ltr' as const,
+      format: '' as const,
       indent: 0,
       children,
     },
@@ -697,7 +714,7 @@ async function main() {
     console.log(`[seed-dev] SKIP page ${ABOUT_PAGE.slug} (existe)`);
   } else {
     const proseSections = ABOUT_PAGE.sections.map((s) => ({
-      blockType: 'prose',
+      blockType: 'prose' as const,
       titre: s.titre || undefined,
       content: buildLexicalBody(s.paragraphs),
     }));
