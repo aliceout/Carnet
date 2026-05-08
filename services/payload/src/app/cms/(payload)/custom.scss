@@ -1093,9 +1093,9 @@ button.btn--style-primary,
 
   &__row {
     display: grid;
-    // Posts : Date / Type / Titre / Thème / Statut. Numéro retiré de
-    // la liste — l'espace gagné repart au titre via le 1fr central.
-    grid-template-columns: 110px 130px 1fr 180px 110px;
+    // Posts : Titre / Type / Thème / Date / Statut. Numéro retiré de
+    // la liste — l'espace gagné repart au titre via le 1fr.
+    grid-template-columns: 1fr 130px 180px 110px 110px;
     gap: 24px;
     padding: 14px 20px;
     align-items: baseline;
@@ -1997,23 +1997,18 @@ button.btn--style-primary,
   }
 }
 
-// Petit chip discret accolé au titre dans la liste des billets, pour
+// Petit marqueur sobre sous la date dans la liste des billets, pour
 // signaler qu'un billet contient encore au moins une zone brouillon
 // non finalisée. Cf issue #1.
 .carnet-chip-draft {
-  display: inline-block;
-  margin-left: 8px;
-  padding: 1px 7px;
+  display: block;
+  margin-top: 2px;
   font-family: var(--font-sans);
   font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-style: italic;
+  font-weight: 700;
   color: var(--b-accent);
-  border: 1px solid var(--b-accent);
-  background: transparent;
-  vertical-align: middle;
-  line-height: 1.4;
+  line-height: 1.2;
 }
 
 // Chip de rôle pour les utilisateurs (root / admin / editor)

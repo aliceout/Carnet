@@ -249,10 +249,10 @@ export default function PostListViewClient(): React.ReactElement {
 
       <div className="carnet-listview__table" role="table">
         <div className="carnet-listview__row carnet-listview__row--head" role="row">
-          <div role="columnheader">Date</div>
-          <div role="columnheader">Type</div>
           <div role="columnheader">Titre</div>
+          <div role="columnheader">Type</div>
           <div role="columnheader">Thème</div>
+          <div role="columnheader">Date</div>
           <div role="columnheader">Statut</div>
         </div>
 
@@ -271,25 +271,25 @@ export default function PostListViewClient(): React.ReactElement {
                 className="carnet-listview__row"
                 role="row"
               >
-                <div role="cell" className="date">
-                  {isoDate(p.publishedAt)}
+                <div role="cell" className="title">
+                  {p.title}
                 </div>
                 <div role="cell" className="type">
                   {TYPE_LABELS[p.type]}
                 </div>
-                <div role="cell" className="title">
-                  {p.title}
+                <div role="cell" className="theme">
+                  {primaryTheme?.name ?? '—'}
+                </div>
+                <div role="cell" className="date">
+                  <span className="date__value">{isoDate(p.publishedAt)}</span>
                   {p.hasDraftZones && (
                     <span
                       className="carnet-chip-draft"
                       title="Ce billet contient au moins une zone brouillon non finalisée"
                     >
-                      brouillon
+                      Brouillon
                     </span>
                   )}
-                </div>
-                <div role="cell" className="theme">
-                  {primaryTheme?.name ?? '—'}
                 </div>
                 <div role="cell" className="status">
                   <span className={`carnet-status carnet-status--${status}`}>
