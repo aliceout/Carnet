@@ -18,6 +18,7 @@ type BiblioEntry = {
   title: string;
   type: string;
   publisher?: string;
+  journal?: string;
 };
 
 type FetchResult<T> = {
@@ -124,10 +125,10 @@ export default function BibliographyListViewClient(): React.ReactElement {
 
       <div className="carnet-listview__table" role="table">
         <div className="carnet-listview__row carnet-listview__row--head" role="row">
-          <div role="columnheader">Clé</div>
           <div role="columnheader">Auteur</div>
           <div role="columnheader">Année</div>
           <div role="columnheader">Titre</div>
+          <div role="columnheader">Éditeur / Revue</div>
           <div role="columnheader">Type</div>
         </div>
 
@@ -143,9 +144,6 @@ export default function BibliographyListViewClient(): React.ReactElement {
               className="carnet-listview__row"
               role="row"
             >
-              <div role="cell" className="slug">
-                {b.slug}
-              </div>
               <div role="cell" className="author">
                 {b.author}
               </div>
@@ -154,6 +152,9 @@ export default function BibliographyListViewClient(): React.ReactElement {
               </div>
               <div role="cell" className="title">
                 {b.title}
+              </div>
+              <div role="cell" className="venue">
+                {b.publisher || b.journal || '—'}
               </div>
               <div role="cell" className="type-cell">
                 {TYPE_LABEL[b.type as Exclude<FilterType, 'all'>] ?? b.type}

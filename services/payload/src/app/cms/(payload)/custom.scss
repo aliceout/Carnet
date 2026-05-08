@@ -1237,13 +1237,11 @@ button.btn--style-primary,
   // La grille __row par défaut est calibrée pour Posts (6 colonnes).
   // Themes / Biblio surchargent grid-template-columns.
 
+  // Themes : 3 colonnes (Nom, Description, Billets). Slug retiré
+  // de la liste — visible côté édition uniquement (#slug du billet
+  // dans le hash). En tablette on cache la description.
   &--themes &__row {
-    grid-template-columns: 200px 200px 1fr 80px;
-  }
-  &--themes &__row .slug {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--b-accent);
+    grid-template-columns: 220px 1fr 80px;
   }
   &--themes &__row .desc {
     font-family: var(--font-serif);
@@ -1259,7 +1257,7 @@ button.btn--style-primary,
   }
   @media (max-width: 1180px) {
     &--themes &__row {
-      grid-template-columns: 180px 1fr 60px;
+      grid-template-columns: 1fr 80px;
     }
     &--themes &__row > .desc {
       display: none;
@@ -1268,9 +1266,6 @@ button.btn--style-primary,
   @media (max-width: 900px) {
     &--themes &__row {
       grid-template-columns: 1fr 60px;
-    }
-    &--themes &__row > .slug {
-      display: none;
     }
   }
 
@@ -1393,13 +1388,12 @@ button.btn--style-primary,
     }
   }
 
+  // Biblio : 5 colonnes (Auteur, Année, Titre, Éditeur/Revue, Type).
+  // La clé (slug) est retirée — elle reste visible dans la vue édition
+  // de chaque référence (champ slug en mono accent en haut). On
+  // affiche à la place l'éditeur (livres) ou la revue (articles).
   &--biblio &__row {
-    grid-template-columns: 130px 200px 60px 1fr 100px;
-  }
-  &--biblio &__row .slug {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--b-accent);
+    grid-template-columns: 200px 60px 1fr 200px 100px;
   }
   &--biblio &__row .author {
     font-family: var(--font-serif);
@@ -1415,6 +1409,12 @@ button.btn--style-primary,
   &--biblio &__row .title {
     font-style: italic;
   }
+  &--biblio &__row .venue {
+    font-family: var(--font-serif);
+    font-size: 13px;
+    color: var(--b-muted);
+    line-height: 1.4;
+  }
   &--biblio &__row .type-cell {
     font-size: 12px;
     color: var(--b-muted);
@@ -1422,9 +1422,10 @@ button.btn--style-primary,
   }
   @media (max-width: 1180px) {
     &--biblio &__row {
-      grid-template-columns: 110px 60px 1fr 80px;
+      grid-template-columns: 60px 1fr 80px;
     }
-    &--biblio &__row > .author {
+    &--biblio &__row > .author,
+    &--biblio &__row > .venue {
       display: none;
     }
   }
@@ -1432,7 +1433,6 @@ button.btn--style-primary,
     &--biblio &__row {
       grid-template-columns: 1fr 60px;
     }
-    &--biblio &__row > .slug,
     &--biblio &__row > .year {
       display: none;
     }

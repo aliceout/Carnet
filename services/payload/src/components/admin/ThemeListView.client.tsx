@@ -123,7 +123,6 @@ export default function ThemeListViewClient(): React.ReactElement {
 
       <div className="carnet-listview__table" role="table">
         <div className="carnet-listview__row carnet-listview__row--head" role="row">
-          <div role="columnheader">Slug</div>
           <div role="columnheader">Nom</div>
           <div role="columnheader">Description</div>
           <div role="columnheader">Billets</div>
@@ -141,9 +140,6 @@ export default function ThemeListViewClient(): React.ReactElement {
               className="carnet-listview__row"
               role="row"
             >
-              <div role="cell" className="slug">
-                #{t.slug}
-              </div>
               <div role="cell" className="title">
                 {t.name}
               </div>
