@@ -292,6 +292,27 @@ export default function PostEditViewClient({
     });
   }
 
+  // ─── Validation : body Lexical considéré vide ? ──────────────
+  // Vrai si aucun text non-whitespace ET aucun block décoratif. Un
+  // billet avec juste une figure ou une citation longue n'est PAS
+  // considéré vide. Utilisé par save() pour le check `body required`.
+  function isLexicalBodyEmpty(body: LexicalState | null): boolean {
+    if (!body?.root || !Array.isArray(body.root.children)) return true;
+    function hasContent(node: unknown): boolean {
+      if (!node || typeof node !== 'object') return false;
+      const n = node as Record<string, unknown>;
+      if (typeof n.text === 'string' && n.text.trim().length > 0) return true;
+      // Un block (figure, citation_bloc) compte comme du contenu, même
+      // sans texte rendu inline.
+      if (n.type === 'block') return true;
+      if (Array.isArray(n.children)) {
+        return (n.children as unknown[]).some(hasContent);
+      }
+      return false;
+    }
+    return !hasContent(body.root);
+  }
+
   // ─── Normalisation Lexical avant save ────────────────────────
   // Quand on charge un billet (depth=1), les blocks Lexical qui
   // contiennent une relationship (biblio_inline.entry, figure.image)
@@ -421,17 +442,24 @@ export default function PostEditViewClient({
   }
 
   async function save(opts: { publish?: boolean } = {}) {
-    // Validation client AVANT toute requête : titre obligatoire (le
-    // numéro est attribué auto côté Payload, le slug est dérivé du
-    // titre côté serveur si absent — on ne valide que le titre ici).
+    // Validation client AVANT toute requête. On vérifie tous les champs
+    // déclarés `required: true` côté Posts.ts (title, slug, lede, body)
+    // pour afficher les erreurs en rouge inline plutôt que recevoir un
+    // 400 générique de Payload après l'envoi.
     const errs: Record<string, string> = {};
     if (!post.title.trim()) errs.title = 'Champ obligatoire.';
+    if (!post.slug.trim()) errs.slug = 'Champ obligatoire.';
+    if (!post.lede.trim()) errs.lede = 'Champ obligatoire.';
+    if (isLexicalBodyEmpty(post.body ?? null)) errs.body = 'Le corps de l’article est vide.';
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
       // Focus / scroll au premier champ en erreur pour signal visuel.
       if (errs.title && titleRef.current) {
         titleRef.current.focus();
         titleRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (errs.lede && ledeRef.current) {
+        ledeRef.current.focus();
+        ledeRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
       return;
     }
@@ -716,16 +744,42 @@ export default function PostEditViewClient({
               )}
               <textarea
                 ref={ledeRef}
-                className="ed-lede"
+                className={`ed-lede${fieldErrors.lede ? ' ed-lede--invalid' : ''}`}
                 rows={1}
                 value={post.lede}
                 placeholder="Chapô — 2 à 3 phrases."
-                onChange={(e) => patch('lede', e.target.value)}
+                onChange={(e) => {
+                  patch('lede', e.target.value);
+                  if (fieldErrors.lede) {
+                    setFieldErrors((prev) => {
+                      const { lede: _omit, ...rest } = prev;
+                      return rest;
+                    });
+                  }
+                }}
               />
+              {fieldErrors.lede && (
+                <div className="ed-lede__error" role="alert">
+                  {fieldErrors.lede}
+                </div>
+              )}
               <hr className="ed-divider" />
+              {fieldErrors.body && (
+                <div className="ed-body__error" role="alert">
+                  {fieldErrors.body}
+                </div>
+              )}
               <PostBodyEditor
                 value={post.body ?? null}
-                onChange={(v) => patch('body', v)}
+                onChange={(v) => {
+                  patch('body', v);
+                  if (fieldErrors.body) {
+                    setFieldErrors((prev) => {
+                      const { body: _omit, ...rest } = prev;
+                      return rest;
+                    });
+                  }
+                }}
                 biblioOptions={biblioOptions}
                 onEditor={(editor) => {
                   editorRef.current = editor;
@@ -882,14 +936,27 @@ export default function PostEditViewClient({
                 </select>
               </div>
             </div>
-            <div className="field">
+            <div className={`field${fieldErrors.slug ? ' field--invalid' : ''}`}>
               <label>Slug</label>
               <input
                 type="text"
                 value={post.slug}
-                onChange={(e) => patch('slug', e.target.value)}
+                onChange={(e) => {
+                  patch('slug', e.target.value);
+                  if (fieldErrors.slug) {
+                    setFieldErrors((prev) => {
+                      const { slug: _omit, ...rest } = prev;
+                      return rest;
+                    });
+                  }
+                }}
               />
-              {post.slug && post.publishedAt && (
+              {fieldErrors.slug && (
+                <div className="field__error" role="alert">
+                  {fieldErrors.slug}
+                </div>
+              )}
+              {!fieldErrors.slug && post.slug && post.publishedAt && (
                 <div className="help">
                   URL :{' '}
                   <span className="mono">
