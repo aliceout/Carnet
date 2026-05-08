@@ -41,6 +41,7 @@ const ACCENT_HEX_TO_SLUG: Record<string, string> = {
 type Counts = {
   posts: number;
   themes: number;
+  tags: number;
   bibliography: number;
   media: number;
   users: number;
@@ -137,6 +138,7 @@ export default function NavClient({ activePath: serverActive, counts }: Props): 
         { label: 'Billets', href: `${ADMIN}/collections/posts`, count: counts.posts },
         { label: 'Thèmes', href: `${ADMIN}/collections/themes`, count: counts.themes },
         { label: 'Bibliographie', href: `${ADMIN}/collections/bibliography`, count: counts.bibliography },
+        { label: 'Tags', href: `${ADMIN}/collections/tags`, count: counts.tags },
         { label: 'Médias', href: `${ADMIN}/collections/media`, count: counts.media },
       ],
     },

@@ -24,8 +24,8 @@ export const Bibliography: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'displayLabel',
-    defaultColumns: ['displayLabel', 'author', 'year', 'type', 'updatedAt'],
-    listSearchableFields: ['author', 'title', 'slug'],
+    defaultColumns: ['displayLabel', 'authorLabel', 'year', 'type', 'updatedAt'],
+    listSearchableFields: ['authors.lastName', 'authors.firstName', 'title', 'slug'],
     components: {
       views: {
         // Vue d'édition custom — remplace entièrement le rendu natif
@@ -77,22 +77,60 @@ export const Bibliography: CollectionConfig = {
           ],
         },
         {
-          name: 'author',
-          type: 'text',
-          required: true,
-          label: 'Auteur·ice(s)',
-          admin: {
-            description:
-              'Format Chicago : « Nom, Prénom » ; plusieurs auteurs séparés par « ; ».',
-          },
-        },
-        {
           name: 'year',
           type: 'number',
           required: true,
           label: 'Année',
           min: 1700,
           max: 3000,
+        },
+      ],
+    },
+    {
+      // Auteur·ice·s normalisé·e·s : un sous-doc par personne (firstName,
+      // lastName, rôle). C'est la convention BibTeX/CSL/Zotero, et la
+      // seule façon de générer du Chicago propre (1er auteur en `Nom,
+      // Prénom`, suivants en `Prénom Nom`). L'auteur principal pour la
+      // citation courte est `authors[0]` — pas de flag séparé, juste l'ordre.
+      name: 'authors',
+      type: 'array',
+      required: true,
+      minRows: 1,
+      label: 'Auteur·ice·s',
+      admin: {
+        description:
+          'Une ligne par personne (1er = auteur·ice principal·e, utilisé pour le tri et la citation courte). `firstName` peut rester vide pour les auteurs corporatifs (UNESCO, Conseil de l’Europe…).',
+        initCollapsed: false,
+      },
+      fields: [
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'lastName',
+              type: 'text',
+              required: true,
+              label: 'Nom',
+            },
+            {
+              name: 'firstName',
+              type: 'text',
+              required: false,
+              label: 'Prénom',
+            },
+            {
+              name: 'role',
+              type: 'select',
+              required: true,
+              defaultValue: 'author',
+              label: 'Rôle',
+              options: [
+                { label: 'Auteur·ice', value: 'author' },
+                { label: 'Direction (dir.)', value: 'editor' },
+                { label: 'Traduction (trad.)', value: 'translator' },
+              ],
+            },
+          ],
         },
       ],
     },
@@ -171,7 +209,24 @@ export const Bibliography: CollectionConfig = {
     },
 
     {
-      // Champ virtuel UI-only : composé pour useAsTitle (« Auteur, année — Titre »).
+      // Label compact des auteurs pour la colonne « Auteurs » de la
+      // liste admin et la composition du `displayLabel`. Calculé depuis
+      // `authors[]` (priorité) ou `author` legacy en fallback. Persisté
+      // (text classique) pour permettre tri/recherche dans la liste.
+      name: 'authorLabel',
+      type: 'text',
+      admin: {
+        hidden: true,
+        readOnly: true,
+      },
+      hooks: {
+        beforeChange: [
+          ({ data }) => buildAuthorLabel(data),
+        ],
+      },
+    },
+    {
+      // Champ virtuel UI-only : composé pour useAsTitle (« Auteurs, année — Titre »).
       name: 'displayLabel',
       type: 'text',
       admin: {
@@ -181,7 +236,7 @@ export const Bibliography: CollectionConfig = {
       hooks: {
         beforeChange: [
           ({ data }) => {
-            const author = data?.author ?? '';
+            const author = buildAuthorLabel(data);
             const year = data?.year ?? '';
             const title = data?.title ?? '';
             return `${author}${year ? ` (${year})` : ''}${title ? ` — ${title}` : ''}`;
@@ -191,3 +246,22 @@ export const Bibliography: CollectionConfig = {
     },
   ],
 };
+
+/**
+ * Compose le label compact des auteurs (« Butler », « Butler & Spivak »,
+ * « Butler et al. ») depuis `authors[]`. Utilisé pour la colonne admin
+ * et la composition du `displayLabel`. Le rendu Chicago complet vit
+ * dans `lib/format-authors` côté admin et frontend.
+ */
+function buildAuthorLabel(data: unknown): string {
+  if (!data || typeof data !== 'object') return '';
+  const obj = data as { authors?: Array<{ lastName?: string }> };
+  const list = Array.isArray(obj.authors) ? obj.authors : [];
+  const names = list
+    .map((a) => (a?.lastName ?? '').trim())
+    .filter(Boolean);
+  if (names.length === 0) return '';
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} & ${names[1]}`;
+  return `${names[0]} et al.`;
+}

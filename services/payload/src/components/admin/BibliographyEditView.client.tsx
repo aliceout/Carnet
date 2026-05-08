@@ -20,11 +20,17 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 import CarnetTopbar from './CarnetTopbar';
+import {
+  type BibAuthor,
+  formatAuthorsChicago,
+  formatTranslators,
+} from '@/lib/format-authors';
 
 const API_BIBLIO = '/cms/api/bibliography';
 const API_POSTS = '/cms/api/posts';
 
 type BibType = 'book' | 'chapter' | 'article' | 'paper' | 'web' | 'other';
+type BibRole = 'author' | 'editor' | 'translator';
 
 const TYPE_LABEL: Record<BibType, string> = {
   book: 'Livre',
@@ -35,11 +41,23 @@ const TYPE_LABEL: Record<BibType, string> = {
   other: 'Autre',
 };
 
+const ROLE_LABEL: Record<BibRole, string> = {
+  author: 'Auteur·ice',
+  editor: 'Direction (dir.)',
+  translator: 'Traduction (trad.)',
+};
+
+type BibAuthorRow = {
+  lastName: string;
+  firstName: string;
+  role: BibRole;
+};
+
 type Bib = {
   id?: number | string;
   slug: string;
   type: BibType;
-  author: string;
+  authors: BibAuthorRow[];
   year: number | string;
   title: string;
   publisher?: string;
@@ -57,7 +75,7 @@ type UsedInPost = { id: number | string; numero?: number; title?: string };
 const EMPTY: Bib = {
   slug: '',
   type: 'book',
-  author: '',
+  authors: [{ lastName: '', firstName: '', role: 'author' }],
   year: '',
   title: '',
   publisher: '',
@@ -72,9 +90,12 @@ const EMPTY: Bib = {
 
 function formatChicago(b: Bib): string {
   const parts: string[] = [];
-  if (b.author) parts.push(b.author);
+  const authorsLine = formatAuthorsChicago(b.authors as BibAuthor[]);
+  if (authorsLine) parts.push(authorsLine);
   if (b.year !== undefined && b.year !== '') parts.push(`(${b.year})`);
   if (b.title) parts.push(b.title);
+  const translators = formatTranslators(b.authors as BibAuthor[]);
+  if (translators) parts.push(translators);
   if (b.journal) parts.push(b.journal);
   if (b.volume) parts.push(b.volume);
   if (b.publisher) {
@@ -118,13 +139,19 @@ export default function BibliographyEditViewClient({
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
-      .then((doc: Bib) => {
+      .then((doc: Partial<Bib> & { authors?: Array<Partial<BibAuthorRow>> }) => {
+        const authorsRaw = Array.isArray(doc.authors) ? doc.authors : [];
+        const authors: BibAuthorRow[] = authorsRaw.map((a) => ({
+          lastName: a?.lastName ?? '',
+          firstName: a?.firstName ?? '',
+          role: (a?.role as BibRole) ?? 'author',
+        }));
         const norm: Bib = {
           ...EMPTY,
           ...doc,
           // Normalise les undefined en chaînes vides pour les inputs
           slug: doc.slug ?? '',
-          author: doc.author ?? '',
+          authors: authors.length > 0 ? authors : [{ lastName: '', firstName: '', role: 'author' }],
           title: doc.title ?? '',
           year: doc.year ?? '',
           publisher: doc.publisher ?? '',
@@ -135,6 +162,8 @@ export default function BibliographyEditViewClient({
           url: doc.url ?? '',
           doi: doc.doi ?? '',
           annotation: doc.annotation ?? '',
+          type: (doc.type as BibType) ?? 'book',
+          id: doc.id,
         };
         setData(norm);
         setInitial(JSON.stringify(norm));
@@ -156,6 +185,39 @@ export default function BibliographyEditViewClient({
 
   function patch<K extends keyof Bib>(key: K, value: Bib[K]) {
     setData((d) => ({ ...d, [key]: value }));
+  }
+
+  function patchAuthor(idx: number, field: keyof BibAuthorRow, value: string) {
+    setData((d) => {
+      const next = d.authors.map((a, i) => (i === idx ? { ...a, [field]: value } : a));
+      return { ...d, authors: next };
+    });
+  }
+
+  function addAuthor() {
+    setData((d) => ({
+      ...d,
+      authors: [...d.authors, { lastName: '', firstName: '', role: 'author' }],
+    }));
+  }
+
+  function removeAuthor(idx: number) {
+    setData((d) => {
+      const next = d.authors.filter((_, i) => i !== idx);
+      // Garder au moins une ligne (vide) pour ne pas casser le formulaire.
+      if (next.length === 0) next.push({ lastName: '', firstName: '', role: 'author' });
+      return { ...d, authors: next };
+    });
+  }
+
+  function moveAuthor(idx: number, dir: -1 | 1) {
+    setData((d) => {
+      const j = idx + dir;
+      if (j < 0 || j >= d.authors.length) return d;
+      const next = [...d.authors];
+      [next[idx], next[j]] = [next[j], next[idx]];
+      return { ...d, authors: next };
+    });
   }
 
   async function save() {
@@ -301,7 +363,7 @@ export default function BibliographyEditViewClient({
           <section className="carnet-editview__section">
             <h2 className="carnet-editview__section-title">Identification</h2>
 
-            <div className="carnet-editview__row carnet-editview__row--3">
+            <div className="carnet-editview__row carnet-editview__row--2">
               <label className="carnet-editview__field">
                 <span className="lbl">Type</span>
                 <select
@@ -316,15 +378,6 @@ export default function BibliographyEditViewClient({
                 </select>
               </label>
               <label className="carnet-editview__field">
-                <span className="lbl">Auteur·ice(s)</span>
-                <input
-                  type="text"
-                  value={data.author}
-                  onChange={(e) => patch('author', e.target.value)}
-                  placeholder="Nom, Prénom ; …"
-                />
-              </label>
-              <label className="carnet-editview__field">
                 <span className="lbl">Année</span>
                 <input
                   type="number"
@@ -336,6 +389,85 @@ export default function BibliographyEditViewClient({
                   }
                 />
               </label>
+            </div>
+
+            <div className="carnet-editview__authors">
+              <div className="carnet-editview__authors-head">
+                <span className="lbl">Auteur·ice·s</span>
+                <span className="hint">
+                  La 1<sup>ère</sup> ligne = auteur·ice principal·e (utilisé pour la
+                  citation courte et le tri). Laissez « Prénom » vide pour les auteurs
+                  corporatifs (UNESCO…).
+                </span>
+              </div>
+              {data.authors.map((a, idx) => (
+                <div key={idx} className="carnet-editview__authors-row">
+                  <input
+                    type="text"
+                    className="lastname"
+                    placeholder="Nom"
+                    value={a.lastName}
+                    onChange={(e) => patchAuthor(idx, 'lastName', e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    className="firstname"
+                    placeholder="Prénom (optionnel)"
+                    value={a.firstName}
+                    onChange={(e) => patchAuthor(idx, 'firstName', e.target.value)}
+                  />
+                  <select
+                    className="role"
+                    value={a.role}
+                    onChange={(e) => patchAuthor(idx, 'role', e.target.value)}
+                  >
+                    {(Object.keys(ROLE_LABEL) as BibRole[]).map((r) => (
+                      <option key={r} value={r}>
+                        {ROLE_LABEL[r]}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="actions">
+                    <button
+                      type="button"
+                      className="carnet-editview__authors-act"
+                      onClick={() => moveAuthor(idx, -1)}
+                      disabled={idx === 0}
+                      aria-label="Monter"
+                      title="Monter"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className="carnet-editview__authors-act"
+                      onClick={() => moveAuthor(idx, 1)}
+                      disabled={idx === data.authors.length - 1}
+                      aria-label="Descendre"
+                      title="Descendre"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      className="carnet-editview__authors-act carnet-editview__authors-act--del"
+                      onClick={() => removeAuthor(idx)}
+                      disabled={data.authors.length <= 1 && !a.lastName && !a.firstName}
+                      aria-label="Retirer cette personne"
+                      title="Retirer"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="carnet-editview__authors-add"
+                onClick={addAuthor}
+              >
+                + Ajouter une personne
+              </button>
             </div>
 
             <label className="carnet-editview__field">

@@ -26,6 +26,8 @@ import { default as default_7c96febce50ca24b7bbaad53a9c8dcdb } from '@/component
 import { default as default_9a392549adc5e7cea5c12dbcd0e775a6 } from '@/components/admin/PostListView'
 import { default as default_6d604e02fd948e3dc45b0ec9060c7c9c } from '@/components/admin/ThemeEditView'
 import { default as default_145dcd377f3e16019ed4fdecfff71610 } from '@/components/admin/ThemeListView'
+import { default as default_647f33596a337ffc33a6023b76b64f36 } from '@/components/admin/TagEditView'
+import { default as default_8afbac37d45034f52a5dc2f36e202eda } from '@/components/admin/TagListView'
 import { default as default_c2a08a78b2479e66392ea346136ef322 } from '@/components/admin/BibliographyEditView'
 import { default as default_748165dd07e185739c7cd0f1c37b06a9 } from '@/components/admin/BibliographyListView'
 import { default as default_e47d771c2781df16f3ba2f52239ec339 } from '@/components/admin/PagesListView'
@@ -74,6 +76,8 @@ export const importMap = {
   "@/components/admin/PostListView#default": default_9a392549adc5e7cea5c12dbcd0e775a6,
   "@/components/admin/ThemeEditView#default": default_6d604e02fd948e3dc45b0ec9060c7c9c,
   "@/components/admin/ThemeListView#default": default_145dcd377f3e16019ed4fdecfff71610,
+  "@/components/admin/TagEditView#default": default_647f33596a337ffc33a6023b76b64f36,
+  "@/components/admin/TagListView#default": default_8afbac37d45034f52a5dc2f36e202eda,
   "@/components/admin/BibliographyEditView#default": default_c2a08a78b2479e66392ea346136ef322,
   "@/components/admin/BibliographyListView#default": default_748165dd07e185739c7cd0f1c37b06a9,
   "@/components/admin/PagesListView#default": default_e47d771c2781df16f3ba2f52239ec339,

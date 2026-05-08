@@ -123,7 +123,7 @@ export default function MediaEditViewClient({
         // Création : multipart obligatoire (Payload upload). Le fichier
         // est requis ; les fields JSON passent dans `_payload`.
         if (!file) {
-          throw new Error('Sélectionne un fichier avant de sauvegarder.');
+          throw new Error('Sélectionnez un fichier avant de sauvegarder.');
         }
         const fd = new FormData();
         fd.append('file', file);
@@ -350,7 +350,7 @@ export default function MediaEditViewClient({
                   <div className="carnet-media-drop__filename mono">{file.name}</div>
                 ) : (
                   <p className="carnet-media-drop__hint">
-                    Glisse un fichier ici, ou clique pour en sélectionner un.
+                    Glissez un fichier ici, ou cliquez pour en sélectionner un.
                   </p>
                 )}
 
@@ -392,10 +392,10 @@ export default function MediaEditViewClient({
                 type="text"
                 value={data.alt ?? ''}
                 onChange={(e) => patch('alt', e.target.value)}
-                placeholder="Décris l'image pour les lecteurs d'écran et le SEO."
+                placeholder="Décrivez l'image pour les lecteurs d'écran et le SEO."
               />
               <span className="hint">
-                Obligatoire — exigence d'accessibilité (WCAG 2.2). Décris
+                Obligatoire — exigence d'accessibilité (WCAG 2.2). Décrivez
                 <em> ce qu'on voit</em>, pas le contexte du billet.
               </span>
             </label>

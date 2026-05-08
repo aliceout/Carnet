@@ -13,7 +13,8 @@ const PER_PAGE = 25;
 type BiblioEntry = {
   id: number | string;
   slug: string;
-  author: string;
+  authorLabel?: string | null;
+  authors?: Array<{ firstName?: string | null; lastName?: string | null }>;
   year: number;
   title: string;
   type: string;
@@ -55,9 +56,9 @@ export default function BibliographyListViewClient(): React.ReactElement {
     const params = new URLSearchParams();
     params.set('limit', String(PER_PAGE));
     params.set('page', String(page));
-    params.set('sort', 'author');
+    params.set('sort', 'authorLabel');
     params.set('depth', '0');
-    if (search.trim()) params.append('where[author][like]', search.trim());
+    if (search.trim()) params.append('where[authorLabel][like]', search.trim());
     if (type !== 'all') params.append('where[type][equals]', type);
 
     fetch(`/cms/api/bibliography?${params.toString()}`, { credentials: 'include' })
@@ -125,7 +126,8 @@ export default function BibliographyListViewClient(): React.ReactElement {
 
       <div className="carnet-listview__table" role="table">
         <div className="carnet-listview__row carnet-listview__row--head" role="row">
-          <div role="columnheader">Auteur</div>
+          <div role="columnheader">Prénom</div>
+          <div role="columnheader">Nom</div>
           <div role="columnheader">Année</div>
           <div role="columnheader">Titre</div>
           <div role="columnheader">Éditeur / Revue</div>
@@ -137,15 +139,22 @@ export default function BibliographyListViewClient(): React.ReactElement {
         ) : entries.length === 0 ? (
           <div className="carnet-listview__empty">Aucune référence.</div>
         ) : (
-          entries.map((b) => (
+          entries.map((b) => {
+            const first = b.authors?.[0];
+            const hasMore = (b.authors?.length ?? 0) > 1;
+            return (
             <Link
               key={b.id}
               href={`/cms/admin/collections/bibliography/${b.id}`}
               className="carnet-listview__row"
               role="row"
             >
-              <div role="cell" className="author">
-                {b.author}
+              <div role="cell" className="firstname">
+                {first?.firstName || '—'}
+              </div>
+              <div role="cell" className="lastname">
+                {first?.lastName || '—'}
+                {hasMore && <span className="lastname__etal"> et al.</span>}
               </div>
               <div role="cell" className="year">
                 {b.year}
@@ -160,7 +169,8 @@ export default function BibliographyListViewClient(): React.ReactElement {
                 {TYPE_LABEL[b.type as Exclude<FilterType, 'all'>] ?? b.type}
               </div>
             </Link>
-          ))
+            );
+          })
         )}
       </div>
 

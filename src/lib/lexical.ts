@@ -40,7 +40,12 @@ type LexicalNode = {
       | {
           id?: number | string;
           slug?: string;
-          author?: string;
+          authors?: Array<{
+            firstName?: string | null;
+            lastName: string;
+            role?: 'author' | 'editor' | 'translator';
+          }> | null;
+          authorLabel?: string | null;
           year?: number;
         }
       | number
@@ -139,12 +144,12 @@ function renderBlock(node: LexicalNode, ctx: RenderContext): string {
         // Référence non populated — fallback minimal.
         return `<span class="biblio-inline-empty">(réf.)</span>`;
       }
-      // Format Chicago author-date court : "(Auteur, année)" — le nom est
-      // pris jusqu'à la première virgule du champ author (ex. "Farris, Sara R."
-      // → "Farris").
-      const lastName = (entry.author ?? '').split(',')[0].trim();
+      // Format Chicago author-date court : « (Butler 2017) ». On utilise
+      // `authorLabel` calculé serveur-side (« Butler », « Butler & Spivak »,
+      // « Butler et al. »).
+      const shortAuthors = (entry.authorLabel ?? '').trim();
       const yearPart = entry.year ? `, ${entry.year}` : '';
-      const inner = `${prefix}${escapeHtml(lastName)}${yearPart}${suffix}`;
+      const inner = `${prefix}${escapeHtml(shortAuthors || '—')}${yearPart}${suffix}`;
       return `<a class="biblio-inline" href="#bib-${escapeHtml(entry.slug)}">(${inner})</a>`;
     }
 

@@ -155,6 +155,24 @@ export interface Post {
    * Mots-clés libres, ajoutés à la volée depuis l’édition du billet. Différents des thèmes (qui sont structurants).
    */
   tags?: (number | Tag)[] | null;
+  /**
+   * Au moins un·e. La première entrée est auto-remplie au create avec l’utilisateur·rice connecté·e. Pour les externes (collègues hors Carnet), choisir « Externe » et saisir le nom + rattachement.
+   */
+  authors?:
+    | {
+        kind: 'user' | 'external';
+        user?: (number | null) | User;
+        /**
+         * Ex. « Aïcha Touré »
+         */
+        name?: string | null;
+        /**
+         * Optionnel, ex. « LATTS ».
+         */
+        affiliation?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   publishedAt: string;
   /**
    * ~2-3 phrases — affichées en deck sous le titre.
@@ -238,6 +256,58 @@ export interface Tag {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: number;
+  displayName?: string | null;
+  /**
+   * Root = compte propriétaire (1 seul, non supprimable). Admin = peut gérer les comptes. Éditeur·ice = édite le contenu.
+   */
+  role: 'root' | 'admin' | 'editor';
+  /**
+   * Géré automatiquement par le système d'invitation.
+   */
+  status?: ('pending' | 'active' | 'disabled') | null;
+  invitation?: {
+    tokenHash?: string | null;
+    expiresAt?: string | null;
+    invitedBy?: (number | null) | User;
+    invitedAt?: string | null;
+  };
+  twoFactor?: {
+    emailCodeHash?: string | null;
+    emailCodeExpiresAt?: string | null;
+    emailCodeAttempts?: number | null;
+  };
+  lastActivityAt?: string | null;
+  lastLoginAt?: string | null;
+  trustedDevices?:
+    | {
+        deviceId: string;
+        fingerprintHash: string;
+        label?: string | null;
+        userAgent?: string | null;
+        ip?: string | null;
+        createdAt: string;
+        expiresAt: string;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  password?: string | null;
+  collection: 'users';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "bibliography".
  */
 export interface Bibliography {
@@ -247,11 +317,16 @@ export interface Bibliography {
    */
   slug: string;
   type: 'book' | 'chapter' | 'article' | 'paper' | 'web' | 'other';
-  /**
-   * Format Chicago : « Nom, Prénom » ; plusieurs auteurs séparés par « ; ».
-   */
-  author: string;
   year: number;
+  /**
+   * Une ligne par personne (1er = auteur·ice principal·e, utilisé pour le tri et la citation courte). `firstName` peut rester vide pour les auteurs corporatifs (UNESCO, Conseil de l’Europe…).
+   */
+  authors: {
+    lastName: string;
+    firstName?: string | null;
+    role: 'author' | 'editor' | 'translator';
+    id?: string | null;
+  }[];
   title: string;
   /**
    * Pour les livres : éditeur. Pour les articles : revue.
@@ -273,6 +348,7 @@ export interface Bibliography {
    * Optionnel — note de lecture, raison de l'inclusion, mémo de contexte. Non publié.
    */
   annotation?: string | null;
+  authorLabel?: string | null;
   displayLabel?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -381,58 +457,6 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
- */
-export interface User {
-  id: number;
-  displayName?: string | null;
-  /**
-   * Root = compte propriétaire (1 seul, non supprimable). Admin = peut gérer les comptes. Éditeur·ice = édite le contenu.
-   */
-  role: 'root' | 'admin' | 'editor';
-  /**
-   * Géré automatiquement par le système d'invitation.
-   */
-  status?: ('pending' | 'active' | 'disabled') | null;
-  invitation?: {
-    tokenHash?: string | null;
-    expiresAt?: string | null;
-    invitedBy?: (number | null) | User;
-    invitedAt?: string | null;
-  };
-  twoFactor?: {
-    emailCodeHash?: string | null;
-    emailCodeExpiresAt?: string | null;
-    emailCodeAttempts?: number | null;
-  };
-  lastActivityAt?: string | null;
-  lastLoginAt?: string | null;
-  trustedDevices?:
-    | {
-        deviceId: string;
-        fingerprintHash: string;
-        label?: string | null;
-        userAgent?: string | null;
-        ip?: string | null;
-        createdAt: string;
-        expiresAt: string;
-        id?: string | null;
-      }[]
-    | null;
-  updatedAt: string;
-  createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  password?: string | null;
-  collection: 'users';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -536,6 +560,15 @@ export interface PostsSelect<T extends boolean = true> {
   type?: T;
   themes?: T;
   tags?: T;
+  authors?:
+    | T
+    | {
+        kind?: T;
+        user?: T;
+        name?: T;
+        affiliation?: T;
+        id?: T;
+      };
   publishedAt?: T;
   lede?: T;
   body?: T;
@@ -575,8 +608,15 @@ export interface TagsSelect<T extends boolean = true> {
 export interface BibliographySelect<T extends boolean = true> {
   slug?: T;
   type?: T;
-  author?: T;
   year?: T;
+  authors?:
+    | T
+    | {
+        lastName?: T;
+        firstName?: T;
+        role?: T;
+        id?: T;
+      };
   title?: T;
   publisher?: T;
   place?: T;
@@ -586,6 +626,7 @@ export interface BibliographySelect<T extends boolean = true> {
   url?: T;
   doi?: T;
   annotation?: T;
+  authorLabel?: T;
   displayLabel?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -747,11 +788,11 @@ export interface Site {
   id: number;
   identity?: {
     /**
-     * Affiché en signature dans la baseline du footer et la description meta (ex. « Marie Dupont »).
+     * Affichée en signature dans la baseline du footer et la description meta. Peut être un nom (« Marie Dupont »), un labo (« LATTS »), un collectif, etc.
      */
     authorName?: string | null;
     /**
-     * Format Chicago author-date « Nom, Prénom » utilisé dans la citation des billets (« Pour citer cet article »).
+     * Format Chicago author-date « Nom, P. » utilisé dans le bloc « Pour citer » des billets qui n’ont pas d’auteur·ices renseigné·es (cas legacy). Pour les nouveaux billets, la citation est dérivée automatiquement des auteur·ices déclaré·es dans la barre latérale.
      */
     authorCitation?: string | null;
   };
@@ -764,6 +805,12 @@ export interface Site {
      * Teinte de fond du Carnet — appliquée au body et aux zones neutres (header, footer, fond des billets, fond admin).
      */
     backgroundColor?: ('#f6f5f1' | '#fdfcf8' | '#ffffff' | '#f1efe8' | '#eee9dd' | '#e9eaec') | null;
+  };
+  reading?: {
+    /**
+     * Le mode classique empile les notes en bas du billet (style académique). Le mode en marge les place dans une colonne à droite, alignée sur le paragraphe qui les appelle (style « Tufte »). S'applique uniformément à tous les billets du Carnet. Cf issue #6.
+     */
+    notesMode?: ('classic' | 'sidenotes') | null;
   };
   home?: {
     /**
@@ -848,6 +895,11 @@ export interface SiteSelect<T extends boolean = true> {
     | {
         accentColor?: T;
         backgroundColor?: T;
+      };
+  reading?:
+    | T
+    | {
+        notesMode?: T;
       };
   home?:
     | T

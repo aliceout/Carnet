@@ -33,6 +33,7 @@ import type {
 } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 
+import { formatAuthorsShort } from '@/lib/format-authors';
 import { useBiblioOptions } from './context';
 
 // ─── Types ────────────────────────────────────────────────────────
@@ -189,8 +190,9 @@ function BiblioInlineRenderer({
   const selected = local.entry
     ? biblioOptions.find((b) => String(b.id) === String(local.entry))
     : null;
+  const shortAuthors = selected ? formatAuthorsShort(selected.authors) : '';
   const label = selected
-    ? `(${selected.author ?? '—'}${selected.year ? `, ${selected.year}` : ''})`
+    ? `(${shortAuthors || '—'}${selected.year ? `, ${selected.year}` : ''})`
     : '(réf. à choisir)';
 
   return (
@@ -221,7 +223,7 @@ function BiblioInlineRenderer({
             <option value="">— aucune —</option>
             {biblioOptions.map((b) => (
               <option key={b.id} value={String(b.id)}>
-                {b.author ?? '—'}
+                {b.authorLabel || '—'}
                 {b.year ? ` (${b.year})` : ''}
                 {b.title ? ` · ${b.title}` : ''}
               </option>

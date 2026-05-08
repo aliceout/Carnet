@@ -35,6 +35,23 @@ export const Tags: CollectionConfig = {
     useAsTitle: 'name',
     defaultColumns: ['name', 'slug', 'updatedAt'],
     listSearchableFields: ['name', 'slug'],
+    components: {
+      views: {
+        // Vue Liste custom — édition inline du nom + suppression par
+        // ligne, pas de page d'édition séparée (le modèle est trop
+        // simple pour mériter une vue dédiée).
+        list: {
+          Component: '@/components/admin/TagListView#default',
+        },
+        // La vue Édition redirige vers la liste : tout se passe inline
+        // dans le tableau, on n'expose jamais de page par tag.
+        edit: {
+          root: {
+            Component: '@/components/admin/TagEditView#default',
+          },
+        },
+      },
+    },
   },
   fields: [
     {
