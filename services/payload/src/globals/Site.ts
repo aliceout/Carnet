@@ -104,6 +104,28 @@ export const Site: GlobalConfig = {
       ],
     },
     {
+      name: 'reading',
+      type: 'group',
+      label: 'Lecture des billets',
+      fields: [
+        {
+          name: 'notesMode',
+          type: 'select',
+          required: false,
+          label: 'Affichage des notes de bas de page',
+          defaultValue: 'classic',
+          options: [
+            { label: 'Classique — toutes les notes en pied d\'article', value: 'classic' },
+            { label: 'En marge — notes alignées à droite du paragraphe', value: 'sidenotes' },
+          ],
+          admin: {
+            description:
+              'Le mode classique empile les notes en bas du billet (style académique). Le mode en marge les place dans une colonne à droite, alignée sur le paragraphe qui les appelle (style « Tufte »). S\'applique uniformément à tous les billets du Carnet. Cf issue #6.',
+          },
+        },
+      ],
+    },
+    {
       name: 'home',
       type: 'group',
       label: "Page d'accueil",

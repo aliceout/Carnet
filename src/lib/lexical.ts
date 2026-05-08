@@ -263,6 +263,48 @@ export function renderLexicalWithFootnotes(
   return { bodyHtml, footnotesHtml };
 }
 
+/**
+ * Mode sidenotes (cf issue #6). Walk les enfants directs du root et
+ * émet, après chaque bloc, les `<aside class="marg">` correspondant
+ * aux footnotes rencontrées dans ce bloc. Le `<sup>` reste inline
+ * dans le texte pour que le lecteur retrouve l'appel ; la note se
+ * place dans la colonne droite via CSS Grid (cf [slug].astro).
+ *
+ * Style « Tufte » — chaque note est positionnée en regard du
+ * paragraphe qui l'appelle, plutôt qu'empilée en pied d'article.
+ */
+export function renderLexicalSidenotes(node: LexicalNode | unknown): string {
+  if (!node || typeof node !== 'object') return '';
+  const x = node as LexicalNode & { root?: LexicalNode };
+  // Trouve le root.children — body Lexical = { root: { children: [...] } }
+  let rootNode: LexicalNode | null = null;
+  if ('root' in x && x.root) rootNode = x.root;
+  else if (x.type === 'root') rootNode = x;
+  if (!rootNode || !rootNode.children) {
+    // Fallback : pas de root, on rend en mode classique sans collecte
+    return renderNode(node, newContext());
+  }
+
+  const ctx = newContext();
+  const out: string[] = [];
+  let collected = 0;
+  for (const child of rootNode.children) {
+    const blockHtml = renderNode(child, ctx);
+    out.push(blockHtml);
+    // Émet les asides pour les nouvelles footnotes collectées dans ce
+    // bloc — `slice(collected)` capture seulement celles qui n'avaient
+    // pas encore été émises.
+    const newNotes = ctx.footnotes.slice(collected);
+    for (const { n, html } of newNotes) {
+      out.push(
+        `<aside class="marg" id="fn-${n}"><sup class="marg-num">${n}</sup>${html}<a href="#fnref-${n}" class="fn-back" aria-label="Retour au texte">↩</a></aside>`,
+      );
+    }
+    collected = ctx.footnotes.length;
+  }
+  return out.join('');
+}
+
 export type TocEntry = { id: string; text: string; level: 2 | 3 };
 
 export function extractToc(node: LexicalNode | unknown): TocEntry[] {

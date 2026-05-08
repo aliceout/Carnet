@@ -20,7 +20,11 @@
  */
 import Layout from '../../layouts/Layout.astro';
 import { fetchBySlug, fetchCollection, fetchSite } from '../../lib/payload';
-import { renderLexicalWithFootnotes, extractToc } from '../../lib/lexical';
+import {
+  extractToc,
+  renderLexicalSidenotes,
+  renderLexicalWithFootnotes,
+} from '../../lib/lexical';
 import { formatDateFr, formatNumero } from '../../lib/site';
 
 type Theme = { id: number | string; slug: string; name: string };
@@ -86,9 +90,31 @@ const readingLabel = post.readingTime
     : `≈ ${post.readingTime} min`
   : null;
 
-// Body HTML rendu côté serveur depuis Lexical, plus la liste des
-// footnotes collectées (vide si pas de blocks Footnote dans le body).
-const { bodyHtml, footnotesHtml } = renderLexicalWithFootnotes(post.body);
+// Site global — fournit l'identité (citation Chicago) et le mode
+// d'affichage des notes (classique en pied / sidenotes en marge).
+type SiteData = {
+  identity?: { authorCitation?: string };
+  reading?: { notesMode?: 'classic' | 'sidenotes' };
+};
+let site: SiteData = {};
+try {
+  site = await fetchSite<SiteData>();
+} catch (err) {
+  console.warn('[article] fetchSite failed:', (err as Error).message);
+}
+const notesMode: 'classic' | 'sidenotes' =
+  site.reading?.notesMode === 'sidenotes' ? 'sidenotes' : 'classic';
+
+// Body HTML rendu côté serveur depuis Lexical. En mode classique, on
+// récupère bodyHtml + footnotesHtml (notes empilées en pied). En mode
+// sidenotes, le rendu interleave les <aside class="marg"> juste après
+// chaque bloc concerné — pas de footnotesHtml séparé.
+const bodyHtml =
+  notesMode === 'sidenotes'
+    ? renderLexicalSidenotes(post.body)
+    : renderLexicalWithFootnotes(post.body).bodyHtml;
+const footnotesHtml =
+  notesMode === 'classic' ? renderLexicalWithFootnotes(post.body).footnotesHtml : '';
 const tocEntries = extractToc(post.body);
 
 // Bibliographie
@@ -122,18 +148,9 @@ if (primaryTheme) {
 const numLabel = formatNumero(post.numero);
 
 // Identité de l'auteur·ice — citation Chicago author-date depuis le
-// global Site Payload (champ identity.authorCitation, format « Nom,
-// Prénom »). Fallback générique si non renseigné.
-type SiteIdentity = { identity?: { authorCitation?: string } };
-let authorCitation = 'Auteur·ice';
-try {
-  const site = await fetchSite<SiteIdentity>();
-  if (site.identity?.authorCitation?.trim()) {
-    authorCitation = site.identity.authorCitation.trim();
-  }
-} catch (err) {
-  console.warn('[article] fetchSite (identity) failed:', (err as Error).message);
-}
+// global Site (champ identity.authorCitation, format « Nom, Prénom »).
+// Fallback générique si non renseigné.
+const authorCitation = site.identity?.authorCitation?.trim() || 'Auteur·ice';
 
 // Citation bibliographique du billet (Chicago author-date façon Carnet)
 const articleUrl = new URL(Astro.url.pathname, Astro.site).toString();
@@ -144,7 +161,7 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
   title={post.title + ' — Carnet'}
   description={post.lede}
   progressBar={true}
-  bodyClass="justify notes-classic"
+  bodyClass={`justify notes-${notesMode}`}
 >
   <!-- TOC flottant -->
   {tocEntries.length > 0 && (
@@ -512,6 +529,59 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
   }
   .body-grid .col :global(.block-figure .credit) {
     font-size: 11px;
+  }
+
+  /* Mode sidenotes — notes en marge à droite (cf issue #6).
+     Activé par body.notes-sidenotes. La <aside class="marg"> est
+     rendue inline juste après le bloc qui l'appelle, et flotte à
+     droite via margin-right négatif pour sortir dans la gouttière. */
+  body.notes-sidenotes .body-grid .col {
+    padding-right: 240px;
+    position: relative;
+  }
+  body.notes-sidenotes .body-grid .col :global(.marg) {
+    float: right;
+    clear: right;
+    width: 200px;
+    margin: 4px -240px 1.4em 16px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--color-muted);
+    text-align: left;
+  }
+  body.notes-sidenotes .body-grid .col :global(.marg-num) {
+    display: inline-block;
+    margin-right: 6px;
+    color: var(--color-accent);
+    font-weight: 600;
+    font-size: 11px;
+  }
+  body.notes-sidenotes .body-grid .col :global(.marg .fn-back) {
+    display: inline-block;
+    margin-left: 6px;
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    text-decoration: none;
+  }
+  body.notes-sidenotes .body-grid .col :global(.marg .fn-back:hover) {
+    text-decoration: underline;
+  }
+  /* Sous 1100px, plus la place pour la gouttière — fallback en bloc
+     intercalé, encadré accent à gauche pour distinguer le contenu. */
+  @media (max-width: 1100px) {
+    body.notes-sidenotes .body-grid .col {
+      padding-right: 0;
+    }
+    body.notes-sidenotes .body-grid .col :global(.marg) {
+      float: none;
+      width: auto;
+      margin: 16px 0;
+      padding: 10px 14px;
+      border-left: 2px solid var(--color-accent);
+      background: var(--color-citation-bg);
+    }
   }
 
   /* Notes en pied d'article (style classique) */
