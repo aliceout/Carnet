@@ -126,7 +126,24 @@ export const Users: CollectionConfig = {
       name: 'role',
       type: 'select',
       required: true,
-      defaultValue: 'editor',
+      // Bootstrap : le premier compte créé sur une base vierge est par
+      // défaut « root » (cas register-first-user). Les comptes suivants
+      // tombent sur « editor » par défaut (l'inviteur·ice peut promouvoir
+      // côté formulaire d'invitation).
+      defaultValue: async ({ req }) => {
+        if (!req?.payload) return 'editor';
+        try {
+          const existing = await req.payload.find({
+            collection: 'users',
+            limit: 1,
+            depth: 0,
+            overrideAccess: true,
+          });
+          return existing.totalDocs === 0 ? 'root' : 'editor';
+        } catch {
+          return 'editor';
+        }
+      },
       options: [
         { label: 'Root', value: 'root' },
         { label: 'Admin', value: 'admin' },
@@ -162,6 +179,10 @@ export const Users: CollectionConfig = {
         position: 'sidebar',
         readOnly: true,
         description: 'Géré automatiquement par le système d\'invitation.',
+        // Masqué pendant la création (formulaire register-first-user et
+        // toute future création directe) : la valeur est posée par
+        // defaultValue/hooks, pas par l'utilisateur.
+        condition: (data) => Boolean(data?.id),
       },
     },
 
@@ -219,17 +240,27 @@ export const Users: CollectionConfig = {
     },
 
     // ─── Sessions / activité ─────────────────────────────────────────
+    // Masqués pendant la création — n'ont aucun sens avant que le compte
+    // ait existé.
     {
       name: 'lastActivityAt',
       type: 'date',
       access: { read: isSelfOrAdmin, update: () => false },
-      admin: { readOnly: true, position: 'sidebar' },
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        condition: (data) => Boolean(data?.id),
+      },
     },
     {
       name: 'lastLoginAt',
       type: 'date',
       access: { read: isSelfOrAdmin, update: () => false },
-      admin: { readOnly: true, position: 'sidebar' },
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        condition: (data) => Boolean(data?.id),
+      },
     },
 
     // ─── Trusted devices (post-OTP, 7 jours) ─────────────────────────
