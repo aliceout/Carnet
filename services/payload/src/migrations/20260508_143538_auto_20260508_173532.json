@@ -2466,7 +2466,7 @@
           "type": "varchar",
           "primaryKey": false,
           "notNull": false,
-          "default": "'Analyses longues, notes de lecture et fiches thématiques sur le genre, la géopolitique et les droits LGBTQI+ dans les rapports internationaux. Principalement en français.'"
+          "default": "'Analyses longues, notes de lecture et fiches thématiques sur le genre, la géopolitique et les droits LGBTQI+ dans les rapports internationaux.'"
         },
         "archives_hero_title": {
           "name": "archives_hero_title",

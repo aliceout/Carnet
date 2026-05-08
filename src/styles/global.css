@@ -1,5 +1,5 @@
 /* Tokens du design Carnet — repris depuis design_handoff_carnet/.
-   Valeurs figées par le client : accent violet #5a3a7a, fond #fdfcf8,
+   Valeurs figées par le client : accent violet #5a3a7a, fond #f6f5f1,
    notes classiques, lettrine activée, justify+hyphens. */
 
 @import 'tailwindcss';
@@ -7,7 +7,9 @@
 /* Polices self-hostées via @fontsource (importées dans Layout.astro). */
 
 @theme {
-  /* Couleurs */
+  /* Couleurs (valeurs light mode par défaut — surchargeables par
+     Payload Site → Branding via une <style> :root inline dans le
+     <head>, et par data-theme="dark" pour le mode sombre). */
   --color-ink: #1a1d28;
   --color-bg: #f6f5f1;
   --color-paper: #ffffff;
@@ -29,6 +31,31 @@
   --density-feed: 0.7;
 }
 
+/* `--color-accent-base` est la « source » de l'accent en valeur claire,
+   séparée de `--color-accent` (qui peut être éclaircie en dark mode).
+   Layout.astro injecte la valeur Payload dans les DEUX au SSR, ce qui
+   permet au dark mode de la dériver via color-mix sans cycle var()
+   référentiel. */
+:root {
+  --color-accent-base: var(--color-accent);
+}
+
+/* Dark mode — appliqué quand le HTML porte data-theme="dark" (cf.
+   inline script anti-FOUC dans Layout.astro et toggle dans Header.astro).
+   Palette warm dark (légèrement violacée pour cohabiter avec l'accent),
+   pas noir pur. L'accent est éclairci en oklch pour rester lisible
+   sur fond sombre quelle que soit la couleur source choisie dans Payload. */
+[data-theme='dark'] {
+  --color-bg: #22242e;
+  --color-paper: #2a2c38;
+  --color-ink: #e8e6e0;
+  --color-rule: #3d4150;
+  --color-muted: #9aa0ad;
+  --color-body: #d8d6d0;
+  --color-body-soft: #b8b6b0;
+  --color-accent: color-mix(in oklch, var(--color-accent-base), white 30%);
+}
+
 /* Reset minimal */
 *,
 *::before,
@@ -42,6 +69,9 @@ body {
   background: var(--color-bg);
   color: var(--color-ink);
   font-family: var(--font-serif);
+  /* Transition douce sur le changement de thème — uniquement les
+     couleurs, pas tout (pour éviter de transitionner les layouts). */
+  transition: background-color 0.18s ease, color 0.18s ease;
 }
 
 a {

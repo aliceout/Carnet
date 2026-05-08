@@ -98,9 +98,32 @@ try {
     />
     {(accentOverride || bgOverride) && (
       <style
-        set:html={`:root{${accentOverride ? `--color-accent:${accentOverride};` : ''}${bgOverride ? `--color-bg:${bgOverride};` : ''}}`}
+        set:html={`:root{${accentOverride ? `--color-accent:${accentOverride};--color-accent-base:${accentOverride};` : ''}${bgOverride ? `--color-bg:${bgOverride};` : ''}}`}
       ></style>
     )}
+    {/*
+      Anti-FOUC : pose data-theme="dark|light" sur <html> AVANT le
+      premier paint, pour éviter le flash blanc → sombre au chargement.
+      Source de vérité : localStorage 'theme' > prefers-color-scheme.
+      Le toggle dans Header.astro met à jour les deux.
+    */}
+    <script is:inline>
+      (function () {
+        try {
+          var saved = localStorage.getItem('theme');
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var theme = saved === 'dark' || saved === 'light'
+            ? saved
+            : prefersDark
+              ? 'dark'
+              : 'light';
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (_) {
+          /* localStorage indisponible (private mode, SSR) — on laisse
+             le défaut light s'appliquer. */
+        }
+      })();
+    </script>
   </head>
   <body class={bodyClass}>
     {progressBar && (
