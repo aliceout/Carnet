@@ -1439,6 +1439,93 @@ button.btn--style-primary,
   }
 }
 
+// ─── Tags picker (sidebar PostEditView) ──────────────────────────
+// Input autocomplétion sur les tags existants + option « Créer ce
+// tag » si la saisie ne matche aucun tag. Chips muted en pied (les
+// tags sont volontairement plus discrets que les Thèmes accent).
+.tags-picker {
+  position: relative;
+
+  &__input {
+    width: 100%;
+    padding: 7px 10px;
+    background: var(--b-paper);
+    border: 1px solid var(--b-rule);
+    font-family: inherit;
+    font-size: 12.5px;
+    color: var(--b-ink);
+
+    &:focus {
+      outline: none;
+      border-color: var(--b-accent);
+    }
+  }
+
+  &__menu {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    margin-top: 2px;
+    z-index: 20;
+    max-height: 220px;
+    overflow: auto;
+    background: var(--b-paper);
+    border: 1px solid var(--b-rule);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  &__opt {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 6px 10px;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--b-rule);
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--b-ink);
+    cursor: pointer;
+
+    &:last-child {
+      border-bottom: 0;
+    }
+
+    &:hover {
+      background: var(--b-accent-tint);
+    }
+
+    &--create {
+      color: var(--b-accent);
+      font-style: italic;
+    }
+  }
+
+  &__attached {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+}
+
+.tag-chip {
+  padding: 3px 8px;
+  background: var(--b-bg);
+  border: 1px solid var(--b-rule);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--b-muted);
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+
+  &:hover {
+    color: #b63a3a;
+    border-color: #b63a3a;
+  }
+}
+
 // ─── Modal réutilisable (invitation user, confirmations, etc.) ───
 .carnet-modal-backdrop {
   position: fixed;
@@ -1786,6 +1873,25 @@ button.btn--style-primary,
   &--disabled .carnet-status__dot {
     background: var(--b-muted);
   }
+}
+
+// Petit chip discret accolé au titre dans la liste des billets, pour
+// signaler qu'un billet contient encore au moins une zone brouillon
+// non finalisée. Cf issue #1.
+.carnet-chip-draft {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--b-accent);
+  border: 1px solid var(--b-accent);
+  background: transparent;
+  vertical-align: middle;
+  line-height: 1.4;
 }
 
 // Chip de rôle pour les utilisateurs (root / admin / editor)
@@ -3204,6 +3310,40 @@ button.btn--style-primary,
         outline: none;
         border-color: var(--b-accent);
       }
+    }
+  }
+
+  // ─── Container : zone brouillon ───────────────────────────────
+  // ElementNode Lexical (pas un decorator) — children éditables en
+  // direct dans le flux principal. Bandeau visuel via ::before pour
+  // signaler la zone à l'autrice à l'édition. Cf issue #1.
+  .ed-draft {
+    margin: 18px 0;
+    padding: 28px 18px 14px;
+    border: 1px dashed var(--b-rule);
+    border-left: 3px solid var(--b-accent);
+    background: var(--b-bg);
+    position: relative;
+
+    &::before {
+      content: 'Brouillon — zone en cours';
+      position: absolute;
+      top: 8px;
+      left: 18px;
+      font-family: var(--font-sans);
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--b-accent);
+      pointer-events: none;
+    }
+
+    > *:first-child {
+      margin-top: 0;
+    }
+    > *:last-child {
+      margin-bottom: 0;
     }
   }
 

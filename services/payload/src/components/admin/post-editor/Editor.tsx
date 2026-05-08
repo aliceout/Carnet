@@ -26,6 +26,7 @@ import { HeadingNode, QuoteNode, $createHeadingNode, $createQuoteNode } from '@l
 import { LinkNode } from '@lexical/link';
 import { ListNode, ListItemNode } from '@lexical/list';
 import {
+  $createParagraphNode,
   $getRoot,
   $getSelection,
   $isElementNode,
@@ -47,6 +48,8 @@ import {
   CarnetInlineBlockNode,
   $createCarnetInlineBlockNode,
   $isCarnetInlineBlockNode,
+  DraftContainerNode,
+  $createDraftContainerNode,
   type CarnetBlockData,
   type CarnetInlineBlockData,
 } from './nodes';
@@ -326,6 +329,21 @@ const SLASH_ITEMS: SlashItem[] = [
           fields: { image: null, legende: '', credit: '', align: 'corps' },
         }),
       ]);
+    },
+  },
+  {
+    id: 'draft',
+    group: 'Blocs Carnet',
+    ic: '⚠',
+    label: 'Zone brouillon',
+    desc: 'Marque une zone du billet comme inachevée',
+    doInsert: () => {
+      // Container vide avec un paragraphe enfant pour pouvoir taper
+      // dedans tout de suite. Sans children, le node serait dégénéré
+      // et Lexical le re-supprimerait au prochain reconciliate.
+      const draft = $createDraftContainerNode();
+      draft.append($createParagraphNode());
+      $insertNodes([draft]);
     },
   },
   {
@@ -656,6 +674,7 @@ export default function PostBodyEditor({
         ListItemNode,
         CarnetBlockNode,
         CarnetInlineBlockNode,
+        DraftContainerNode,
       ],
       editorState: initialJsonRef.current,
     }),

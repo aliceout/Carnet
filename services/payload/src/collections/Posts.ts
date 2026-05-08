@@ -121,6 +121,18 @@ export const Posts: CollectionConfig = {
       },
     },
     {
+      name: 'tags',
+      type: 'relationship',
+      relationTo: 'tags',
+      hasMany: true,
+      required: false,
+      label: 'Tags',
+      admin: {
+        description:
+          'Mots-clés libres, ajoutés à la volée depuis l’édition du billet. Différents des thèmes (qui sont structurants).',
+      },
+    },
+    {
       name: 'publishedAt',
       type: 'date',
       required: true,
@@ -247,6 +259,27 @@ export const Posts: CollectionConfig = {
       label: 'Brouillon (masqué en prod)',
       admin: { position: 'sidebar' },
     },
+    {
+      name: 'hasDraftZones',
+      type: 'checkbox',
+      defaultValue: false,
+      index: true,
+      label: 'Zones brouillon en cours',
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        description:
+          'Calculé automatiquement — vrai si le corps contient au moins une zone marquée brouillon. Filtrable depuis la liste des billets.',
+      },
+      hooks: {
+        beforeChange: [
+          ({ siblingData }) => {
+            const body = siblingData?.body;
+            return hasDraftContainerInLexical(body);
+          },
+        ],
+      },
+    },
   ],
 };
 
@@ -269,4 +302,22 @@ function extractTextFromLexical(node: unknown): string {
     }
   }
   return out;
+}
+
+/**
+ * Vérifie si un body Lexical contient au moins une zone brouillon
+ * (node `draft_container`). Walk récursif sur les children.
+ */
+function hasDraftContainerInLexical(node: unknown): boolean {
+  if (!node || typeof node !== 'object') return false;
+  const obj = node as Record<string, unknown>;
+  if (obj.type === 'draft_container') return true;
+  const root = (obj.root ?? obj) as Record<string, unknown>;
+  const children = root.children;
+  if (Array.isArray(children)) {
+    for (const child of children) {
+      if (hasDraftContainerInLexical(child)) return true;
+    }
+  }
+  return false;
 }

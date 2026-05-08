@@ -189,6 +189,8 @@ function renderNode(node: LexicalNode | unknown, ctx: RenderContext): string {
   switch (n.type) {
     case 'root':
       return inner;
+    case 'draft_container':
+      return `<aside class="draft-block" role="note" aria-label="Zone brouillon"><span class="draft-block__banner">Brouillon — zone en cours d'écriture</span>${inner}</aside>`;
     case 'paragraph':
       return `<p>${inner}</p>`;
     case 'heading': {

@@ -6,6 +6,12 @@
 //   - citation_bloc   (block)  : citation longue avec source
 //   - figure          (block)  : image + légende + crédit
 //
+// Plus un container ElementNode :
+//   - draft_container (block, container) : zone brouillon — encapsule
+//     des paragraphes/headings/etc. encore inachevés. Visible dans le
+//     billet publié avec un bandeau « brouillon ». Édition normale en
+//     dedans, pas de champ raison (cf issue #1).
+//
 // Format JSON aligné sur celui généré par Payload BlocksFeature
 // (`type: 'block'` ou `'inlineBlock'`, `fields.blockType`, `fields.*`),
 // pour que les posts existants se chargent sans migration et que le
@@ -15,12 +21,13 @@
 // dans son propre DOM — pas de drawer Payload, pas de modal.
 
 import React, { useEffect, useRef, useState } from 'react';
-import { $getNodeByKey, DecoratorNode } from 'lexical';
+import { $getNodeByKey, DecoratorNode, ElementNode } from 'lexical';
 import type {
   EditorConfig,
   LexicalEditor,
   LexicalNode,
   NodeKey,
+  SerializedElementNode,
   SerializedLexicalNode,
   Spread,
 } from 'lexical';
@@ -496,4 +503,64 @@ export function $isCarnetInlineBlockNode(
   node: LexicalNode | null | undefined,
 ): node is CarnetInlineBlockNode {
   return node instanceof CarnetInlineBlockNode;
+}
+
+// ─── Draft container ──────────────────────────────────────────────
+//
+// Zone brouillon : un ElementNode qui wrappe N children Lexical
+// (paragraphes, headings, citations…) en gardant l'édition fluide
+// dans le flux principal. Round-trip JSON via `type: 'draft_container'`,
+// pas de Block Payload (pas de migration pgsql à faire — body est
+// déjà jsonb). Le rendu admin (createDOM) pose une className `ed-draft`
+// sur un <div>, le bandeau visuel est en CSS pseudo-element. Pas de
+// champ `reason` (cf issue #1, drop décidé en cours d'implé).
+
+type SerializedDraftContainerNode = Spread<
+  {
+    type: 'draft_container';
+    version: 1;
+  },
+  SerializedElementNode
+>;
+
+export class DraftContainerNode extends ElementNode {
+  static getType(): string {
+    return 'draft_container';
+  }
+
+  static clone(node: DraftContainerNode): DraftContainerNode {
+    return new DraftContainerNode(node.__key);
+  }
+
+  static importJSON(_json: SerializedDraftContainerNode): DraftContainerNode {
+    return $createDraftContainerNode();
+  }
+
+  exportJSON(): SerializedDraftContainerNode {
+    return {
+      ...super.exportJSON(),
+      type: 'draft_container',
+      version: 1,
+    };
+  }
+
+  createDOM(_config: EditorConfig): HTMLElement {
+    const el = document.createElement('div');
+    el.className = 'ed-draft';
+    return el;
+  }
+
+  updateDOM(): false {
+    return false;
+  }
+}
+
+export function $createDraftContainerNode(): DraftContainerNode {
+  return new DraftContainerNode();
+}
+
+export function $isDraftContainerNode(
+  node: LexicalNode | null | undefined,
+): node is DraftContainerNode {
+  return node instanceof DraftContainerNode;
 }

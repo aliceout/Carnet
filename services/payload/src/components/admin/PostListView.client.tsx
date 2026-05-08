@@ -31,6 +31,7 @@ type Post = {
   themes?: Theme[] | null;
   publishedAt: string;
   draft?: boolean;
+  hasDraftZones?: boolean;
 };
 
 type FetchResult = {
@@ -42,6 +43,7 @@ type FetchResult = {
 
 type FilterType = 'all' | 'analyse' | 'note' | 'fiche';
 type FilterStatut = 'all' | 'draft' | 'published' | 'scheduled';
+type FilterDrafts = 'all' | 'with' | 'without';
 type SortKey = '-publishedAt' | 'publishedAt' | '-numero' | 'numero';
 
 const TYPE_LABELS: Record<Post['type'], string> = {
@@ -78,6 +80,7 @@ export default function PostListViewClient(): React.ReactElement {
   const [type, setType] = useState<FilterType>('all');
   const [pole, setPole] = useState<string>('all');
   const [statut, setStatut] = useState<FilterStatut>('all');
+  const [drafts, setDrafts] = useState<FilterDrafts>('all');
   const [sort, setSort] = useState<SortKey>('-publishedAt');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -124,6 +127,11 @@ export default function PostListViewClient(): React.ReactElement {
       params.append('where[draft][equals]', 'false');
       params.append('where[publishedAt][greater_than]', new Date().toISOString());
     }
+    if (drafts === 'with') {
+      params.append('where[hasDraftZones][equals]', 'true');
+    } else if (drafts === 'without') {
+      params.append('where[hasDraftZones][equals]', 'false');
+    }
     if (search.trim()) {
       params.append('where[title][like]', search.trim());
     }
@@ -148,7 +156,7 @@ export default function PostListViewClient(): React.ReactElement {
   // Reset page=1 quand un filtre change (sinon on peut être sur p2 d'un filtre vide)
   useEffect(() => {
     setPage(1);
-  }, [type, pole, statut, sort, search]);
+  }, [type, pole, statut, drafts, sort, search]);
 
   const themeOptions = useMemo(
     () => [{ slug: 'all', name: 'tous' }, ...themes],
@@ -223,6 +231,15 @@ export default function PostListViewClient(): React.ReactElement {
         </label>
 
         <label className="carnet-listview__filter">
+          <span className="lbl">Zones brouillon :</span>
+          <select value={drafts} onChange={(e) => setDrafts(e.target.value as FilterDrafts)}>
+            <option value="all">tous</option>
+            <option value="with">avec</option>
+            <option value="without">sans</option>
+          </select>
+        </label>
+
+        <label className="carnet-listview__filter">
           <span className="lbl">Tri :</span>
           <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
             <option value="-publishedAt">récent</option>
@@ -276,6 +293,14 @@ export default function PostListViewClient(): React.ReactElement {
                 </div>
                 <div role="cell" className="title">
                   {p.title}
+                  {p.hasDraftZones && (
+                    <span
+                      className="carnet-chip-draft"
+                      title="Ce billet contient au moins une zone brouillon non finalisée"
+                    >
+                      brouillon
+                    </span>
+                  )}
                 </div>
                 <div role="cell" className="status">
                   <span className={`carnet-status carnet-status--${status}`}>
