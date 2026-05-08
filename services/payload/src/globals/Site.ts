@@ -31,6 +31,35 @@ export const Site: GlobalConfig = {
   },
   fields: [
     {
+      name: 'identity',
+      type: 'group',
+      label: "Identité de l'auteur·ice",
+      fields: [
+        {
+          name: 'authorName',
+          type: 'text',
+          required: false,
+          label: 'Nom complet',
+          defaultValue: '',
+          admin: {
+            description:
+              "Affiché en signature dans la baseline du footer et la description meta (ex. « Marie Dupont »).",
+          },
+        },
+        {
+          name: 'authorCitation',
+          type: 'text',
+          required: false,
+          label: 'Format citation',
+          defaultValue: '',
+          admin: {
+            description:
+              'Format Chicago author-date « Nom, Prénom » utilisé dans la citation des billets (« Pour citer cet article »).',
+          },
+        },
+      ],
+    },
+    {
       name: 'branding',
       type: 'group',
       label: 'Branding',
@@ -167,8 +196,7 @@ export const Site: GlobalConfig = {
       type: 'textarea',
       required: false,
       label: 'Baseline',
-      defaultValue:
-        "Carnet de recherche d'Alice Aussel Delamaide. Genre, géopolitique, droits LGBTQI+, humanitaire, migrations. Auto-hébergé. Sans pisteur.",
+      defaultValue: 'Carnet de recherche. Auto-hébergé. Sans pisteur.',
       admin: { description: 'Affichée dans le footer (col 1).' },
     },
     {
@@ -176,7 +204,7 @@ export const Site: GlobalConfig = {
       type: 'text',
       required: false,
       label: 'Ligne copyright',
-      defaultValue: 'carnet.aliceosdel.org · CC BY-NC-SA 4.0',
+      defaultValue: 'CC BY-NC-SA 4.0',
       admin: { description: 'Footer (col 1, sous la baseline, en mono).' },
     },
     {

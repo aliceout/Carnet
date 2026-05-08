@@ -29,6 +29,10 @@ type NavLink = {
 };
 
 type SiteData = {
+  identity?: {
+    authorName?: string;
+    authorCitation?: string;
+  };
   branding?: {
     accentColor?: string;
     backgroundColor?: string;
@@ -77,6 +81,7 @@ const BG_OPTIONS: { label: string; value: string }[] = [
 const DEFAULT_BG = BG_OPTIONS[0].value;
 
 const EMPTY: SiteData = {
+  identity: { authorName: '', authorCitation: '' },
   branding: { accentColor: DEFAULT_ACCENT, backgroundColor: DEFAULT_BG },
   home: { heroTitle: '', heroLede: '' },
   archives: { heroTitle: '', heroLede: '' },
@@ -106,6 +111,10 @@ export default function SiteEditViewClient(): React.ReactElement {
       })
       .then((doc: SiteData) => {
         const normalized: SiteData = {
+          identity: {
+            authorName: doc.identity?.authorName ?? '',
+            authorCitation: doc.identity?.authorCitation ?? '',
+          },
           branding: {
             accentColor: doc.branding?.accentColor || DEFAULT_ACCENT,
             backgroundColor: doc.branding?.backgroundColor || DEFAULT_BG,
@@ -165,6 +174,10 @@ export default function SiteEditViewClient(): React.ReactElement {
 
   function updateThemes(key: keyof NonNullable<SiteData['themes']>, value: string) {
     setData((d) => ({ ...d, themes: { ...(d.themes ?? {}), [key]: value } }));
+  }
+
+  function updateIdentity(key: keyof NonNullable<SiteData['identity']>, value: string) {
+    setData((d) => ({ ...d, identity: { ...(d.identity ?? {}), [key]: value } }));
   }
 
   function updateAccent(value: string) {
@@ -231,6 +244,10 @@ export default function SiteEditViewClient(): React.ReactElement {
       // Payload renvoie soit { result, message } soit le doc direct selon la version
       const fresh: SiteData = (doc as { result?: SiteData }).result ?? (doc as SiteData);
       const normalized: SiteData = {
+        identity: {
+          authorName: fresh.identity?.authorName ?? '',
+          authorCitation: fresh.identity?.authorCitation ?? '',
+        },
         branding: {
           accentColor: fresh.branding?.accentColor || DEFAULT_ACCENT,
           backgroundColor: fresh.branding?.backgroundColor || DEFAULT_BG,
@@ -308,6 +325,40 @@ export default function SiteEditViewClient(): React.ReactElement {
             void save();
           }}
         >
+          <section className="carnet-editview__section">
+            <h2 className="carnet-editview__section-title">
+              Identité de l&apos;auteur·ice
+            </h2>
+            <p className="carnet-editview__section-help">
+              Le nom complet apparaît dans la baseline du footer et la
+              description meta. Le format citation (« Nom, Prénom ») est
+              utilisé dans le bloc « Pour citer cet article » des billets.
+            </p>
+
+            <label className="carnet-editview__field">
+              <span className="lbl">Nom complet</span>
+              <input
+                type="text"
+                value={data.identity?.authorName ?? ''}
+                onChange={(e) => updateIdentity('authorName', e.target.value)}
+                placeholder="ex. Marie Dupont"
+              />
+            </label>
+
+            <label className="carnet-editview__field">
+              <span className="lbl">Format citation (Chicago)</span>
+              <input
+                type="text"
+                value={data.identity?.authorCitation ?? ''}
+                onChange={(e) => updateIdentity('authorCitation', e.target.value)}
+                placeholder="ex. Dupont, Marie"
+              />
+              <span className="hint">
+                Format « Nom, Prénom » — affiché dans la citation de chaque billet.
+              </span>
+            </label>
+          </section>
+
           <section className="carnet-editview__section">
             <h2 className="carnet-editview__section-title">Branding</h2>
             <p className="carnet-editview__section-help">

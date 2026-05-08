@@ -1,6 +1,6 @@
 # carnet-payload
 
-Backend Payload CMS pour [carnet.aliceosdel.org](https://carnet.aliceosdel.org).
+Backend Payload CMS.
 Tourne sous Next.js 16 et expose admin sous `/cms/admin`, API REST sous
 `/cms/api`, GraphQL sous `/cms/graphql`.
 

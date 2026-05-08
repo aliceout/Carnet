@@ -36,7 +36,7 @@ export const Figure: Block = {
       label: 'Crédit / source',
       admin: {
         description:
-          'Ex : « Photo : Alice Aussel Delamaide, Bangui, 2017 » ou « © UN Photo / Eskinder Debebe ».',
+          'Ex : « Photo : Michel Rose, Paris, 2017 » ou « © UN Photo / Eskinder Debebe ».',
       },
     },
     alignField,

@@ -4,12 +4,17 @@ import node from '@astrojs/node';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 
+// URL canonique du site — utilisée pour Astro.site, le sitemap et le
+// flux RSS. Passée en env via Infisical (ADDRESS). Fallback
+// générique pour les builds CI sans .env.
+const ADDRESS = process.env.ADDRESS ?? 'https://carnet.example.com';
+
 export default defineConfig({
-  site: 'https://carnet.aliceosdel.org',
+  site: ADDRESS,
   trailingSlash: 'ignore',
   // SSR via Node : chaque requête tape Payload (réseau docker
   // interne en prod, localhost:3001 en dev). Pas de rebuild CI
-  // à chaque save d'Alice — édition instantanément visible.
+  // à chaque save côté admin — édition instantanément visible.
   output: 'server',
   adapter: node({
     mode: 'standalone',

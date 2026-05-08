@@ -5,7 +5,6 @@ Hypothèses. Publie des billets longs en français — analyses, notes de lectur
 fiches thématiques — autour du genre, de la géopolitique et des droits LGBTQI+
 dans les rapports internationaux.
 
-URL prod : [carnet.aliceosdel.org](https://carnet.aliceosdel.org).
 
 Stack : **Astro 6 SSR** (Node standalone) + **Payload CMS v3** + **Postgres 16**,
 self-hosté en Docker. Aucun pisteur, aucune dépendance externe inutile, lisible
@@ -68,7 +67,7 @@ compose.dev.yml            Compose dev (postgres + mailpit)
 
 ## Contenu
 
-Édité par Alice via **`/cms/admin`**, persisté en Postgres, lu par Astro en
+Édité depuis **`/cms/admin`**, persisté en Postgres, lu par Astro en
 SSR à chaque requête (pas de rebuild, modifs visibles immédiatement).
 
 Collections Payload :

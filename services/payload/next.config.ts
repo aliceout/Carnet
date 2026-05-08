@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
   // migrations en prod si on bundle minimal. ~300MB de plus en image,
   // OK pour ce projet.
 
-  // Le reverse proxy nginx VPS route `carnet.aliceosdel.org/cms/*` vers
+  // Le reverse proxy nginx VPS route `domaine.com/cms/*` vers
   // ce container. Sans assetPrefix, les chunks Next.js demandent
   // `/_next/static/...` à la racine — qui retombe sur le site Astro
   // (catch-all /) et renvoie du HTML 404. Avec `/cms` en assetPrefix,

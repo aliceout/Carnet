@@ -19,7 +19,7 @@
  * IntersectionObserver pour highlight de l'item actif.
  */
 import Layout from '../../layouts/Layout.astro';
-import { fetchBySlug, fetchCollection } from '../../lib/payload';
+import { fetchBySlug, fetchCollection, fetchSite } from '../../lib/payload';
 import { renderLexicalWithFootnotes, extractToc } from '../../lib/lexical';
 import { formatDateFr, formatNumero } from '../../lib/site';
 
@@ -119,9 +119,23 @@ if (primaryTheme) {
 
 const numLabel = formatNumero(post.numero);
 
+// Identité de l'auteur·ice — citation Chicago author-date depuis le
+// global Site Payload (champ identity.authorCitation, format « Nom,
+// Prénom »). Fallback générique si non renseigné.
+type SiteIdentity = { identity?: { authorCitation?: string } };
+let authorCitation = 'Auteur·ice';
+try {
+  const site = await fetchSite<SiteIdentity>();
+  if (site.identity?.authorCitation?.trim()) {
+    authorCitation = site.identity.authorCitation.trim();
+  }
+} catch (err) {
+  console.warn('[article] fetchSite (identity) failed:', (err as Error).message);
+}
+
 // Citation bibliographique du billet (Chicago author-date façon Carnet)
 const articleUrl = new URL(Astro.url.pathname, Astro.site).toString();
-const citationText = `Aussel Delamaide, Alice. « ${post.title} », Carnet, ${numLabel.replace('n° ', 'n° ')}, ${publishedFr}, ${articleUrl}.`;
+const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel.replace('n° ', 'n° ')}, ${publishedFr}, ${articleUrl}.`;
 ---
 
 <Layout
@@ -229,7 +243,7 @@ const citationText = `Aussel Delamaide, Alice. « ${post.title} », Carnet, ${nu
       <section class="citation" id="cite">
         <div class="lbl">Pour citer cet article</div>
         <div class="body">
-          Aussel Delamaide, Alice. « {post.title} », <em>Carnet</em>, {numLabel}, {publishedFr},
+          {authorCitation}. « {post.title} », <em>Carnet</em>, {numLabel}, {publishedFr},
           <span class="url">{' '}{articleUrl}</span>.
         </div>
         <div class="acts">

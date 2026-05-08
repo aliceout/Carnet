@@ -31,9 +31,13 @@ type SiteGlobal = {
   navFooter?: NavFooterLink[];
 };
 
+// Fallbacks génériques — utilisés uniquement si Payload est down ou
+// si le global Site n'a pas encore été rempli côté admin. Le contenu
+// réel (avec le nom de l'auteur·ice, le domaine prod) vient toujours
+// de Payload Site → ces strings ne devraient jamais s'afficher en prod.
 const DEFAULT_BASELINE =
-  "Carnet de recherche d'Alice Aussel Delamaide. Genre, géopolitique, droits LGBTQI+, humanitaire, migrations. Auto-hébergé. Sans pisteur.";
-const DEFAULT_COPYRIGHT = 'carnet.aliceosdel.org · CC BY-NC-SA 4.0';
+  'Carnet de recherche. Auto-hébergé. Sans pisteur.';
+const DEFAULT_COPYRIGHT = 'CC BY-NC-SA 4.0';
 const DEFAULT_NAV: NavFooterLink[] = [
   { label: 'Tous les billets', href: '/' },
   { label: 'Thèmes', href: '/themes/' },

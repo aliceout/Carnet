@@ -2,12 +2,12 @@
 #
 # Topologie :
 #   db      (postgres:16-alpine)            non exposé, accessible uniquement par `payload`
-#   payload (ghcr.io/aliceout/carnet/payload) 127.0.0.1:${HOST_PORT_PAYLOAD}  → /cms/admin + /cms/api
-#   site    (ghcr.io/aliceout/carnet/web)      127.0.0.1:${HOST_PORT_SITE}     → / (Astro SSR)
+#   payload (ghcr.io/aliceout/carnet/payload) 127.0.0.1:${PORT_PAYLOAD}  → /cms/admin + /cms/api
+#   site    (ghcr.io/aliceout/carnet/web)      127.0.0.1:${PORT_SITE}     → / (Astro SSR)
 #
 # Le reverse proxy nginx du VPS (hors compose) termine TLS et route :
-#   carnet.aliceosdel.org/cms/* → 127.0.0.1:${HOST_PORT_PAYLOAD}
-#   carnet.aliceosdel.org/*     → 127.0.0.1:${HOST_PORT_SITE}
+#   domaine.com/cms/* → 127.0.0.1:${PORT_PAYLOAD}
+#   domaine.com/*     → 127.0.0.1:${PORT_SITE}
 #
 # Convention historique (Infisical defaults) : 8068 pour Payload, 8067 pour
 # le site. Modifiable via Infisical, mais doit rester aligné avec la config
@@ -59,7 +59,7 @@ services:
     environment:
       NODE_ENV: production
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
-      PAYLOAD_PUBLIC_SERVER_URL: ${PAYLOAD_PUBLIC_SERVER_URL}
+      ADDRESS: ${ADDRESS}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
@@ -77,7 +77,7 @@ services:
     volumes:
       - ${DATA_DIR}/payload-media:/app/media
     ports:
-      - '127.0.0.1:${HOST_PORT_PAYLOAD}:3001'
+      - '127.0.0.1:${PORT_PAYLOAD}:3001'
     networks:
       - internal
     depends_on:
@@ -105,9 +105,9 @@ services:
       HOST: '0.0.0.0'
       PORT: '4321'
       PAYLOAD_INTERNAL_URL: http://payload:3001
-      PAYLOAD_PUBLIC_SERVER_URL: ${PAYLOAD_PUBLIC_SERVER_URL}
+      ADDRESS: ${ADDRESS}
     ports:
-      - '127.0.0.1:${HOST_PORT_SITE}:4321'
+      - '127.0.0.1:${PORT_SITE}:4321'
     networks:
       - internal
     depends_on:

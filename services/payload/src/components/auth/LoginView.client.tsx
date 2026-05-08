@@ -127,7 +127,7 @@ export default function LoginView(): React.ReactElement {
           className="carnet-kicker"
           style={{ margin: 0, fontSize: 11, color: 'var(--b-muted)' }}
         >
-          Espace d'écriture — carnet.aliceosdel.org
+          Espace d&apos;écriture
         </p>
       </header>
 

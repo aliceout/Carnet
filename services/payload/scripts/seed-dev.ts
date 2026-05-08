@@ -14,7 +14,7 @@
  *
  * Source de vérité : Design/design_handoff_carnet/carnet-b-app.jsx
  *  → POLES (8 thèmes), POSTS (13 billets), Article (corps + biblio + lede),
- *  → About (bio Alice + Terrains/Recherche/Publications/Colophon).
+ *  → About (bio Michel + Terrains/Recherche/Publications/Colophon).
  */
 
 import { getPayload } from 'payload';
@@ -398,33 +398,37 @@ const POSTS: SeedPost[] = [
   },
 ];
 
+// Identité fictive utilisée par le seed dev — à remplacer par les
+// vraies valeurs depuis l'admin Payload (global Site + page About)
+// après le premier boot. Les données ci-dessous existent uniquement
+// pour donner du contenu visible en local.
 const ABOUT_SECTIONS_PARAGRAPHS: Record<string, BodyNode[]> = {
   bio: [
     {
       kind: 'p',
-      text: "J'ai passé dix ans en zones de conflit et de crise — Ukraine, Centrafrique, République démocratique du Congo, Madagascar — comme coordinatrice humanitaire. Je termine cette année un master 1 en études de genre à l'EHESS, j'entame un M2 en septembre 2026, et un projet doctoral prend forme autour de l'instrumentalisation politique des droits LGBTQI+ dans les rapports internationaux.",
+      text: "J'ai passé dix ans dans le secteur humanitaire international avant de basculer vers la recherche en sciences sociales. Je termine cette année un master en études de genre, et un projet doctoral prend forme autour de l'instrumentalisation politique des droits LGBTQI+ dans les rapports internationaux.",
     },
     {
       kind: 'p',
-      text: "J'écris pour Le Cavalier Bleu, dans la collection Convergences, un livre sur le sujet. Le carnet en est l'atelier visible : notes datées, citables, ouvertes. Il prend la suite, d'une certaine manière, du modèle Hypothèses, qui a suspendu les nouvelles ouvertures fin 2024.",
+      text: "Ce carnet est l'atelier visible de ce travail : notes datées, citables, ouvertes. Il prend la suite, d'une certaine manière, du modèle Hypothèses, qui a suspendu les nouvelles ouvertures fin 2024.",
     },
   ],
   terrains: [
     {
       kind: 'p',
-      text: "Cinq terrains successifs entre 2014 et 2025 : France (plaidoyer humanitaire à Médecins du Monde et Action contre la Faim, 2014-2016), Madagascar (coordination régionale ONG de développement, 2016-2018), République démocratique du Congo (Nord-Kivu et Ituri, prévention des violences basées sur le genre, 2018-2020), République centrafricaine (coordination de mission, supervision de cinq bases, 2020-2023), Ukraine (coordination terrain à Mykolaïv et Kherson, programmes d'urgence et de protection, 2023-2025).",
+      text: "Plusieurs terrains successifs en zones de crise et de post-conflit, comme coordinateur·ice humanitaire entre 2014 et 2025 : prévention des violences basées sur le genre, programmes d'urgence et de protection, supervision d'équipes en milieu instable.",
     },
   ],
   recherche: [
     {
       kind: 'p',
-      text: "M1 Études de genre à l'EHESS, soutenu en juin 2026 (mention TB). M2 prévu pour la rentrée 2026, avec un mémoire intitulé « Géopolitique des droits LGBTQI+ : entre instrumentalisation et émancipation ». Un projet doctoral est en construction, avec direction pressentie à l'EHESS et inscription envisagée à la rentrée 2027.",
+      text: "M1 études de genre soutenu en juin 2026. M2 prévu pour la rentrée 2026, avec un mémoire intitulé « Géopolitique des droits LGBTQI+ : entre instrumentalisation et émancipation ». Un projet doctoral est en construction, inscription envisagée à la rentrée 2027.",
     },
   ],
   publications: [
     {
       kind: 'p',
-      text: "L'instrumentalisation politique des droits LGBTQI+, à paraître en 2027 chez Le Cavalier Bleu, collection Convergences. Manuscrit en cours.",
+      text: "Un essai à paraître en 2027 sur l'instrumentalisation politique des droits LGBTQI+. Manuscrit en cours.",
     },
   ],
   colophon: [
@@ -437,11 +441,11 @@ const ABOUT_SECTIONS_PARAGRAPHS: Record<string, BodyNode[]> = {
 
 const ABOUT_PAGE = {
   slug: 'about',
-  title: 'Alice Aussel Delamaide',
+  title: 'Michel Rose',
   description:
-    "Coordinatrice humanitaire en reconversion vers la recherche en études de genre — Carnet de notes de travail.",
+    "Coordinateur·ice humanitaire en reconversion vers la recherche en études de genre — Carnet de notes de travail.",
   eyebrow: 'À propos',
-  lede: 'Coordinatrice humanitaire en reconversion vers la recherche en études de genre. Ce carnet rassemble mes notes de travail.',
+  lede: "Coordinateur·ice humanitaire en reconversion vers la recherche en études de genre. Ce carnet rassemble mes notes de travail.",
   sections: [
     { kind: 'prose', titre: '', paragraphs: ABOUT_SECTIONS_PARAGRAPHS.bio },
     { kind: 'prose', titre: 'Terrains', paragraphs: ABOUT_SECTIONS_PARAGRAPHS.terrains },
@@ -452,9 +456,13 @@ const ABOUT_PAGE = {
 };
 
 const SITE_GLOBAL = {
+  identity: {
+    authorName: 'Michel Rose',
+    authorCitation: 'Rose, Michel',
+  },
   baseline:
-    "Carnet de recherche d'Alice Aussel Delamaide. Genre, géopolitique, droits LGBTQI+, humanitaire, migrations. Auto-hébergé. Sans pisteur.",
-  copyrightLine: 'carnet.aliceosdel.org · CC BY-NC-SA 4.0',
+    'Carnet de recherche de Michel Rose. Genre, géopolitique, droits LGBTQI+, humanitaire, migrations. Auto-hébergé. Sans pisteur.',
+  copyrightLine: 'carnet.example.com · CC BY-NC-SA 4.0',
   navFooter: [
     { label: 'Tous les billets', href: '/', external: false },
     { label: 'Thèmes', href: '/themes/', external: false },

@@ -44,7 +44,7 @@ POSTGRES_USER=payload
 POSTGRES_PASSWORD=payload
 POSTGRES_DB=carnet
 PAYLOAD_SECRET=$(openssl rand -hex 32)
-PAYLOAD_PUBLIC_SERVER_URL=http://localhost:3001
+ADDRESS=http://localhost:3001
 PAYLOAD_INTERNAL_URL=http://localhost:3001
 SMTP_HOST=localhost
 SMTP_PORT=1025
@@ -153,7 +153,7 @@ intégration est livrée avec le port du frontend (issue #12).
 
 - Docker + Docker Compose v2
 - Reverse proxy nginx déjà en place qui termine TLS et route les
-  sous-domaines (cf. infra Alice)
+  sous-domaines
 - Infisical CLI installé + Machine Identity Universal Auth créée pour
   ce projet
 - DNS `carnet.aliceosdel.org` pointant sur le VPS
@@ -192,7 +192,7 @@ server {
   ssl_certificate     /etc/letsencrypt/live/carnet.aliceosdel.org/fullchain.pem;
   ssl_certificate_key /etc/letsencrypt/live/carnet.aliceosdel.org/privkey.pem;
 
-  # Admin Payload + API — port = HOST_PORT_PAYLOAD (Infisical, défaut 8068)
+  # Admin Payload + API — port = PORT_PAYLOAD (Infisical, défaut 8068)
   location /cms/ {
     proxy_pass http://127.0.0.1:8068;
     proxy_set_header Host $host;
@@ -201,7 +201,7 @@ server {
     proxy_set_header X-Forwarded-Proto $scheme;
   }
 
-  # Site public Astro (catch-all) — port = HOST_PORT_SITE (Infisical, défaut 8067)
+  # Site public Astro (catch-all) — port = PORT_SITE (Infisical, défaut 8067)
   location / {
     proxy_pass http://127.0.0.1:8067;
     proxy_set_header Host $host;
@@ -213,7 +213,7 @@ server {
 ```
 
 > ⚠️ Les ports `8068` et `8067` ci-dessus doivent matcher les vars
-> `HOST_PORT_PAYLOAD` et `HOST_PORT_SITE` dans Infisical (path
+> `PORT_PAYLOAD` et `PORT_SITE` dans Infisical (path
 > `prod/infra`). Si tu changes l'une, change l'autre.
 
 ### CI/CD
@@ -231,8 +231,8 @@ pull && up -d` → attente healthchecks (90 s).
 
 Pilotés par Infisical (path `prod/infra`) :
 
-- `127.0.0.1:${HOST_PORT_SITE}`    → site Astro (public, défaut **8067**)
-- `127.0.0.1:${HOST_PORT_PAYLOAD}` → Payload (admin + API sous `/cms/*`, défaut **8068**)
+- `127.0.0.1:${PORT_SITE}`    → site Astro (public, défaut **8067**)
+- `127.0.0.1:${PORT_PAYLOAD}` → Payload (admin + API sous `/cms/*`, défaut **8068**)
 - Postgres : interne réseau Docker uniquement, pas exposé sur le host
 
 Pour changer un port : éditer la valeur dans Infisical, redéployer

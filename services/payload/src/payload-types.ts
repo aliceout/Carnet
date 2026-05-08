@@ -310,7 +310,7 @@ export interface Page {
             image?: (number | null) | Media;
             legende?: string | null;
             /**
-             * Ex : « Photo : Alice Aussel Delamaide, Bangui, 2017 » ou « © UN Photo / Eskinder Debebe ».
+             * Ex : « Photo : Michel Rose,  » ou « © UN Photo / Eskinder Debebe ».
              */
             credit?: string | null;
             align?: ('left' | 'center' | 'wide') | null;

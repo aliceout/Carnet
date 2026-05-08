@@ -1,6 +1,6 @@
 # Dev Setup VS Code extension config pour Carnet.
 #
-# Fetches secrets from Infisical (self-hosted env.backlice.dev) and
+# Fetches secrets from Infisical and
 # writes them to the repo-root `.env` when the workspace opens (or
 # on the `Dev Setup: Fetch Secrets` command). Docker compose, the
 # deploy.sh script and the dev servers (Astro + Payload) all
@@ -20,7 +20,7 @@
 secrets:
   provider: infisical
   loader: dotenv
-  # TODO: remplacer par le slug exact du projet sur env.backlice.dev
+  # TODO: remplacer par le slug exact du projet sur
   # (visible dans l'URL de l'admin Infisical quand tu ouvres le projet).
   project: carnet-ayz-p
   batches:

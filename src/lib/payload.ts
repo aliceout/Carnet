@@ -20,8 +20,7 @@ const INTERNAL_URL =
 const API_BASE = `${INTERNAL_URL.replace(/\/$/, '')}/cms/api`;
 
 /** URL publique pour servir les fichiers media (côté browser). */
-const PUBLIC_URL =
-  process.env.PAYLOAD_PUBLIC_SERVER_URL ?? 'http://localhost:3001';
+const ADDRESS = process.env.ADDRESS ?? 'http://localhost:3001';
 
 /**
  * Construit l'URL publique d'une image Payload depuis son `filename`
@@ -29,7 +28,7 @@ const PUBLIC_URL =
  */
 export function mediaUrl(filename: string | undefined | null): string | null {
   if (!filename) return null;
-  return `${PUBLIC_URL.replace(/\/$/, '')}/cms/api/media/file/${encodeURIComponent(filename)}`;
+  return `${ADDRESS.replace(/\/$/, '')}/cms/api/media/file/${encodeURIComponent(filename)}`;
 }
 
 /**

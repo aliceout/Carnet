@@ -35,11 +35,15 @@ export const GET: APIRoute = async (context) => {
     console.warn('[rss] fetch failed:', (err as Error).message);
   }
 
+  if (!context.site) {
+    throw new Error(
+      "rss.xml.ts: context.site est undefined — vérifie que `site` est défini dans astro.config.mjs.",
+    );
+  }
   return rss({
     title: 'Carnet — notes de recherche',
-    description:
-      "Carnet de recherche d'Alice Aussel Delamaide. Genre, géopolitique, droits LGBTQI+, humanitaire, migrations.",
-    site: context.site ?? 'https://carnet.aliceosdel.org',
+    description: 'Carnet de recherche. Auto-hébergé. Sans pisteur.',
+    site: context.site,
     items: posts.map((p) => {
       const themes = (p.themes ?? []).filter(
         (t): t is Theme => typeof t === 'object' && t !== null && 'slug' in t,

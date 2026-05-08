@@ -33,12 +33,12 @@ import { randomBytes } from 'node:crypto';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function buildAcceptUrl(token: string): string {
-  const base = process.env.PAYLOAD_PUBLIC_SERVER_URL?.replace(/\/$/, '') || 'http://localhost:3001';
+  const base = process.env.ADDRESS?.replace(/\/$/, '') || 'http://localhost:3001';
   return `${base}/cms/admin/invitation/${token}`;
 }
 
 function buildLoginUrl(): string {
-  const base = process.env.PAYLOAD_PUBLIC_SERVER_URL?.replace(/\/$/, '') || 'http://localhost:3001';
+  const base = process.env.ADDRESS?.replace(/\/$/, '') || 'http://localhost:3001';
   return `${base}/cms/admin/login`;
 }
 

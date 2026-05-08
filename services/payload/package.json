@@ -1,7 +1,7 @@
 {
   "name": "carnet-payload",
   "version": "0.1.0",
-  "description": "Backend Payload CMS pour carnet.aliceosdel.org",
+  "description": "Backend Payload CMS",
   "license": "AGPL-3.0",
   "private": true,
   "type": "module",

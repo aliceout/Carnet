@@ -84,8 +84,11 @@ export default async function Dashboard({ user }: Props): Promise<React.ReactEle
     publishedAt: string;
   }>;
 
+  // Fallback : displayName → premier mot du displayName, sinon partie
+  // locale de l'email, sinon vide (le rendu masque alors le prénom et
+  // affiche un simple « Bonjour. »).
   const userName =
-    (user?.displayName ?? '').split(' ')[0] || user?.email?.split('@')[0] || 'Alice';
+    (user?.displayName ?? '').split(' ')[0] || user?.email?.split('@')[0] || '';
 
   const totalDrafts = draftsRes.totalDocs;
   const totalScheduled = scheduledRes.totalDocs;
@@ -95,7 +98,13 @@ export default async function Dashboard({ user }: Props): Promise<React.ReactEle
       <header className="carnet-dashboard__header">
         <div className="carnet-kicker">Carnet · admin</div>
         <h1 className="carnet-h1 carnet-dashboard__hello">
-          Bonjour <em>{userName}</em>.
+          {userName ? (
+            <>
+              Bonjour <em>{userName}</em>.
+            </>
+          ) : (
+            <>Bonjour.</>
+          )}
         </h1>
         <p className="carnet-dashboard__lede">
           {totalDrafts > 0 && (
