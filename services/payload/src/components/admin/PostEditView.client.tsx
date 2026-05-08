@@ -81,7 +81,7 @@ type Post = {
 type Status = 'draft' | 'scheduled' | 'published';
 
 const TYPE_LABELS: Record<PostType, string> = {
-  analyse: 'Analyse',
+  analyse: 'Article',
   note: 'Note de lecture',
   fiche: 'Fiche',
 };

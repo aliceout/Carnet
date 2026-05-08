@@ -101,7 +101,7 @@ export const Posts: CollectionConfig = {
       required: true,
       defaultValue: 'analyse',
       options: [
-        { label: 'Analyse', value: 'analyse' },
+        { label: 'Article', value: 'analyse' },
         { label: 'Note de lecture', value: 'note' },
         { label: 'Fiche thématique', value: 'fiche' },
       ],

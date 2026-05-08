@@ -160,7 +160,9 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
       ))}
       {footnotesHtml && <a href="#notes" data-toc="notes">Notes</a>}
       {biblio.length > 0 && <a href="#biblio" data-toc="biblio">Bibliographie</a>}
-      <a href="#cite" data-toc="cite">Pour citer</a>
+      {post.type === 'analyse' && (
+        <a href="#cite" data-toc="cite">Pour citer</a>
+      )}
     </aside>
   )}
 
@@ -240,26 +242,28 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
         </section>
       )}
 
-      <section class="citation" id="cite">
-        <div class="lbl">Pour citer cet article</div>
-        <div class="body">
-          {authorCitation}. « {post.title} », <em>Carnet</em>, {numLabel}, {publishedFr},
-          <span class="url">{' '}{articleUrl}</span>.
-        </div>
-        <div class="acts">
-          <button
-            type="button"
-            class="copy-btn"
-            data-citation={citationText}
-            aria-label="Copier la citation"
-          >
-            Copier
-          </button>
-          <span class="placeholder" title="Téléchargement BibTeX prévu (issue #5)">BibTeX</span>
-          <span class="placeholder" title="Téléchargement RIS prévu (issue #5)">RIS</span>
-          <span class="placeholder" title="Export Zotero prévu (issue #5)">Zotero</span>
-        </div>
-      </section>
+      {post.type === 'analyse' && (
+        <section class="citation" id="cite">
+          <div class="lbl">Pour citer cet article</div>
+          <div class="body">
+            {authorCitation}. « {post.title} », <em>Carnet</em>, {numLabel}, {publishedFr},
+            <span class="url">{' '}{articleUrl}</span>.
+          </div>
+          <div class="acts">
+            <button
+              type="button"
+              class="copy-btn"
+              data-citation={citationText}
+              aria-label="Copier la citation"
+            >
+              Copier
+            </button>
+            <span class="placeholder" title="Téléchargement BibTeX prévu (issue #5)">BibTeX</span>
+            <span class="placeholder" title="Téléchargement RIS prévu (issue #5)">RIS</span>
+            <span class="placeholder" title="Export Zotero prévu (issue #5)">Zotero</span>
+          </div>
+        </section>
+      )}
 
       {related.length > 0 && primaryTheme && (
         <section class="related">

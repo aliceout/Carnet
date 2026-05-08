@@ -45,7 +45,7 @@ type FilterStatut = 'all' | 'draft' | 'published' | 'scheduled';
 type SortKey = '-publishedAt' | 'publishedAt' | '-numero' | 'numero';
 
 const TYPE_LABELS: Record<Post['type'], string> = {
-  analyse: 'Analyse',
+  analyse: 'Article',
   note: 'Note de lecture',
   fiche: 'Fiche',
 };
