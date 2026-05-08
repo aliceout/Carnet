@@ -1,0 +1,115 @@
+name: Docker build
+
+# CI du Carnet — push main → test → build images Docker → push GHCR.
+# Le déclenchement du deploy côté VPS se fait via le webhook GitHub
+# natif configuré dans Settings → Webhooks (event « package » ou
+# « workflow_run »), pas dans ce workflow. Référence : 2mains/.github/
+# workflows/docker-build.yml.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # ─── Test : type-check + build smoke-test ──────────────────────
+  # Tourne sur push ET PR. Les jobs build / deploy sont gated sur
+  # push main only via leur `if`.
+  test:
+    name: Type check + Astro build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm check
+
+      - name: Build (Astro Node SSR)
+        run: pnpm build
+
+      # SSR mode : on vérifie que le bundle Node a bien été produit.
+      - name: Smoke test — SSR bundle exists
+        run: |
+          test -f dist/server/entry.mjs
+          test -d dist/client
+          echo "SSR bundle present."
+
+  # ─── Build & push image site (Astro) ───────────────────────────
+  build-web:
+    name: Build & push web image
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.site
+          push: true
+          tags: |
+            ghcr.io/aliceout/carnet/web:latest
+            ghcr.io/aliceout/carnet/web:${{ github.sha }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
+
+  # ─── Build & push image Payload (CMS) ──────────────────────────
+  build-payload:
+    name: Build & push payload image
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push payload
+        uses: docker/build-push-action@v6
+        with:
+          context: services/payload
+          file: services/payload/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/aliceout/carnet/payload:latest
+            ghcr.io/aliceout/carnet/payload:${{ github.sha }}
+          cache-from: type=gha,scope=payload
+          cache-to: type=gha,scope=payload,mode=max

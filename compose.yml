@@ -1,9 +1,9 @@
 # Compose PROD — 3 services sur réseau Docker interne.
 #
 # Topologie :
-#   db      (postgres:16-alpine)        non exposé, accessible uniquement par `payload`
-#   payload (ghcr.io/aliceout/carnet-payload) 127.0.0.1:8068  → /cms/admin + /cms/api
-#   site    (ghcr.io/aliceout/carnet-site)    127.0.0.1:8067  → / (Astro SSR)
+#   db      (postgres:16-alpine)            non exposé, accessible uniquement par `payload`
+#   payload (ghcr.io/aliceout/carnet/payload) 127.0.0.1:8068  → /cms/admin + /cms/api
+#   site    (ghcr.io/aliceout/carnet/web)      127.0.0.1:8067  → / (Astro SSR)
 #
 # Le reverse proxy nginx du VPS (hors compose) termine TLS et route :
 #   carnet.aliceosdel.org/cms/* → 127.0.0.1:8068
@@ -48,7 +48,7 @@ services:
         max-file: '3'
 
   payload:
-    image: ghcr.io/aliceout/carnet-payload:latest
+    image: ghcr.io/aliceout/carnet/payload:latest
     container_name: carnet-payload
     restart: unless-stopped
     pull_policy: always
@@ -92,7 +92,7 @@ services:
         max-file: '3'
 
   site:
-    image: ghcr.io/aliceout/carnet-site:latest
+    image: ghcr.io/aliceout/carnet/web:latest
     container_name: carnet-site
     restart: unless-stopped
     pull_policy: always
