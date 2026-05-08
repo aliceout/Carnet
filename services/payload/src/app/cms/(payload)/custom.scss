@@ -1152,7 +1152,7 @@ button.btn--style-primary,
     display: grid;
     // Posts : Titre / Type / Thème / Date / Statut / × delete. Numéro
     // retiré de la liste — l'espace gagné repart au titre via le 1fr.
-    grid-template-columns: 1fr 130px 180px 110px 110px 32px;
+    grid-template-columns: 1fr 130px 180px 110px 90px 20px;
     gap: 24px;
     padding: 14px 20px;
     align-items: baseline;
@@ -1215,7 +1215,7 @@ button.btn--style-primary,
     }
 
     .status {
-      text-align: left;
+      text-align: right;
     }
 
     // Bouton × en bout de ligne — ouvre la modale de suppression. Le
@@ -1225,8 +1225,8 @@ button.btn--style-primary,
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 24px;
-      height: 24px;
+      width: 20px;
+      height: 20px;
       padding: 0;
       background: transparent;
       border: 0;
@@ -2696,6 +2696,21 @@ button.btn--style-primary,
     }
   }
 
+  // Quand on wrappe les sections d'édition dans <fieldset disabled> pour
+  // verrouiller une ref Zotero, on neutralise le style natif de fieldset
+  // (border + padding) et on grise visuellement le contenu.
+  &__fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+
+    &:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+  }
+
   &__field {
     display: flex;
     flex-direction: column;
@@ -2935,6 +2950,30 @@ button.btn--style-primary,
   &__center {
     padding: 28px 32px;
     min-width: 0;
+  }
+
+  // Bouton « Supprimer ce billet » en bas de la sidebar Métadonnées.
+  // Sobre par défaut (texte muted, sans bordure) ; rouge au hover pour
+  // matérialiser l'action irréversible. Le clic ouvre une modale de
+  // confirmation (cf .carnet-modal*).
+  &__delete {
+    display: block;
+    width: 100%;
+    padding: 8px 10px;
+    background: transparent;
+    border: 1px solid var(--b-rule);
+    color: var(--b-muted);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+
+    &:hover {
+      background: rgba(182, 58, 58, 0.08);
+      border-color: #b63a3a;
+      color: #b63a3a;
+    }
   }
 
   &__meta {
@@ -4160,6 +4199,15 @@ button.btn--style-primary,
         margin-top: 6px;
       }
     }
+
+    // Wrapper du search picker dans le bib-block — aligné sur le
+    // padding de .add-rel-wrap pour rester cohérent avec le panneau
+    // (20px latéraux + border-top de séparation).
+    .bib-picker {
+      padding: 10px 20px;
+      border-top: 1px solid var(--b-rule);
+      margin-top: 0;
+    }
   }
 
   @media (max-width: 1100px) {
@@ -4319,4 +4367,132 @@ button.btn--style-primary,
 .nav-toggler,
 [class*='mobile-nav-toggler'] {
   display: none !important;
+}
+
+// ─── Intégration Zotero ─────────────────────────────────────────────
+// Pastille mono « Z » apposée sur le titre d'une ref importée depuis
+// Zotero (visible dans la liste biblio + dans le hero de l'edit view).
+// Format compact, accent couleur, ne casse pas l'alignement vertical.
+.carnet-zotero-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 8px;
+  padding: 0;
+  background: var(--b-accent-tint);
+  border: 1px solid var(--b-accent);
+  border-radius: 3px;
+  color: var(--b-accent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+// Banner d'avertissement affiché en haut de l'édition d'une ref Zotero,
+// pour expliquer pourquoi tout est verrouillé.
+.carnet-zotero-banner {
+  margin: 16px 24px 24px;
+  padding: 14px 16px;
+  background: var(--b-accent-tint);
+  border-left: 3px solid var(--b-accent);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--b-ink);
+}
+
+// Section Zotero de la page Compte. Reprend le style des autres sections
+// editview (gap, typo) avec quelques spécificités : barre de statut
+// (✓/✕), groupe d'actions horizontal, ligne de feedback (info/error).
+.carnet-zotero {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 800px;
+
+  &__intro {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--b-muted);
+  }
+
+  &__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    align-self: flex-start;
+    background: var(--b-paper);
+    border: 1px solid var(--b-rule);
+    border-radius: 16px;
+    font-size: 12px;
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--b-muted);
+    }
+
+    &--on {
+      .dot {
+        background: #2d7a3d;
+      }
+    }
+    &--off {
+      color: var(--b-muted);
+    }
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  &__error {
+    padding: 10px 14px;
+    background: rgba(182, 58, 58, 0.06);
+    border-left: 3px solid #b63a3a;
+    color: #b63a3a;
+    font-size: 12.5px;
+  }
+
+  &__info {
+    padding: 10px 14px;
+    background: rgba(45, 122, 61, 0.06);
+    border-left: 3px solid #2d7a3d;
+    font-size: 12.5px;
+  }
+
+  &__last {
+    font-size: 12.5px;
+    color: var(--b-muted);
+
+    .lbl {
+      font-weight: 600;
+      color: var(--b-ink);
+    }
+  }
+
+  &__loading {
+    font-size: 12.5px;
+    color: var(--b-muted);
+    padding: 12px 0;
+  }
+}
+
+// Lien neutre dans une hint (carnet-zotero ou carnet-editview__field).
+.carnet-link {
+  color: var(--b-accent);
+  text-decoration: underline;
+
+  &:hover {
+    text-decoration: none;
+  }
 }
