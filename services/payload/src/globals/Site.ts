@@ -220,7 +220,7 @@ export const Site: GlobalConfig = {
     {
       name: 'social',
       type: 'group',
-      label: 'Réseaux sociaux',
+      label: 'Être suivi',
       fields: [
         {
           name: 'mastodon',

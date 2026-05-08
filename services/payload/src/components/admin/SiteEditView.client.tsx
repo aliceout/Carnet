@@ -7,7 +7,7 @@
 //   - Header : crumbs « Carnet / Site (global) », actions à droite (Save
 //     accent + indicateur de modifications)
 //   - Section Identité éditoriale : baseline (textarea), ligne copyright
-//   - Section Réseaux sociaux : mastodon, bluesky, orcid, hal
+//   - Section Être suivi : mastodon, bluesky, orcid, hal
 //   - Section Liens du footer (col 2 « Naviguer ») : array {label, href,
 //     external}, ajout/suppression/réordonnancement
 //
@@ -538,7 +538,7 @@ export default function SiteEditViewClient(): React.ReactElement {
           </section>
 
           <section className="carnet-editview__section">
-            <h2 className="carnet-editview__section-title">Réseaux sociaux</h2>
+            <h2 className="carnet-editview__section-title">Être suivi</h2>
             <p className="carnet-editview__section-help">
               URLs complètes — laisser vide pour masquer.
             </p>
