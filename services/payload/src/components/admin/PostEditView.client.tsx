@@ -37,7 +37,15 @@ function useAutoGrow(value: string) {
   return ref;
 }
 
-import PostBodyEditor, { extractFootnotes, type LexicalState } from './post-editor/Editor';
+import { type LexicalEditor } from 'lexical';
+
+import PostBodyEditor, {
+  deleteBiblioInlinesByEntry,
+  deleteFootnoteByIndex,
+  extractBiblioInlineIds,
+  extractFootnotes,
+  type LexicalState,
+} from './post-editor/Editor';
 
 const API_POSTS = '/cms/api/posts';
 
@@ -313,12 +321,60 @@ export default function PostEditViewClient({
   const titleRef = useAutoGrow(post.title);
   const ledeRef = useAutoGrow(post.lede);
 
+  // Référence vers l'éditeur Lexical pour pouvoir supprimer des nodes
+  // (footnotes / biblio_inline) depuis le panneau pied. On walke
+  // l'arbre LIVE de l'éditeur (les keys sérialisées du JSON ne
+  // matchent pas les keys runtime de Lexical), via les helpers
+  // exportés par post-editor/Editor.
+  const editorRef = useRef<LexicalEditor | null>(null);
+
+  function deleteFootnote(index: number) {
+    const editor = editorRef.current;
+    if (!editor) return;
+    deleteFootnoteByIndex(editor, index);
+  }
+
+  function deleteBiblioRef(id: number | string) {
+    // 1. Retire de la liste explicite (si présente)
+    setPost((p) => {
+      const cur = (p.bibliography ?? []) as Array<BibEntry | number | string>;
+      const filtered = cur.filter(
+        (b) => String(typeof b === 'object' ? b.id : b) !== String(id),
+      );
+      return filtered.length === cur.length ? p : { ...p, bibliography: filtered };
+    });
+    // 2. Supprime toutes les citations inline qui pointent sur cet
+    //    entry (un même ouvrage peut être cité plusieurs fois).
+    const editor = editorRef.current;
+    if (editor) deleteBiblioInlinesByEntry(editor, id);
+  }
+
   // Rafraîchit l'affichage relatif "il y a X min" (now est l'horloge)
   void now;
   const savedLabel = savedAt ? `Sauvegardé ${relativeSavedAt(savedAt)}` : '';
 
   const themeIds = (post.themes ?? []).map((t) => (typeof t === 'object' ? t.id : t));
-  const biblioIds = (post.bibliography ?? []).map((b) => (typeof b === 'object' ? b.id : b));
+  const explicitBiblioIds = (post.bibliography ?? []).map((b) =>
+    typeof b === 'object' ? b.id : b,
+  );
+  // Union des refs explicitement listées (post.bibliography) et des
+  // refs citées inline dans le corps (biblio_inline blocks). Permet
+  // d'auto-peupler le panneau Bibliographie liée — l'utilisatrice
+  // n'a pas à re-lister manuellement une référence déjà citée.
+  const inlineBiblioIds = useMemo(() => extractBiblioInlineIds(post.body), [post.body]);
+  const biblioIds = useMemo(() => {
+    const seen = new Set<string>();
+    const out: Array<number | string> = [];
+    for (const id of [...explicitBiblioIds, ...inlineBiblioIds]) {
+      const k = String(id);
+      if (!seen.has(k)) {
+        seen.add(k);
+        out.push(id);
+      }
+    }
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(explicitBiblioIds), inlineBiblioIds]);
 
   return (
     <div className="carnet-postedit">
@@ -453,6 +509,9 @@ export default function PostEditViewClient({
                 value={post.body ?? null}
                 onChange={(v) => patch('body', v)}
                 biblioOptions={biblioOptions}
+                onEditor={(editor) => {
+                  editorRef.current = editor;
+                }}
               />
             </div>
 
@@ -460,18 +519,29 @@ export default function PostEditViewClient({
               <div className="fn-block__h">
                 <span>Notes de bas de page ({footnotes.length})</span>
               </div>
+              <div className="fn-block__help">
+                Pour ajouter une note dans le corps : tape <kbd>/</kbd> puis
+                « Note de bas de page » — écris le contenu dans le panneau
+                qui s’ouvre.
+                <br />
+                Les notes apparaissent ici, numérotées automatiquement.
+              </div>
               {footnotes.length === 0 ? (
-                <div className="fn-block__empty">
-                  Tape <kbd>/</kbd> dans le corps de l’article puis « Note de bas de page »
-                  (ou raccourci <kbd>F</kbd>) — la note s’insère, clique dessus pour
-                  écrire son contenu. Elle apparaîtra ici, numérotée
-                  automatiquement.
-                </div>
+                <div className="fn-block__empty">Aucune note pour le moment.</div>
               ) : (
                 footnotes.map((f) => (
                   <div key={f.key} className="fn-row">
                     <div className="n">[{f.index}]</div>
                     <div className="body">{f.content || <em className="muted">Note vide</em>}</div>
+                    <button
+                      type="button"
+                      className="x"
+                      onClick={() => deleteFootnote(f.index)}
+                      aria-label="Supprimer la note dans le corps"
+                      title="Supprimer la note dans le corps"
+                    >
+                      ×
+                    </button>
                   </div>
                 ))
               )}
@@ -483,26 +553,40 @@ export default function PostEditViewClient({
               </div>
               <div className="bib-block__help">
                 Pour <em>citer</em> une référence dans le corps : tape <kbd>/</kbd>{' '}
-                puis « Bibliographie inline » (raccourci <kbd>B</kbd>) — choisis
-                la référence dans le popover. Pour <em>lister</em> une référence en
-                pied d’article (sans la citer dans le corps) : ajoute-la directement
-                ci-dessous.
+                puis « Bibliographie inline » — choisis-la dans le panneau qui
+                s’ouvre.
+                <br />
+                Pour <em>lister</em> une référence sans la citer dans le corps :
+                ajoute-la directement ci-dessous.
               </div>
               <div className="biblio-list">
                 {biblioIds.length === 0 && (
                   <div className="b-row b-row--empty">Aucune référence liée.</div>
                 )}
-                {biblioIds.map((id) => {
+                {biblioIds.map((id, i) => {
                   const e = biblioOptions.find((b) => b.id === id);
+                  const isInline = inlineBiblioIds.some((iid) => String(iid) === String(id));
+                  // × supprime la ref de l'explicite ET supprime
+                  // toutes les citations inline du corps qui la
+                  // pointent. Tooltip différencié si la ref est aussi
+                  // citée dans le corps, pour que l'utilisatrice sache
+                  // qu'elle va aussi modifier le texte.
+                  const title = isInline
+                    ? 'Retirer + supprimer la (les) citation(s) dans le corps'
+                    : 'Retirer de la liste';
                   if (!e)
                     return (
                       <div key={String(id)} className="b-row">
-                        <span className="muted">Réf. #{String(id)}</span>
+                        <div className="n">[{i + 1}]</div>
+                        <div className="body">
+                          <span className="muted">Réf. #{String(id)}</span>
+                        </div>
                         <button
                           type="button"
                           className="x"
-                          onClick={() => toggleBiblio(id)}
-                          aria-label="Retirer"
+                          onClick={() => deleteBiblioRef(id)}
+                          aria-label={title}
+                          title={title}
                         >
                           ×
                         </button>
@@ -510,19 +594,23 @@ export default function PostEditViewClient({
                     );
                   return (
                     <div key={String(id)} className="b-row">
-                      <span className="au">{e.author ?? '—'}</span>
-                      {e.year && <> ({e.year})</>}
-                      {e.title && (
-                        <>
-                          , <span className="ti">{e.title}</span>
-                        </>
-                      )}
-                      .
+                      <div className="n">[{i + 1}]</div>
+                      <div className="body">
+                        <span className="au">{e.author ?? '—'}</span>
+                        {e.year && <> ({e.year})</>}
+                        {e.title && (
+                          <>
+                            , <span className="ti">{e.title}</span>
+                          </>
+                        )}
+                        .
+                      </div>
                       <button
                         type="button"
                         className="x"
-                        onClick={() => toggleBiblio(id)}
-                        aria-label="Retirer"
+                        onClick={() => deleteBiblioRef(id)}
+                        aria-label={title}
+                        title={title}
                       >
                         ×
                       </button>

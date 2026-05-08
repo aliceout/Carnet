@@ -3071,7 +3071,7 @@ button.btn--style-primary,
       display: grid;
       grid-template-columns: 36px 1fr 28px;
       gap: 14px;
-      padding: 12px 20px;
+      padding: 9px 20px;
       border-bottom: 1px solid var(--b-rule);
       align-items: baseline;
 
@@ -3096,30 +3096,101 @@ button.btn--style-primary,
           font-style: italic;
         }
       }
+
+      .x {
+        position: static;
+        transform: none;
+        background: transparent;
+        border: 0;
+        color: var(--b-muted);
+        font-family: var(--font-mono);
+        cursor: pointer;
+        padding: 2px 6px;
+        align-self: center;
+        justify-self: end;
+
+        &:hover {
+          color: #b63a3a;
+        }
+      }
     }
   }
 
-  // bib-block : variantes spécifiques (liste de références + picker)
+  // bib-block : tableau des références liées, aligné sur le format
+  // de .fn-row (grille 3 cols : numéro mono accent · citation
+  // serif · bouton × suppression).
   .bib-block {
     .biblio-list {
       border-top: 0;
-      border-bottom: 1px solid var(--b-rule);
       max-height: none;
+      background: transparent;
+      border: 0;
 
       .b-row {
-        padding: 10px 36px 10px 20px;
-        font-size: 13px;
-        line-height: 1.5;
+        display: grid;
+        grid-template-columns: 36px 1fr 28px;
+        gap: 14px;
+        padding: 9px 20px;
+        border-bottom: 1px solid var(--b-rule);
+        align-items: baseline;
         font-family: var(--font-serif);
+        font-size: 14px;
+        line-height: 1.55;
 
+        &:last-child {
+          border-bottom: 0;
+        }
+
+        &--empty {
+          display: block;
+          color: var(--b-muted);
+          font-style: italic;
+          padding: 14px 20px;
+        }
+
+        .n {
+          font-family: var(--font-mono);
+          font-size: 11px;
+          color: var(--b-accent);
+        }
+
+        .body {
+          color: var(--b-ink);
+
+          .au {
+            font-weight: 600;
+          }
+
+          .ti {
+            color: var(--b-muted);
+            font-style: italic;
+          }
+        }
+
+        // Reset du positionnement absolu hérité de .biblio-list
+        // .b-row global — ici on est en grille.
         .x {
-          right: 12px;
+          position: static;
+          transform: none;
+          background: transparent;
+          border: 0;
+          color: var(--b-muted);
+          font-family: var(--font-mono);
+          cursor: pointer;
+          padding: 2px 6px;
+          align-self: center;
+          justify-self: end;
+
+          &:hover {
+            color: #b63a3a;
+          }
         }
       }
     }
 
     .add-rel-wrap {
       padding: 10px 20px;
+      border-top: 1px solid var(--b-rule);
 
       .add-rel {
         font-size: 12px;

@@ -26,7 +26,9 @@ import { HeadingNode, QuoteNode, $createHeadingNode, $createQuoteNode } from '@l
 import { LinkNode } from '@lexical/link';
 import { ListNode, ListItemNode } from '@lexical/list';
 import {
+  $getRoot,
   $getSelection,
+  $isElementNode,
   $isRangeSelection,
   $isTextNode,
   COMMAND_PRIORITY_LOW,
@@ -34,6 +36,8 @@ import {
   FORMAT_TEXT_COMMAND,
   $insertNodes,
   type EditorState,
+  type LexicalEditor,
+  type LexicalNode,
   type SerializedLexicalNode,
 } from 'lexical';
 
@@ -42,6 +46,7 @@ import {
   $createCarnetBlockNode,
   CarnetInlineBlockNode,
   $createCarnetInlineBlockNode,
+  $isCarnetInlineBlockNode,
   type CarnetBlockData,
   type CarnetInlineBlockData,
 } from './nodes';
@@ -143,6 +148,113 @@ export function extractFootnotes(
   return out;
 }
 
+// Walke le JSON pour extraire les références biblio citées inline
+// dans le corps (`biblio_inline` blocks avec entry défini). Renvoie
+// la node key Lexical en plus de l'entry pour pouvoir supprimer la
+// citation depuis le panneau pied (× sur .b-row → editor.update +
+// $getNodeByKey + node.remove()).
+export function extractBiblioInlines(
+  body: LexicalState | null | undefined,
+): Array<{ key: string; entry: number | string }> {
+  const out: Array<{ key: string; entry: number | string }> = [];
+  if (!body?.root) return out;
+  function walk(node: unknown) {
+    if (!node || typeof node !== 'object') return;
+    const n = node as Record<string, unknown>;
+    const type = n.type as string | undefined;
+    const fields = (n.fields ?? {}) as Record<string, unknown>;
+    const blockType =
+      (fields.blockType as string | undefined) ?? (n.blockType as string | undefined);
+    if (
+      (type === 'inlineBlock' || type === 'block') &&
+      blockType === 'biblio_inline'
+    ) {
+      const entry = fields.entry;
+      if (entry !== null && entry !== undefined && entry !== '') {
+        out.push({
+          key: String(n.key ?? `bi-${out.length}`),
+          entry: typeof entry === 'number' ? entry : (entry as string),
+        });
+      }
+    }
+    const children = n.children;
+    if (Array.isArray(children)) for (const c of children) walk(c);
+  }
+  walk(body.root);
+  return out;
+}
+
+// Liste dédupliquée des IDs cités inline. Utilisée pour calculer
+// l'union explicite/inline dans le panneau Bibliographie liée.
+export function extractBiblioInlineIds(
+  body: LexicalState | null | undefined,
+): Array<number | string> {
+  const seen = new Set<string>();
+  const out: Array<number | string> = [];
+  for (const ref of extractBiblioInlines(body)) {
+    const k = String(ref.entry);
+    if (!seen.has(k)) {
+      seen.add(k);
+      out.push(ref.entry);
+    }
+  }
+  return out;
+}
+
+// Walke l'arbre LIVE de l'éditeur Lexical (pas le JSON sérialisé)
+// pour appeler `cb` sur chaque node. À utiliser à l'intérieur d'un
+// editor.update ou editor.read.
+function $walkLiveTree(cb: (node: LexicalNode) => void): void {
+  function walk(node: LexicalNode) {
+    cb(node);
+    if ($isElementNode(node)) {
+      for (const child of node.getChildren()) walk(child);
+    }
+  }
+  walk($getRoot());
+}
+
+// Supprime la i-ème footnote (1-based) du corps. La key sérialisée
+// du JSON ne matche pas la key live de Lexical — on doit donc
+// walker l'arbre vivant et compter dans l'ordre d'apparition pour
+// retrouver le bon node.
+export function deleteFootnoteByIndex(editor: LexicalEditor, index: number): void {
+  editor.update(() => {
+    let i = 0;
+    let target: LexicalNode | null = null;
+    $walkLiveTree((node) => {
+      if (target) return;
+      if ($isCarnetInlineBlockNode(node) && node.__blockType === 'footnote') {
+        i++;
+        if (i === index) target = node;
+      }
+    });
+    target?.remove();
+  });
+}
+
+// Supprime toutes les citations inline qui pointent sur cet entry
+// bibliographique. Un même ouvrage peut être cité plusieurs fois
+// dans le corps — on les enlève toutes en un seul update.
+export function deleteBiblioInlinesByEntry(
+  editor: LexicalEditor,
+  entryId: number | string,
+): void {
+  editor.update(() => {
+    const targets: LexicalNode[] = [];
+    $walkLiveTree((node) => {
+      if (
+        $isCarnetInlineBlockNode(node) &&
+        node.__blockType === 'biblio_inline' &&
+        String((node.__fields as { entry?: unknown }).entry) === String(entryId)
+      ) {
+        targets.push(node);
+      }
+    });
+    for (const n of targets) n.remove();
+  });
+}
+
 // ─── Slash menu ───────────────────────────────────────────────────
 // Trigger : touche `/` en début de paragraphe ou après un espace.
 // Affiché en popover sous le curseur. Items : structure (H2/H3/quote)
@@ -176,22 +288,6 @@ const SLASH_ITEMS: SlashItem[] = [
         $createCarnetInlineBlockNode({
           blockType: 'footnote',
           fields: { content: '' },
-        }),
-      ]);
-    },
-  },
-  {
-    id: 'cit',
-    group: 'Blocs Carnet',
-    ic: '«»',
-    label: 'Citation longue',
-    desc: 'Bloc filet gauche accent',
-    kbd: 'Q',
-    doInsert: () => {
-      $insertNodes([
-        $createCarnetBlockNode({
-          blockType: 'citation_bloc',
-          fields: { text: '', source: '' },
         }),
       ]);
     },
@@ -509,16 +605,33 @@ function KeyboardPlugin() {
   return null;
 }
 
+// ─── Plugin pour exposer l'éditeur au parent ─────────────────────
+// PostEditView a besoin d'une référence à l'éditeur Lexical pour
+// pouvoir supprimer un node par sa key (× sur les rangées du
+// .fn-block / .bib-block). On l'expose via une callback prop dans
+// un Plugin qui vit à l'intérieur de <LexicalComposer> (donc a
+// accès à useLexicalComposerContext).
+
+function EditorRefPlugin({ onMount }: { onMount: (editor: LexicalEditor) => void }) {
+  const [editor] = useLexicalComposerContext();
+  useEffect(() => {
+    onMount(editor);
+  }, [editor, onMount]);
+  return null;
+}
+
 // ─── Editor principal ────────────────────────────────────────────
 
 export default function PostBodyEditor({
   value,
   onChange,
   biblioOptions,
+  onEditor,
 }: {
   value: LexicalState | null;
   onChange: (v: LexicalState) => void;
   biblioOptions: BibEntry[];
+  onEditor?: (editor: LexicalEditor) => void;
 }): React.ReactElement {
   const initialJsonRef = useRef<string>(safeInitialState(value));
 
@@ -580,6 +693,7 @@ export default function PostBodyEditor({
           <OnChangePlugin onChange={handleChange} />
           <KeyboardPlugin />
           <SlashMenuPlugin biblioOptions={biblioOptions} />
+          {onEditor && <EditorRefPlugin onMount={onEditor} />}
         </LexicalComposer>
       </div>
     </BiblioOptionsContext.Provider>
