@@ -17,6 +17,13 @@ permissions:
   contents: read
   packages: write
 
+# Force toutes les actions JavaScript déclarant `node20` à tourner sur
+# le runtime Node 24 du runner. Workaround officiel GitHub pour la
+# transition node20 → node24 (déprécié juin 2026, retiré sept. 2026).
+# Cf https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   # ─── Test : type-check + build smoke-test ──────────────────────
   # Tourne sur push ET PR. Les jobs build / deploy sont gated sur
@@ -25,16 +32,16 @@ jobs:
     name: Type check + Astro build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Pas de `version:` ici — la version pnpm est portée par le champ
       # `packageManager` dans package.json (pnpm@10.33.0). Spécifier les
       # deux fait planter l'action avec ERR_PNPM_BAD_PM_VERSION.
       - uses: pnpm/action-setup@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
 
       - name: Install dependencies
@@ -60,7 +67,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -120,7 +127,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
