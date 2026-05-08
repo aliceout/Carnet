@@ -175,6 +175,13 @@ export default function PostEditViewClient({
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
 
+  // Modale de confirmation de suppression du billet courant. open=true
+  // affiche le backdrop + dialog ; submitting bloque les boutons
+  // pendant l'appel DELETE.
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   // Tick toutes les 30s pour rafraîchir le « il y a X min »
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30000);
@@ -912,26 +919,11 @@ export default function PostEditViewClient({
                   );
                 })}
               </div>
-              <details className="add-rel-wrap">
-                <summary className="add-rel">+ Ajouter une référence…</summary>
-                <div className="add-rel-list">
-                  {biblioOptions
-                    .filter((b) => !biblioIds.includes(b.id))
-                    .slice(0, 50)
-                    .map((b) => (
-                      <button
-                        key={b.id}
-                        type="button"
-                        className="add-rel-item"
-                        onClick={() => toggleBiblio(b.id)}
-                      >
-                        <span className="au">{b.authorLabel || '—'}</span>
-                        {b.year && <> ({b.year})</>}
-                        {b.title && <> · <span className="ti">{b.title}</span></>}
-                      </button>
-                    ))}
-                </div>
-              </details>
+              <BiblioSearchPicker
+                options={biblioOptions}
+                attachedIds={biblioIds}
+                onPick={(id) => toggleBiblio(id)}
+              />
             </div>
           </div>
 
@@ -1178,6 +1170,113 @@ export default function PostEditViewClient({
               </div>
             </div>
           </aside>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── BiblioSearchPicker ─────────────────────────────────────────
+// Recherche live dans la bibliographie. Filtre sur authorLabel,
+// firstName / lastName, title, year, publisher, journal, slug.
+// Affiche jusqu'à 30 résultats sous l'input. Pas de saisie → pas
+// de liste affichée (sinon à 500 entrées on dérouler à l'infini).
+
+function BiblioSearchPicker({
+  options,
+  attachedIds,
+  onPick,
+}: {
+  options: BibEntry[];
+  attachedIds: Array<number | string>;
+  onPick: (id: number | string) => void;
+}): React.ReactElement {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onDoc(e: MouseEvent) {
+      if (!ref.current) return;
+      if (!ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  const attached = new Set(attachedIds.map(String));
+  const q = query.trim().toLowerCase();
+  const matches = q
+    ? options
+        .filter((b) => !attached.has(String(b.id)))
+        .filter((b) => {
+          const haystack = [
+            b.authorLabel ?? '',
+            ...(b.authors ?? []).flatMap((a) => [
+              a.firstName ?? '',
+              a.lastName ?? '',
+            ]),
+            b.title ?? '',
+            b.year != null ? String(b.year) : '',
+            (b as { publisher?: string }).publisher ?? '',
+            (b as { journal?: string }).journal ?? '',
+            b.slug ?? '',
+          ]
+            .join(' ')
+            .toLowerCase();
+          return haystack.includes(q);
+        })
+        .slice(0, 30)
+    : [];
+
+  return (
+    <div ref={ref} className="bib-picker">
+      <input
+        type="text"
+        className="bib-picker__input"
+        value={query}
+        placeholder="Chercher une référence (auteur·ice, titre, éditeur…)"
+        onFocus={() => setOpen(true)}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') setOpen(false);
+          if (e.key === 'Enter' && matches.length > 0) {
+            e.preventDefault();
+            onPick(matches[0].id);
+            setQuery('');
+          }
+        }}
+      />
+      {open && q.length > 0 && (
+        <div className="bib-picker__menu">
+          {matches.length === 0 && (
+            <div className="bib-picker__empty">Aucune référence ne matche.</div>
+          )}
+          {matches.map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              className="bib-picker__opt"
+              onMouseDown={(e) => {
+                // mousedown — pour ne pas perdre le focus avant le click
+                e.preventDefault();
+                onPick(b.id);
+                setQuery('');
+              }}
+            >
+              <span className="au">{b.authorLabel || '—'}</span>
+              {b.year != null && <> ({b.year})</>}
+              {b.title && (
+                <>
+                  {' · '}
+                  <span className="ti">{b.title}</span>
+                </>
+              )}
+            </button>
+          ))}
         </div>
       )}
     </div>
