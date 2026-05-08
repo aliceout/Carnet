@@ -320,6 +320,9 @@ export const Posts: CollectionConfig = {
 function extractTextFromLexical(node: unknown): string {
   if (!node || typeof node !== 'object') return '';
   const obj = node as Record<string, unknown>;
+  // Les zones brouillon ne sont pas rendues côté public — leur texte
+  // ne compte pas dans le temps de lecture estimé.
+  if (obj.type === 'draft_container') return '';
   let out = '';
   if (typeof obj.text === 'string') out += obj.text + ' ';
   const root = (obj.root ?? obj) as Record<string, unknown>;

@@ -190,7 +190,12 @@ function renderNode(node: LexicalNode | unknown, ctx: RenderContext): string {
     case 'root':
       return inner;
     case 'draft_container':
-      return `<aside class="draft-block" role="note" aria-label="Zone brouillon"><span class="draft-block__banner">Brouillon — zone en cours d'écriture</span>${inner}</aside>`;
+      // Zone brouillon : on n'émet RIEN côté lecteur. Le contenu reste
+      // dans le JSON Lexical (donc visible dans l'admin), mais le
+      // rendu public le saute. C'est la sémantique « brouillon = pas
+      // publié » côté lecteur, et le filtre admin permet à l'autrice
+      // de retrouver les billets qui en contiennent encore. Cf issue #1.
+      return '';
     case 'paragraph':
       return `<p>${inner}</p>`;
     case 'heading': {
@@ -266,6 +271,9 @@ export function extractToc(node: LexicalNode | unknown): TocEntry[] {
     if (!n || typeof n !== 'object') return;
     const x = n as LexicalNode & { root?: LexicalNode };
     if ('root' in x && x.root) return walk(x.root);
+    // Skip draft zones : leur rendu public est vide donc leurs headings
+    // n'apparaissent pas dans le billet → pas dans le TOC non plus.
+    if (x.type === 'draft_container') return;
     if (x.type === 'heading') {
       const text = (x.children ?? [])
         .map((c) => (typeof c.text === 'string' ? c.text : ''))

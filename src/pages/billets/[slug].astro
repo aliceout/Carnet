@@ -514,31 +514,6 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
     font-size: 11px;
   }
 
-  /* Zone brouillon — encapsule des paragraphes/headings non finalisés
-     dans un billet publié. Bandeau visible + cadre discret pour signaler
-     au lecteur que la zone est en cours d'écriture. Cf issue #1. */
-  .body-grid .col :global(.draft-block) {
-    margin: 28px 0;
-    padding: 14px 18px 18px;
-    border: 1px dashed var(--color-rule);
-    border-left: 3px solid var(--color-accent);
-    background: var(--color-citation-bg);
-    border-radius: 2px;
-  }
-  .body-grid .col :global(.draft-block__banner) {
-    display: block;
-    font-family: var(--font-sans);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--color-accent);
-    margin-bottom: 10px;
-  }
-  .body-grid .col :global(.draft-block > *:not(.draft-block__banner):last-child) {
-    margin-bottom: 0;
-  }
-
   /* Notes en pied d'article (style classique) */
   .footnotes-wrap {
     max-width: 720px;

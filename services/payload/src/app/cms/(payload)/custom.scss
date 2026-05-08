@@ -1269,6 +1269,108 @@ button.btn--style-primary,
     }
   }
 
+  // ─── Variante --tags ─────────────────────────────────────────
+  // 4 colonnes : Nom (input éditable), Slug (mono), Billets, Actions.
+  // Pas de lien sur la ligne → on désactive le hover-color de la
+  // grille générique, et le curseur reste par défaut sauf sur les
+  // contrôles eux-mêmes.
+  &--tags &__row {
+    grid-template-columns: 1fr 200px 80px 40px;
+    cursor: default;
+  }
+  &--tags &__row:not(.carnet-listview__row--head):hover {
+    background: transparent;
+
+    .title {
+      color: inherit;
+    }
+  }
+  &--tags &__row .slug {
+    font-size: 12px;
+    color: var(--b-muted);
+
+    &.muted {
+      font-style: italic;
+    }
+  }
+  &--tags &__row .count {
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--b-muted);
+  }
+  &--tags &__row .actions {
+    text-align: right;
+  }
+  &--tags &__row--draft {
+    background: var(--b-accent-tint);
+  }
+  @media (max-width: 900px) {
+    &--tags &__row {
+      grid-template-columns: 1fr 80px 40px;
+    }
+    &--tags &__row > .slug {
+      display: none;
+    }
+  }
+
+  // Input d'édition inline dans une cellule de tableau. Hérite de la
+  // typo serif du titre (cf .title) pour que le texte ne saute pas
+  // visuellement entre lecture et édition.
+  &__inline-input {
+    width: 100%;
+    padding: 4px 8px;
+    margin: -4px -8px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    font-family: var(--font-serif);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--b-ink);
+    transition: background 0.12s, border-color 0.12s;
+
+    &:hover:not(:focus) {
+      background: var(--b-bg);
+    }
+
+    &:focus {
+      outline: none;
+      background: var(--b-paper);
+      border-color: var(--b-accent);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+    }
+  }
+
+  // Petit bouton d'action de ligne (× supprimer).
+  &__rowact {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: var(--b-muted);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
+
+    &:hover {
+      background: rgba(182, 58, 58, 0.08);
+      border-color: rgba(182, 58, 58, 0.4);
+      color: #b63a3a;
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+
   // ─── Variante --pages ────────────────────────────────────────
   &--pages &__row {
     grid-template-columns: 1fr 220px 110px;
@@ -3334,32 +3436,76 @@ button.btn--style-primary,
   }
 
   // ─── Container : zone brouillon ───────────────────────────────
-  // ElementNode Lexical (pas un decorator) — children éditables en
-  // direct dans le flux principal. Bandeau visuel via ::before pour
-  // signaler la zone à l'autrice à l'édition. Cf issue #1.
+  // ElementNode Lexical — children éditables dans le flux principal.
+  // Volontairement sans boîte ni fond : juste deux marqueurs (balise
+  // ouvrante / balise fermante) en pseudo-elements pour délimiter la
+  // zone sans la sortir du flux de lecture. Cf issue #1.
+  //
+  // Bouton « valider » : rendu par createDOM en premier enfant DOM
+  // (non-Lexical, contenteditable=false). Position absolute pour ne
+  // pas perturber le flux de saisie. Click → CustomEvent que
+  // DraftValidatePlugin (Editor.tsx) capte pour unwrap la zone.
   .ed-draft {
     margin: 18px 0;
-    padding: 28px 18px 14px;
-    border: 1px dashed var(--b-rule);
-    border-left: 3px solid var(--b-accent);
-    background: var(--b-bg);
+    padding: 0;
+    background: transparent;
+    border: 0;
     position: relative;
 
-    &::before {
-      content: 'Brouillon — zone en cours';
-      position: absolute;
-      top: 8px;
-      left: 18px;
+    &::before,
+    &::after {
+      display: block;
       font-family: var(--font-sans);
-      font-size: 10.5px;
+      font-size: 10px;
       font-weight: 600;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
       color: var(--b-accent);
+      border-top: 1px dashed var(--b-accent);
+      padding: 3px 0 0;
       pointer-events: none;
     }
 
-    > *:first-child {
+    &::before {
+      content: '⌜ début brouillon';
+      margin-bottom: 6px;
+    }
+
+    &::after {
+      content: '⌞ fin brouillon';
+      margin-top: 6px;
+    }
+
+    &__validate {
+      position: absolute;
+      top: -2px;
+      right: 0;
+      padding: 2px 9px;
+      font-family: var(--font-sans);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--b-paper);
+      background: var(--b-accent);
+      border: 0;
+      cursor: pointer;
+      user-select: none;
+
+      &:hover {
+        background: var(--b-ink);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--b-accent);
+        outline-offset: 2px;
+      }
+    }
+
+    // Le bouton .ed-draft__validate est en premier enfant DOM mais
+    // position:absolute, donc le premier enfant en flux est en fait
+    // le suivant. On le cible via le sélecteur d'adjacence.
+    > .ed-draft__validate + * {
       margin-top: 0;
     }
     > *:last-child {

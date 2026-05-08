@@ -547,6 +547,37 @@ export class DraftContainerNode extends ElementNode {
   createDOM(_config: EditorConfig): HTMLElement {
     const el = document.createElement('div');
     el.className = 'ed-draft';
+
+    // Bouton « valider la zone » : retire les marqueurs en gardant le
+    // contenu (cf $unwrapDraftContainer). Non éditable (Lexical
+    // ignore les enfants `contenteditable=false` non-Lexical), absolute-
+    // positionné hors flux. Click → custom event bubble jusqu'au
+    // document, où DraftValidatePlugin (Editor.tsx) le capte et lance
+    // l'unwrap dans editor.update() — on ne peut pas appeler
+    // directement editor.update ici, createDOM n'a pas l'editor.
+    const btn = document.createElement('button');
+    btn.className = 'ed-draft__validate';
+    btn.type = 'button';
+    btn.contentEditable = 'false';
+    btn.setAttribute('aria-label', 'Publier la zone — sortir du brouillon');
+    btn.title = 'Publier la zone — sortir du brouillon';
+    btn.textContent = '✓ publier';
+    const nodeKey = this.__key;
+    btn.addEventListener('mousedown', (e) => {
+      // mousedown (et pas click) pour ne pas perdre le focus de
+      // l'éditeur entre l'event et l'update — l'unwrap doit pouvoir
+      // remonter le node depuis sa key sans que la sélection ait dérivé.
+      e.preventDefault();
+      e.stopPropagation();
+      btn.dispatchEvent(
+        new CustomEvent('carnet:validate-draft', {
+          detail: { nodeKey },
+          bubbles: true,
+        }),
+      );
+    });
+    el.appendChild(btn);
+
     return el;
   }
 
@@ -563,4 +594,19 @@ export function $isDraftContainerNode(
   node: LexicalNode | null | undefined,
 ): node is DraftContainerNode {
   return node instanceof DraftContainerNode;
+}
+
+/**
+ * Retire un DraftContainerNode en remontant ses children comme frères
+ * directs du parent — l'utilisatrice valide la zone, le contenu reste
+ * mais les marqueurs disparaissent. À appeler dans un editor.update().
+ */
+export function $unwrapDraftContainer(node: DraftContainerNode): void {
+  const children = [...node.getChildren()];
+  let cursor: LexicalNode = node;
+  for (const child of children) {
+    cursor.insertAfter(child);
+    cursor = child;
+  }
+  node.remove();
 }

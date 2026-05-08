@@ -151,7 +151,7 @@ export default function PostListViewClient(): React.ReactElement {
         setPosts([]);
       })
       .finally(() => setLoading(false));
-  }, [type, pole, statut, sort, page, search]);
+  }, [type, pole, statut, drafts, sort, page, search]);
 
   // Reset page=1 quand un filtre change (sinon on peut être sur p2 d'un filtre vide)
   useEffect(() => {
