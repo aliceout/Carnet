@@ -1,4 +1,4 @@
-# Carnet — site de recherche d'Alice Aussel Delamaide
+# Carnet — site de recherche
 
 Carnet de recherche personnel auto-hébergé, équivalent self-hosted d'un carnet
 Hypothèses. Publie des billets longs en français — analyses, notes de lecture,

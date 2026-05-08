@@ -1,12 +1,12 @@
 ---
 /**
- * Item de flux d'accueil — grille `120px 1fr 200px`, gap 48 px.
+ * Item de flux d'accueil — grille `120px 1fr 80px`, gap 48 px.
  * Réutilisé sur la home, la page d'un thème individuel et la
  * future page archives par série.
  *
  * Colonne gauche : numéro + date sur deux lignes + temps de lecture
- * Colonne centre : kicker + titre + chapô (max 580 px)
- * Colonne droite : « Lire → » en accent + tags inline
+ * Colonne centre : kicker (type · thèmes) + titre + chapô
+ * Colonne droite : « Lire → » en accent
  *
  * Hover : titre passe en accent.
  *
@@ -25,7 +25,7 @@ export interface Props {
   publishedAt: string | Date;
   lede: string;
   readingTime?: number | null;
-  /** Affiche/masque les chips thèmes côté droit (utile sur la page d'un thème). */
+  /** Affiche/masque les noms de thèmes dans le kicker (utile sur la page d'un thème, où c'est redondant). */
   showThemes?: boolean;
 }
 
@@ -98,20 +98,13 @@ const readingLabel = readingTime
   </a>
   <a class="rcol" href={`/billets/${slug}/`}>
     <div class="lk">Lire →</div>
-    {showThemes && populatedThemes.length > 0 && (
-      <div class="tags">
-        {populatedThemes.slice(0, 3).map((t) => (
-          <span class="tag">#{t.slug}</span>
-        ))}
-      </div>
-    )}
   </a>
 </article>
 
 <style>
   .item {
     display: grid;
-    grid-template-columns: 120px 1fr 200px;
+    grid-template-columns: 120px 1fr 80px;
     gap: 48px;
     padding: calc(40px * var(--density-feed)) 0;
     border-bottom: 1px solid var(--color-rule);
@@ -168,7 +161,6 @@ const readingLabel = readingTime
     line-height: 1.55;
     color: var(--color-body-soft);
     margin: 0;
-    max-width: 580px;
   }
   .item .rcol {
     font-family: var(--font-sans);
@@ -180,18 +172,6 @@ const readingLabel = readingTime
     color: var(--color-accent);
     font-weight: 500;
   }
-  .item .rcol .tags {
-    margin-top: 8px;
-    display: flex;
-    gap: 6px;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-  }
-  .item .rcol .tag {
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    color: var(--color-muted);
-  }
 
   @media (max-width: 900px) {
     .item {
@@ -202,9 +182,6 @@ const readingLabel = readingTime
       grid-column: 1 / -1;
       text-align: left;
       padding-top: 8px;
-    }
-    .item .rcol .tags {
-      justify-content: flex-start;
     }
   }
 </style>

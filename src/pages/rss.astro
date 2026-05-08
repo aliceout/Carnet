@@ -1,0 +1,255 @@
+---
+/**
+ * Page RSS — /rss/
+ *
+ * Atterrissage humain pour le bouton "RSS" du header. Plutôt que
+ * d'envoyer direct sur /rss.xml (mur d'XML pour qui n'a pas de feed
+ * reader), on explique brièvement le format, on donne l'URL avec un
+ * bouton Copier et on liste quelques lecteurs.
+ */
+import Layout from '../layouts/Layout.astro';
+
+const feedUrl = new URL('/rss.xml', Astro.site).toString();
+---
+
+<Layout
+  title="Flux RSS — Carnet"
+  description="Suivre le carnet par flux RSS — comment ça marche et avec quels lecteurs."
+>
+  <section class="container rss-page">
+    <div class="kicker mono">Flux RSS</div>
+    <h1>Suivre le carnet par flux RSS</h1>
+    <p class="lede">
+      Le RSS est une façon simple de recevoir les nouveaux billets dans
+      une application dédiée — sans algorithme, sans publicité, sans
+      pisteur. Vous ajoutez l'URL ci-dessous à votre lecteur de flux,
+      et chaque nouveau billet apparaît automatiquement.
+    </p>
+
+    <div class="url-block">
+      <div class="lbl">URL du flux</div>
+      <div class="url-row">
+        <code>{feedUrl}</code>
+        <button
+          type="button"
+          class="copy-btn"
+          data-url={feedUrl}
+          aria-label="Copier l'URL du flux"
+        >
+          Copier
+        </button>
+      </div>
+      <p class="hint">
+        Vous pouvez aussi <a href="/rss.xml">ouvrir le flux directement</a>
+        — c'est un fichier XML, pas conçu pour la lecture humaine.
+      </p>
+    </div>
+
+    <h2>Quelques lecteurs recommandés</h2>
+    <ul class="readers">
+      <li>
+        <a href="https://feedly.com/" rel="noopener" class="ext">Feedly</a>
+        — le plus connu, web et mobile, version gratuite suffisante.
+      </li>
+      <li>
+        <a href="https://netnewswire.com/" rel="noopener" class="ext">NetNewsWire</a>
+        <span class="oss" title="Logiciel libre / open source">open source</span>
+        — léger, macOS et iOS.
+      </li>
+      <li>
+        <a href="https://www.inoreader.com/" rel="noopener" class="ext">Inoreader</a>
+        — multi-plateformes, organisation poussée.
+      </li>
+      <li>
+        <a href="https://www.thunderbird.net/" rel="noopener" class="ext">Thunderbird</a>
+        <span class="oss" title="Logiciel libre / open source">open source</span>
+        — le client mail de Mozilla lit aussi les flux RSS.
+      </li>
+    </ul>
+
+    <p class="footnote">
+      Pas familier avec RSS ? La <a
+        href="https://fr.wikipedia.org/wiki/RSS"
+        rel="noopener"
+        class="ext">page Wikipédia</a
+      > donne une bonne vue d'ensemble.
+    </p>
+  </section>
+</Layout>
+
+<style>
+  /* Largeur canonique des pages éditoriales : max-width 1080, padding
+     80px → contenu utile 920px (= largeur du corps des billets). */
+  .container {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 80px 80px 64px;
+  }
+  .kicker {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: var(--color-accent);
+    margin-bottom: 14px;
+  }
+  h1 {
+    font-size: 48px;
+    line-height: 1.08;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    margin: 0 0 20px;
+  }
+  .lede {
+    font-family: var(--font-serif);
+    font-size: 19px;
+    line-height: 1.55;
+    color: var(--color-muted);
+    margin: 0 0 36px;
+  }
+
+  .url-block {
+    background: #ece9e0;
+    padding: 24px 28px;
+    margin-bottom: 48px;
+    border-radius: 4px;
+  }
+  .url-block .lbl {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    margin-bottom: 10px;
+  }
+  .url-row {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  .url-row code {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--color-ink);
+    word-break: break-all;
+    flex: 1 1 280px;
+    min-width: 0;
+  }
+  .copy-btn {
+    background: transparent;
+    border: 1px solid var(--color-accent);
+    color: var(--color-accent);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    flex: 0 0 auto;
+  }
+  .copy-btn:hover {
+    background: var(--color-accent);
+    color: var(--color-bg);
+  }
+  .copy-btn.copied {
+    background: var(--color-accent);
+    color: var(--color-bg);
+  }
+  .url-block .hint {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--color-muted);
+    margin: 14px 0 0;
+  }
+  .url-block .hint a {
+    color: var(--color-accent);
+    border-bottom: 1px dotted var(--color-accent);
+  }
+
+  h2 {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 16px;
+  }
+  .readers {
+    font-family: var(--font-serif);
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--color-body);
+    list-style: none;
+    padding: 0;
+    margin: 0 0 48px;
+    display: grid;
+    gap: 12px;
+  }
+  .readers a.ext {
+    color: var(--color-ink);
+    border-bottom: 1px solid var(--color-accent);
+    font-weight: 500;
+  }
+  .readers a.ext:hover {
+    color: var(--color-accent);
+  }
+  .readers .oss {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    border: 1px solid var(--color-accent);
+    border-radius: 999px;
+    padding: 1px 8px;
+    margin-left: 6px;
+    vertical-align: 2px;
+    cursor: help;
+  }
+  .footnote {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--color-muted);
+    margin: 0;
+  }
+  .footnote a.ext {
+    color: var(--color-muted);
+    border-bottom: 1px dotted var(--color-muted);
+  }
+  .footnote a.ext:hover {
+    color: var(--color-accent);
+    border-bottom-color: var(--color-accent);
+  }
+
+  @media (max-width: 900px) {
+    .container {
+      padding: 64px 24px 48px;
+    }
+    h1 {
+      font-size: 32px;
+    }
+  }
+</style>
+
+<script>
+  const btn = document.querySelector<HTMLButtonElement>('.copy-btn');
+  if (btn) {
+    const original = btn.textContent ?? 'Copier';
+    btn.addEventListener('click', async () => {
+      const url = btn.dataset.url;
+      if (!url) return;
+      try {
+        await navigator.clipboard.writeText(url);
+        btn.textContent = 'Copié ✓';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.classList.remove('copied');
+        }, 1800);
+      } catch (err) {
+        console.warn('clipboard:', err);
+      }
+    });
+  }
+</script>

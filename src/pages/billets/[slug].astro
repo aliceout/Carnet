@@ -62,7 +62,7 @@ if (!slug) return Astro.redirect('/');
 
 const post = await fetchBySlug<Post>('posts', slug);
 if (!post || post.draft) {
-  return new Response('Billet introuvable', { status: 404 });
+  return Astro.rewrite('/404');
 }
 
 const TYPE_LABEL: Record<Post['type'], string> = {

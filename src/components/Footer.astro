@@ -53,7 +53,7 @@ const navFooter = site.navFooter && site.navFooter.length > 0 ? site.navFooter :
 const social = site.social ?? {};
 
 const socialLinks = [
-  { label: 'Flux RSS', href: '/rss.xml' },
+  { label: 'Flux RSS', href: '/rss/' },
   social.mastodon ? { label: 'Mastodon', href: social.mastodon, external: true } : null,
   social.bluesky ? { label: 'Bluesky', href: social.bluesky, external: true } : null,
   social.orcid ? { label: 'ORCID', href: social.orcid, external: true } : null,

@@ -29,7 +29,7 @@ if (!slug) return Astro.redirect('/');
 
 const page = await fetchBySlug<PageDoc>('pages', slug);
 if (!page) {
-  return new Response('Page introuvable', { status: 404 });
+  return Astro.rewrite('/404');
 }
 ---
 
@@ -52,8 +52,10 @@ if (!page) {
 </Layout>
 
 <style>
+  /* Largeur canonique des pages éditoriales : max-width 1080, padding
+     80px → contenu utile 920px (= largeur du corps des billets). */
   .narrow {
-    max-width: 980px;
+    max-width: 1080px;
     margin: 0 auto;
     padding: 0 80px;
   }
