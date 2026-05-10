@@ -383,7 +383,7 @@ textarea.field-type__input {
 
   &__brand {
     display: block;
-    padding: 20px 24px 24px;
+    padding: 20px 24px 8px;
     font-family: var(--font-serif);
     font-size: 22px;
     font-weight: 600;
@@ -393,6 +393,31 @@ textarea.field-type__input {
 
     .dot {
       color: var(--b-accent);
+    }
+  }
+
+  // Lien vers le front public, juste sous le brand. Discret (mono,
+  // muted, taille 11px), avec une flèche ↗ qui indique l'ouverture
+  // dans un nouvel onglet. Hover : couleur accent.
+  &__view-site {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0 24px 12px;
+    padding: 0;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--b-muted);
+    text-decoration: none;
+    transition: color 0.12s;
+
+    &:hover {
+      color: var(--b-accent);
+    }
+
+    .arrow {
+      font-size: 10px;
+      line-height: 1;
     }
   }
 

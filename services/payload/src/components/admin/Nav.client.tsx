@@ -211,6 +211,15 @@ export default function NavClient({ activePath: serverActive, counts }: Props): 
       <Link href={ADMIN} className="carnet-nav__brand">
         Carnet<span className="dot">.</span>
       </Link>
+      <a
+        href="/"
+        className="carnet-nav__view-site"
+        target="_blank"
+        rel="noreferrer"
+      >
+        Voir le site
+        <span aria-hidden="true" className="arrow">↗</span>
+      </a>
 
       {sections.map((section) => (
         <div key={section.label} className="carnet-nav__section">
