@@ -4799,9 +4799,19 @@ button.btn--style-primary,
   gap: 16px;
   // padding-right: 0 sur tous les écrans — il cassait le design en
   // décalant les actions vers l'intérieur. Padding-left piloté par
-  // --carnet-pad-x pour rester aligné sur les pages (listview/editview)
-  // depuis une seule source de vérité.
+  // --carnet-pad-x pour aligner les crumbs sur le contenu en dessous.
   padding: 0 0 0 var(--carnet-pad-x);
+
+  // Full-bleed quand la topbar vit dans .carnet-listview / .carnet-editview :
+  // ces containers portent un padding horizontal --carnet-pad-x ; sans
+  // breakout, le border-bottom et le fond de la topbar ne touchent ni la
+  // navbar à gauche ni le viewport à droite. La marge négative la repousse
+  // jusqu'aux bords du container (qui collent au layout), pendant que son
+  // propre padding-left replace les crumbs à --carnet-pad-x du bord visible.
+  .carnet-listview > &,
+  .carnet-editview > & {
+    margin-inline: calc(-1 * var(--carnet-pad-x));
+  }
   height: 56px;
   border-bottom: 1px solid var(--b-rule);
   background: var(--b-bg);
