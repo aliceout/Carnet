@@ -39,6 +39,22 @@ export default function CarnetTopbar({
 }): React.ReactElement {
   return (
     <header className="carnet-topbar">
+      {/* Burger mobile — visible uniquement ≤ 900px (CSS). Dispatch un
+          event window que Nav.client.tsx écoute pour toggle l'overlay.
+          Placé en début de topbar (à gauche) puisque la nav slide
+          depuis la gauche, convention UX habituelle. */}
+      <button
+        type="button"
+        className="carnet-nav-burger"
+        aria-label="Ouvrir la navigation"
+        onClick={() => {
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('carnet-nav-toggle'));
+          }
+        }}
+      >
+        <span aria-hidden="true">☰</span>
+      </button>
       <div className="carnet-topbar__crumbs">
         {crumbs.map((c, i) => (
           <React.Fragment key={i}>
@@ -65,21 +81,6 @@ export default function CarnetTopbar({
           {children}
         </div>
       )}
-      {/* Burger mobile — visible uniquement ≤ 900px (CSS). Dispatch un
-          event window que Nav.client.tsx écoute pour toggle l'overlay.
-          Placé en fin de topbar pour ne pas chevaucher les actions. */}
-      <button
-        type="button"
-        className="carnet-nav-burger"
-        aria-label="Ouvrir la navigation"
-        onClick={() => {
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new Event('carnet-nav-toggle'));
-          }
-        }}
-      >
-        <span aria-hidden="true">☰</span>
-      </button>
     </header>
   );
 }

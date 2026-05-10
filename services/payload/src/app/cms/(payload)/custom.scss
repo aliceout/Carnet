@@ -4947,6 +4947,13 @@ button.btn--style-primary,
     display: none !important;
   }
 
+  // Topbar sans padding latéral sur mobile : on récupère 48px de
+  // largeur utile, et le burger se cale flush contre le bord gauche.
+  .carnet-topbar {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
   // Plusieurs sections (toolbar, tableau, pagination, h1, sections
   // d'édition) utilisent `margin-left: 24px` ou `padding-left: 24px`
   // sans pendant à droite — pensé pour le desktop avec la nav 220px à
@@ -4993,11 +5000,13 @@ button.btn--style-primary,
   // border 1px) pour être à la même hauteur. Padding horizontal réduit
   // à 9px pour un aspect carré-ish ; le span aria-hidden est sizé en
   // font-size de l'élément (12.5px) — c'est petit mais cohérent.
+  // Marge à droite (pas à gauche) puisque le burger est désormais en
+  // début de topbar.
   .carnet-nav-burger {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin-left: 8px;
+    margin-right: 8px;
     padding: 5px 9px;
     background: var(--b-paper);
     border: 1px solid var(--b-rule);
