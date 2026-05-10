@@ -1688,11 +1688,77 @@ button.btn--style-primary,
       display: none;
     }
   }
+  // ── Mobile (≤ 900px) ─────────────────────────────────────────
+  // Layout demandé : titre à gauche (peut wrapper sur 2 lignes), bloc
+  // auteur·ice à droite avec prénom au-dessus et nom en dessous, alignés
+  // à droite. Année / Éditeur / Type / bouton × cachés.
+  //
+  //   Titre du livre qui peut wrapper                        Prénom
+  //   sur deux lignes                                          Nom
+  //
+  // Implémentation : grid 1fr / auto, 2 rangées. Le titre prend col 1
+  // et span sur les 2 rangées ; firstname/lastname occupent col 2,
+  // rangée 1 et 2 respectivement. La ligne d'en-tête (sans className
+  // sur les cells) est ciblée par nth-child et placée pareil — les
+  // labels « Prénom » / « Nom » servent ainsi d'en-tête colonne 2.
   @media (max-width: 900px) {
     &--biblio &__row {
-      grid-template-columns: 1fr 60px 36px;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      column-gap: 12px;
+      row-gap: 2px;
+      align-items: start;
     }
-    &--biblio &__row > .year {
+
+    // Data rows
+    &--biblio &__row > .firstname {
+      display: block;            // ré-affiche (la règle ≤1180 le cache)
+      grid-column: 2;
+      grid-row: 1;
+      text-align: right;
+      align-self: end;
+    }
+    &--biblio &__row > .lastname {
+      display: block;            // idem
+      grid-column: 2;
+      grid-row: 2;
+      text-align: right;
+      align-self: start;
+    }
+    &--biblio &__row > .title {
+      grid-column: 1;
+      grid-row: 1 / span 2;
+      align-self: center;
+    }
+    &--biblio &__row > .year,
+    &--biblio &__row > .venue,
+    &--biblio &__row > .type-cell,
+    &--biblio &__row > *:last-child {
+      display: none;
+    }
+
+    // Head row : mêmes positions, ciblées par nth-child puisque les
+    // <div role="columnheader"> n'ont pas de className.
+    // Ordre HTML : 1=Prénom, 2=Nom, 3=Année, 4=Titre, 5=Éditeur, 6=Type, 7=Actions.
+    &--biblio &__row--head > *:nth-child(1) {
+      grid-column: 2;
+      grid-row: 1;
+      text-align: right;
+    }
+    &--biblio &__row--head > *:nth-child(2) {
+      grid-column: 2;
+      grid-row: 2;
+      text-align: right;
+    }
+    &--biblio &__row--head > *:nth-child(4) {
+      grid-column: 1;
+      grid-row: 1 / span 2;
+      align-self: center;
+    }
+    &--biblio &__row--head > *:nth-child(3),
+    &--biblio &__row--head > *:nth-child(5),
+    &--biblio &__row--head > *:nth-child(6),
+    &--biblio &__row--head > *:last-child {
       display: none;
     }
   }
