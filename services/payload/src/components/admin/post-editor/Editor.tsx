@@ -485,7 +485,21 @@ function SlashMenuPlugin({ biblioOptions }: { biblioOptions: BibEntry[] }) {
               const sel = window.getSelection();
               if (!sel || sel.rangeCount === 0) return;
               const range = sel.getRangeAt(0);
-              const rect = range.getBoundingClientRect();
+              let rect = range.getBoundingClientRect();
+              // Fallback : un range collapsed sur un noeud vide / sur
+              // une frontière de bloc retourne parfois un rect dégénéré
+              // (top=0 left=0 width=0 height=0). Sans ce garde, le menu
+              // s'affiche en haut-gauche du document — bug rare mais
+              // observé. On retombe sur le rect de l'élément DOM qui
+              // contient la sélection, ce qui donne au moins un point
+              // proche de la zone d'édition.
+              if (rect.top === 0 && rect.left === 0 && rect.width === 0 && rect.height === 0) {
+                let node: Node | null = sel.focusNode;
+                if (node && node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+                if (node && node instanceof Element) {
+                  rect = node.getBoundingClientRect();
+                }
+              }
               setPos({
                 top: rect.bottom + window.scrollY + 4,
                 left: rect.left + window.scrollX,
