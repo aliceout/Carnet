@@ -1406,7 +1406,10 @@ button.btn--style-primary,
     &--themes &__row {
       grid-template-columns: 1fr 60px;
     }
-    &--themes &__row > .desc {
+    // Hide cellule data .desc + en-tête « Description » (2e cell, sans
+    // className car role=columnheader est plain <div>).
+    &--themes &__row > .desc,
+    &--themes &__row--head > *:nth-child(2) {
       display: none;
     }
   }
