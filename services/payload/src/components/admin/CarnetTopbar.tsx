@@ -65,6 +65,21 @@ export default function CarnetTopbar({
           {children}
         </div>
       )}
+      {/* Burger mobile — visible uniquement ≤ 900px (CSS). Dispatch un
+          event window que Nav.client.tsx écoute pour toggle l'overlay.
+          Placé en fin de topbar pour ne pas chevaucher les actions. */}
+      <button
+        type="button"
+        className="carnet-nav-burger"
+        aria-label="Ouvrir la navigation"
+        onClick={() => {
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('carnet-nav-toggle'));
+          }
+        }}
+      >
+        <span aria-hidden="true">☰</span>
+      </button>
     </header>
   );
 }

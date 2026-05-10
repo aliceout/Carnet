@@ -4920,13 +4920,11 @@ button.btn--style-primary,
   display: none !important;
 }
 
-// Burger mobile — invisible ≥ 901px, visible ≤ 900px en haut à droite.
-// Reste au-dessus de la nav en overlay (z-index supérieur).
+// Burger mobile — rendu dans CarnetTopbar, masqué ≥ 901px.
+// Backdrop : masqué par défaut, visible quand la nav est ouverte.
 .carnet-nav-burger {
   display: none;
 }
-
-// Backdrop semi-transparent quand la nav est ouverte en overlay.
 .carnet-nav-backdrop {
   display: none;
 }
@@ -4936,7 +4934,8 @@ button.btn--style-primary,
 //     toute la largeur (display: block).
 //   - .carnet-nav est masquée par défaut, et apparaît en overlay quand
 //     .is-open est posé (par le bouton burger).
-//   - Le burger est visible en haut à droite, fixe.
+//   - Le burger s'affiche dans la topbar (à droite des actions), pas
+//     en overlay : pas de chevauchement avec les boutons d'action.
 @media (max-width: 900px) {
   .template-default {
     display: block !important;
@@ -4971,11 +4970,9 @@ button.btn--style-primary,
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    position: fixed;
-    top: 12px;
-    right: 12px;
     width: 36px;
     height: 36px;
+    margin-left: 8px;
     padding: 0;
     background: var(--b-paper);
     border: 1px solid var(--b-rule);
@@ -4984,8 +4981,8 @@ button.btn--style-primary,
     font-size: 18px;
     line-height: 1;
     cursor: pointer;
-    z-index: 210;
     transition: background 0.12s, border-color 0.12s;
+    flex: 0 0 auto;
   }
   .carnet-nav-burger:hover {
     border-color: var(--b-ink);

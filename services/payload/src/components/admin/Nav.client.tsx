@@ -76,7 +76,18 @@ export default function NavClient({ activePath: serverActive, counts }: Props): 
   // État ouvert/fermé du burger sur mobile. La nav est masquée par CSS
   // en dessous de 900px ; quand `navOpen` est vrai, on lui ajoute la
   // classe `is-open` qui la rend visible en overlay (cf. custom.scss).
+  // Le bouton burger qui contrôle ce state vit dans le CarnetTopbar
+  // (pour être visuellement dans la topbar plutôt qu'en overlay) — la
+  // communication passe par un event window custom.
   const [navOpen, setNavOpen] = useState(false);
+
+  useEffect(() => {
+    function onToggle() {
+      setNavOpen((v) => !v);
+    }
+    window.addEventListener('carnet-nav-toggle', onToggle);
+    return () => window.removeEventListener('carnet-nav-toggle', onToggle);
+  }, []);
 
   // Ferme la nav automatiquement à chaque navigation (sinon elle reste
   // ouverte et masque la nouvelle page).
@@ -177,20 +188,10 @@ export default function NavClient({ activePath: serverActive, counts }: Props): 
 
   return (
     <>
-      {/* Burger mobile — visible uniquement ≤ 900px (CSS). Toggle l'overlay
-          de la nav. Sa classe `is-open` est aussi sur le <nav> ci-dessous. */}
-      <button
-        type="button"
-        className={navOpen ? 'carnet-nav-burger is-open' : 'carnet-nav-burger'}
-        aria-label={navOpen ? 'Fermer la navigation' : 'Ouvrir la navigation'}
-        aria-expanded={navOpen}
-        onClick={() => setNavOpen((v) => !v)}
-      >
-        <span aria-hidden="true">{navOpen ? '✕' : '☰'}</span>
-      </button>
-
       {/* Backdrop : ferme la nav au clic en dehors. Visible uniquement
-          quand la nav est ouverte. */}
+          quand la nav est ouverte. Le bouton burger qui ouvre la nav
+          est rendu par CarnetTopbar pour s'intégrer dans la topbar
+          plutôt que flotter par-dessus. */}
       {navOpen && (
         <div
           className="carnet-nav-backdrop"
