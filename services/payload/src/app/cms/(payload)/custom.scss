@@ -56,7 +56,7 @@ html {
 //                                          la zone tablette/moyenne uniquement
 
 @mixin mobile      { @media (max-width: 900px)  { @content; } }
-@mixin tablet-sm   { @include tablet-sm { @content; } }
+@mixin tablet-sm   { @media (max-width: 1180px) { @content; } }
 @mixin tablet      { @media (max-width: 1440px) { @content; } }
 @mixin tablet-only { @media (min-width: 901px) and (max-width: 1440px) { @content; } }
 
