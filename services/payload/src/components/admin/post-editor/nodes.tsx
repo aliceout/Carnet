@@ -124,6 +124,11 @@ function FootnoteRenderer({
   const [local, patch] = useNodeFields<FootnoteFields>(nodeKey, fields);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
+  const anchorRef = useRef<HTMLSpanElement>(null);
+  // Position verticale du popover en mobile : on ancre le popover sous
+  // le trigger en utilisant getBoundingClientRect (le parent inline ne
+  // permet pas un calcul fiable via CSS). Voir custom.scss .ed-fn__pop.
+  const [popoverTop, setPopoverTop] = useState<number | null>(null);
 
   useEffect(() => {
     function onDoc(e: MouseEvent) {
@@ -134,24 +139,40 @@ function FootnoteRenderer({
     return () => document.removeEventListener('mousedown', onDoc);
   }, [open]);
 
+  function toggleOpen() {
+    if (!open && anchorRef.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      setPopoverTop(rect.bottom + 4);
+    }
+    setOpen((o) => !o);
+  }
+
   return (
     <span ref={ref} className="ed-fn">
       <span
+        ref={anchorRef}
         className="ed-fn__anchor"
         role="button"
         tabIndex={0}
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggleOpen}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            setOpen((o) => !o);
+            toggleOpen();
           }
         }}
       >
         [fn]
       </span>
       {open && (
-        <span className="ed-fn__pop">
+        <span
+          className="ed-fn__pop"
+          style={
+            popoverTop !== null
+              ? ({ '--popover-top': `${popoverTop}px` } as React.CSSProperties)
+              : undefined
+          }
+        >
           <span className="lbl">Note de bas de page</span>
           <textarea
             rows={3}
@@ -176,6 +197,9 @@ function BiblioInlineRenderer({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef<HTMLSpanElement>(null);
+  const tagRef = useRef<HTMLSpanElement>(null);
+  // Position verticale du popover en mobile (cf. FootnoteRenderer).
+  const [popoverTop, setPopoverTop] = useState<number | null>(null);
   const biblioOptions = useBiblioOptions();
 
   useEffect(() => {
@@ -186,6 +210,14 @@ function BiblioInlineRenderer({
     if (open) document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, [open]);
+
+  function toggleOpen() {
+    if (!open && tagRef.current) {
+      const rect = tagRef.current.getBoundingClientRect();
+      setPopoverTop(rect.bottom + 4);
+    }
+    setOpen((o) => !o);
+  }
 
   // Affichage : (auteur, année) si la référence est trouvée, sinon
   // « (réf. à choisir) ».
@@ -225,21 +257,29 @@ function BiblioInlineRenderer({
   return (
     <span ref={ref} className="ed-bi">
       <span
+        ref={tagRef}
         className="ed-bi__tag"
         role="button"
         tabIndex={0}
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggleOpen}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            setOpen((o) => !o);
+            toggleOpen();
           }
         }}
       >
         {label}
       </span>
       {open && (
-        <span className="ed-bi__pop">
+        <span
+          className="ed-bi__pop"
+          style={
+            popoverTop !== null
+              ? ({ '--popover-top': `${popoverTop}px` } as React.CSSProperties)
+              : undefined
+          }
+        >
           <span className="lbl">Référence bibliographique</span>
           {selected ? (
             <span className="ed-bi__selected">

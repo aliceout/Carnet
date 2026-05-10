@@ -4304,23 +4304,21 @@ button.btn--style-primary,
       color: var(--b-ink);
       line-height: 1.4;
 
-      // Mobile : modal centré dans le viewport via position: fixed,
-      // left/right: 24px, top: 50% + translateY(-50%). Le parent
-      // .ed-fn est `display: inline; position: relative` ce qui rend
-      // le calcul de left:50% peu fiable (la boîte du parent inline
-      // wrap sur plusieurs lignes selon le texte). On bascule donc
-      // au viewport-relative qui est garanti — comportement modal
-      // déjà éprouvé. La perte = le popover s'éloigne du tag, mais
-      // c'est inévitable sans anchor positioning ou JS.
+      // Mobile : full-width viewport (left/right: 24px) avec ancrage
+      // vertical via la CSS var --popover-top que React calcule au
+      // moment de l'ouverture (getBoundingClientRect du trigger).
+      // Pas de calcul de gauche/droite côté CSS — full-width règle
+      // l'horizontal, le seul positionnement à faire est vertical.
+      // Fallback à 50% si la var n'est pas posée (avant mount React).
       @include mobile {
         position: fixed;
-        top: 50%;
+        top: var(--popover-top, 50%);
         left: 24px;
         right: 24px;
-        transform: translateY(-50%);
+        transform: none;
         width: auto;
         max-width: none;
-        max-height: 70vh;
+        max-height: calc(100vh - var(--popover-top, 50%) - 24px);
         overflow-y: auto;
         margin-top: 0;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
@@ -4392,23 +4390,21 @@ button.btn--style-primary,
       font-style: normal;
       color: var(--b-ink);
 
-      // Mobile : modal centré dans le viewport via position: fixed,
-      // left/right: 24px, top: 50% + translateY(-50%). Le parent
-      // .ed-bi est `display: inline; position: relative` ce qui rend
-      // le calcul de left:50% peu fiable (la boîte du parent inline
-      // wrap sur plusieurs lignes selon le texte). On bascule donc
-      // au viewport-relative qui est garanti — comportement modal
-      // déjà éprouvé. La perte = le popover s'éloigne du tag, mais
-      // c'est inévitable sans anchor positioning ou JS.
+      // Mobile : full-width viewport (left/right: 24px) avec ancrage
+      // vertical via la CSS var --popover-top que React calcule au
+      // moment de l'ouverture (getBoundingClientRect du trigger).
+      // Pas de calcul de gauche/droite côté CSS — full-width règle
+      // l'horizontal, le seul positionnement à faire est vertical.
+      // Fallback à 50% si la var n'est pas posée (avant mount React).
       @include mobile {
         position: fixed;
-        top: 50%;
+        top: var(--popover-top, 50%);
         left: 24px;
         right: 24px;
-        transform: translateY(-50%);
+        transform: none;
         width: auto;
         max-width: none;
-        max-height: 70vh;
+        max-height: calc(100vh - var(--popover-top, 50%) - 24px);
         overflow-y: auto;
         margin-top: 0;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
