@@ -45,13 +45,6 @@ if (q) {
   }
 }
 
-const heroTitleHtml = formatHeroTitle('Chercher dans le *Carnet*.');
-const heroLedeHtml = formatHeroLede(
-  q
-    ? `${totalDocs} résultat${totalDocs > 1 ? 's' : ''} pour <em>${escapeHtml(q)}</em>.`
-    : 'Tape un mot, une phrase entre guillemets, ou plusieurs mots à la fois. Le moteur cherche dans le titre, le chapô, le corps, les notes et la bibliographie liée.',
-);
-
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
@@ -59,6 +52,17 @@ function escapeHtml(s: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
+
+const heroTitleHtml = formatHeroTitle('Chercher dans le *Carnet*.');
+// formatHeroLede échappe tout le HTML reçu — incompatible avec un
+// lede qui contient déjà des balises `<em>` autour de la requête.
+// On échappe nous-mêmes la requête (qui PEUT contenir n'importe quoi)
+// et on bypass formatHeroLede pour le cas avec résultat.
+const heroLedeHtml = q
+  ? `${totalDocs} résultat${totalDocs > 1 ? 's' : ''} pour <em>${escapeHtml(q)}</em>.`
+  : formatHeroLede(
+      'Tape un mot, une phrase entre guillemets, ou plusieurs mots à la fois. Le moteur cherche dans le titre, le chapô, le corps, les notes et la bibliographie liée.',
+    );
 
 function pageHref(p: number): string {
   const params = new URLSearchParams();
