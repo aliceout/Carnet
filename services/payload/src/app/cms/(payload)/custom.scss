@@ -4950,23 +4950,24 @@ button.btn--style-primary,
   // Plusieurs sections (toolbar, tableau, pagination, h1, sections
   // d'édition) utilisent `margin-left: 24px` ou `padding-left: 24px`
   // sans pendant à droite — pensé pour le desktop avec la nav 220px à
-  // gauche. Sur mobile, la nav disparaît et l'asymétrie est visible.
-  // On ajoute le pendant droit pour que le contenu soit centré.
+  // gauche. Sur mobile, la nav disparaît : on retire ces marges
+  // complètement pour que le contenu prenne toute la largeur.
   .carnet-listview__table,
-  .carnet-listview__pagination {
-    margin-right: 24px;
+  .carnet-listview__pagination,
+  .carnet-listview__h1 {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
   }
   .carnet-listview__toolbar {
-    padding-right: 24px;
-  }
-  .carnet-listview__h1 {
-    margin-right: 24px;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
   }
   .carnet-editview__form,
   .carnet-editview__hero,
   .carnet-editview__error,
   .carnet-editview__loading {
-    padding-right: 24px;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
   }
 
   .carnet-nav {
