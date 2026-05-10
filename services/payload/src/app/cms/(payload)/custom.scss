@@ -5083,32 +5083,6 @@ button.btn--style-primary,
   }
 }
 
-// Sous 900px (vrai mobile, hors tablettes) : on retire les marges
-// latérales 24px sur la topbar et les listview/editview pour récupérer
-// la pleine largeur du viewport (sinon le 24px gauche apparaît
-// « doublé » par rapport au desktop).
-@media (max-width: 900px) {
-  .carnet-topbar {
-    padding-left: 0 !important;
-  }
-  .carnet-listview__toolbar {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-  }
-  .carnet-listview__table,
-  .carnet-listview__pagination,
-  .carnet-listview__h1 {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-  }
-  .carnet-editview__form,
-  .carnet-editview__hero,
-  .carnet-editview__error,
-  .carnet-editview__loading {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-  }
-}
 
 
 // ─── Intégration Zotero ─────────────────────────────────────────────
