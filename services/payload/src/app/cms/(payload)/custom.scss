@@ -1685,6 +1685,17 @@ button.btn--style-primary,
       display: none;
     }
   }
+  // ≤ 900 : on retire en plus la colonne Statut (data + en-tête).
+  // Cells visibles : Email + Rôle uniquement.
+  @include mobile {
+    &--users &__row {
+      grid-template-columns: 1fr 110px;
+    }
+    &--users &__row > .status-cell,
+    &--users &__row--head > *:nth-child(4) {
+      display: none;
+    }
+  }
 
   // Biblio : 7 colonnes (Prénom, Nom, Année, Titre, Éditeur/Revue,
   // Type, Actions). La clé (slug) est retirée — elle reste visible
