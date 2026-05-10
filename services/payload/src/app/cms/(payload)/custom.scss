@@ -1344,7 +1344,10 @@ button.btn--style-primary,
   }
 
   @media (max-width: 900px) {
-    padding: 16px 20px 48px;
+    // Padding horizontal piloté par .carnet-page__body (--carnet-pad-x).
+    // On n'ajoute rien ici sinon ça doublerait le retrait au-dessus du
+    // contenu ET de la topbar.
+    padding-bottom: 48px;
 
     &__row {
       grid-template-columns: 1fr 100px;
