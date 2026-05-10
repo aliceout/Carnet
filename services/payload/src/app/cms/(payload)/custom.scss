@@ -4939,9 +4939,11 @@ button.btn--style-primary,
 //     .is-open est posé (par le bouton burger).
 //   - Le burger s'affiche dans la topbar (à droite des actions), pas
 //     en overlay : pas de chevauchement avec les boutons d'action.
-// Breakpoint à 1100px pour couvrir tablettes (iPad Pro landscape =
-// 1194px) et petits laptops — au-delà, on garde le layout desktop.
-@media (max-width: 1100px) {
+// Breakpoint à 1200px pour couvrir tablettes (iPad Pro landscape =
+// 1194px) ET les rules existantes à 1180px qui cachent déjà certaines
+// colonnes des tableaux. Sous 1200, on bascule en mobile complet
+// (nav cachée + burger). Au-delà, layout desktop.
+@media (max-width: 1200px) {
   .template-default {
     display: block !important;
   }
