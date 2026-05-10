@@ -73,6 +73,17 @@ export default function NavClient({ activePath: serverActive, counts }: Props): 
   const clientPath = usePathname();
   const activePath = clientPath || serverActive;
 
+  // État ouvert/fermé du burger sur mobile. La nav est masquée par CSS
+  // en dessous de 900px ; quand `navOpen` est vrai, on lui ajoute la
+  // classe `is-open` qui la rend visible en overlay (cf. custom.scss).
+  const [navOpen, setNavOpen] = useState(false);
+
+  // Ferme la nav automatiquement à chaque navigation (sinon elle reste
+  // ouverte et masque la nouvelle page).
+  useEffect(() => {
+    setNavOpen(false);
+  }, [activePath]);
+
   // User courant pour le footer (nom + rôle).
   const [me, setMe] = useState<Me['user'] | null>(null);
   useEffect(() => {
@@ -165,7 +176,33 @@ export default function NavClient({ activePath: serverActive, counts }: Props): 
   }
 
   return (
-    <nav className="carnet-nav" aria-label="Navigation principale">
+    <>
+      {/* Burger mobile — visible uniquement ≤ 900px (CSS). Toggle l'overlay
+          de la nav. Sa classe `is-open` est aussi sur le <nav> ci-dessous. */}
+      <button
+        type="button"
+        className={navOpen ? 'carnet-nav-burger is-open' : 'carnet-nav-burger'}
+        aria-label={navOpen ? 'Fermer la navigation' : 'Ouvrir la navigation'}
+        aria-expanded={navOpen}
+        onClick={() => setNavOpen((v) => !v)}
+      >
+        <span aria-hidden="true">{navOpen ? '✕' : '☰'}</span>
+      </button>
+
+      {/* Backdrop : ferme la nav au clic en dehors. Visible uniquement
+          quand la nav est ouverte. */}
+      {navOpen && (
+        <div
+          className="carnet-nav-backdrop"
+          aria-hidden="true"
+          onClick={() => setNavOpen(false)}
+        />
+      )}
+
+      <nav
+        className={navOpen ? 'carnet-nav is-open' : 'carnet-nav'}
+        aria-label="Navigation principale"
+      >
       {/* Auto-sync Zotero invisible : se déclenche au login et toutes
           les 30 min de navigation. Cf ZoteroAutoSync.client.tsx. */}
       <ZoteroAutoSync />
@@ -244,6 +281,7 @@ export default function NavClient({ activePath: serverActive, counts }: Props): 
       >
         <span className="carnet-nav__link-label">Se déconnecter</span>
       </a>
-    </nav>
+      </nav>
+    </>
   );
 }

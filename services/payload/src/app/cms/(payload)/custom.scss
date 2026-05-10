@@ -4920,17 +4920,77 @@ button.btn--style-primary,
   display: none !important;
 }
 
-// Sur écrans étroits (≤ 900px) : masquer la nav latérale custom.
-// Quand .carnet-nav est display:none il sort du flux de la grille, ce
-// qui place le contenu en colonne 1 (0px). Remède : désactiver la
-// grille entièrement (display:block) pour que le contenu prenne
-// toute la largeur naturellement.
+// Burger mobile — invisible ≥ 901px, visible ≤ 900px en haut à droite.
+// Reste au-dessus de la nav en overlay (z-index supérieur).
+.carnet-nav-burger {
+  display: none;
+}
+
+// Backdrop semi-transparent quand la nav est ouverte en overlay.
+.carnet-nav-backdrop {
+  display: none;
+}
+
+// Sur écrans étroits (≤ 900px) :
+//   - .template-default sort de sa grille pour que le contenu prenne
+//     toute la largeur (display: block).
+//   - .carnet-nav est masquée par défaut, et apparaît en overlay quand
+//     .is-open est posé (par le bouton burger).
+//   - Le burger est visible en haut à droite, fixe.
 @media (max-width: 900px) {
-  .carnet-nav {
-    display: none !important;
-  }
   .template-default {
     display: block !important;
+  }
+
+  .carnet-nav {
+    display: flex !important;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 280px;
+    max-width: 85vw;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    z-index: 200;
+    overflow-y: auto;
+  }
+  .carnet-nav.is-open {
+    transform: translateX(0);
+    box-shadow: 4px 0 16px rgba(0, 0, 0, 0.15);
+  }
+
+  .carnet-nav-burger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: var(--b-paper);
+    border: 1px solid var(--b-rule);
+    border-radius: 4px;
+    color: var(--b-ink);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 210;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .carnet-nav-burger:hover {
+    border-color: var(--b-ink);
+  }
+
+  .carnet-nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 190;
   }
 }
 
