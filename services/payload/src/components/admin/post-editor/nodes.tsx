@@ -34,7 +34,7 @@ import type {
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 
 import { formatAuthorsShort } from '@/lib/format-authors';
-import { useBiblioOptions } from './context';
+import { useBiblioOptions, useMediaOptions, type MediaEntry } from './context';
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -401,24 +401,108 @@ function FigureRenderer({
   fields: FigureFields;
 }) {
   const [local, patch] = useNodeFields<FigureFields>(nodeKey, fields);
+  const mediaOptions = useMediaOptions();
+  const [search, setSearch] = useState('');
+
+  const selected = local.image
+    ? mediaOptions.find((m) => String(m.id) === String(local.image))
+    : null;
+
+  // Filtrage live sur filename + alt + title (insensible à la casse).
+  // Cap à 30 résultats pour ne pas dérouler à l'infini quand la
+  // bibliothèque média est grosse.
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return [];
+    return mediaOptions
+      .filter((m) => {
+        const hay = `${m.filename ?? ''} ${m.alt ?? ''} ${m.title ?? ''}`.toLowerCase();
+        return hay.includes(q);
+      })
+      .slice(0, 30);
+  }, [mediaOptions, search]);
+
+  function pickMedia(id: number | string) {
+    patch({ image: id });
+    setSearch('');
+  }
+
+  function clearMedia() {
+    patch({ image: null });
+    setSearch('');
+  }
+
   return (
     <figure className="ed-fig" contentEditable={false}>
       <div className="ed-fig__upload">
-        <span className="lbl">Média (ID Payload)</span>
-        <input
-          type="text"
-          value={String(local.image ?? '')}
-          placeholder="Coller l'ID d'un média…"
-          onChange={(e) => patch({ image: e.target.value || null })}
-        />
-        {local.image && (
-          <img
-            src={`/cms/api/media/${local.image}?depth=0`}
-            alt={local.legende ?? ''}
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = 'none';
-            }}
-          />
+        <span className="lbl">Média</span>
+        {selected ? (
+          <div className="ed-fig__selected">
+            <img
+              className="ed-fig__selected-thumb"
+              src={selected.thumbnailURL || selected.url || `/cms/api/media/${selected.id}`}
+              alt={selected.alt ?? ''}
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = 'none';
+              }}
+            />
+            <span className="ed-fig__selected-meta">
+              <span className="ed-fig__selected-name">{selected.filename || '—'}</span>
+              {selected.alt && (
+                <span className="ed-fig__selected-alt">{selected.alt}</span>
+              )}
+            </span>
+            <button
+              type="button"
+              className="ed-fig__selected-clear"
+              onClick={clearMedia}
+              aria-label="Retirer le média"
+              title="Retirer"
+            >
+              ×
+            </button>
+          </div>
+        ) : (
+          <>
+            <input
+              type="text"
+              className="ed-fig__search"
+              value={search}
+              placeholder="Rechercher un média (nom, alt)…"
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search.trim() && (
+              <div className="ed-fig__results">
+                {filtered.length === 0 ? (
+                  <span className="ed-fig__empty">Aucun média trouvé.</span>
+                ) : (
+                  filtered.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      className="ed-fig__result"
+                      onClick={() => pickMedia(m.id)}
+                    >
+                      <img
+                        className="ed-fig__result-thumb"
+                        src={m.thumbnailURL || m.url || `/cms/api/media/${m.id}`}
+                        alt={m.alt ?? ''}
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                      <span className="ed-fig__result-meta">
+                        <span className="ed-fig__result-name">{m.filename || '—'}</span>
+                        {m.alt && (
+                          <span className="ed-fig__result-alt">{m.alt}</span>
+                        )}
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
       <textarea

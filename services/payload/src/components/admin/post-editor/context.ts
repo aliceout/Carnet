@@ -28,3 +28,25 @@ export const BiblioOptionsContext = React.createContext<BibEntry[]>([]);
 export function useBiblioOptions(): BibEntry[] {
   return React.useContext(BiblioOptionsContext);
 }
+
+// ─── Médias ───────────────────────────────────────────────────────
+// Liste des médias chargée par PostEditView au mount, propagée aux
+// FigureRenderer pour qu'ils puissent peupler leur picker (search +
+// preview thumbnail) au lieu de demander à l'utilisateur·rice de
+// coller un id Payload — UX inacceptable.
+
+export type MediaEntry = {
+  id: number | string;
+  filename?: string | null;
+  alt?: string | null;
+  title?: string | null;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  mimeType?: string | null;
+};
+
+export const MediaOptionsContext = React.createContext<MediaEntry[]>([]);
+
+export function useMediaOptions(): MediaEntry[] {
+  return React.useContext(MediaOptionsContext);
+}

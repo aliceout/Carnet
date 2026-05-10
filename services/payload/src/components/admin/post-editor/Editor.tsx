@@ -56,7 +56,12 @@ import {
   type CarnetBlockData,
   type CarnetInlineBlockData,
 } from './nodes';
-import { BiblioOptionsContext, type BibEntry } from './context';
+import {
+  BiblioOptionsContext,
+  type BibEntry,
+  MediaOptionsContext,
+  type MediaEntry,
+} from './context';
 
 // ─── Types publics ────────────────────────────────────────────────
 
@@ -678,11 +683,13 @@ export default function PostBodyEditor({
   value,
   onChange,
   biblioOptions,
+  mediaOptions,
   onEditor,
 }: {
   value: LexicalState | null;
   onChange: (v: LexicalState) => void;
   biblioOptions: BibEntry[];
+  mediaOptions: MediaEntry[];
   onEditor?: (editor: LexicalEditor) => void;
 }): React.ReactElement {
   const initialJsonRef = useRef<string>(safeInitialState(value));
@@ -731,6 +738,7 @@ export default function PostBodyEditor({
 
   return (
     <BiblioOptionsContext.Provider value={biblioOptions}>
+      <MediaOptionsContext.Provider value={mediaOptions}>
       <div className="ed-body">
         <LexicalComposer initialConfig={initialConfig}>
           <RichTextPlugin
@@ -753,6 +761,7 @@ export default function PostBodyEditor({
           {onEditor && <EditorRefPlugin onMount={onEditor} />}
         </LexicalComposer>
       </div>
+      </MediaOptionsContext.Provider>
     </BiblioOptionsContext.Provider>
   );
 }

@@ -4624,6 +4624,139 @@ button.btn--style-primary,
       }
     }
 
+    // Picker média : input de recherche + dropdown de résultats avec
+    // thumbnail. Remplace le coller-l'id-Payload qui était inutilisable.
+    &__search {
+      width: 100%;
+    }
+    &__results {
+      display: flex;
+      flex-direction: column;
+      max-height: 240px;
+      overflow: auto;
+      border: 1px solid var(--b-rule);
+      background: var(--b-paper);
+      margin-top: 4px;
+    }
+    &__empty {
+      padding: 8px 10px;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--b-muted);
+      font-style: italic;
+    }
+    &__result {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 6px 8px;
+      background: transparent;
+      border: 0;
+      border-bottom: 1px solid var(--b-rule);
+      cursor: pointer;
+      text-align: left;
+      font-family: var(--font-sans);
+
+      &:last-child {
+        border-bottom: 0;
+      }
+      &:hover {
+        background: var(--b-accent-tint);
+      }
+    }
+    &__result-thumb {
+      flex: 0 0 auto;
+      width: 36px;
+      height: 36px;
+      object-fit: cover;
+      background: var(--b-bg);
+      border: 1px solid var(--b-rule);
+      // Override le `img` parent qui ajoute margin-top: 8px / max-height
+      margin: 0;
+      max-height: none;
+    }
+    &__result-meta {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    &__result-name {
+      font-size: 12px;
+      color: var(--b-ink);
+      font-family: var(--font-mono);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    &__result-alt {
+      font-size: 11px;
+      color: var(--b-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    // Média sélectionné : thumb + nom + bouton × pour retirer.
+    &__selected {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      background: var(--b-accent-tint);
+      border: 1px solid var(--b-accent);
+    }
+    &__selected-thumb {
+      flex: 0 0 auto;
+      width: 56px;
+      height: 56px;
+      object-fit: cover;
+      background: var(--b-bg);
+      border: 1px solid var(--b-rule);
+      margin: 0;
+      max-height: none;
+    }
+    &__selected-meta {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    &__selected-name {
+      font-size: 12px;
+      color: var(--b-ink);
+      font-family: var(--font-mono);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    &__selected-alt {
+      font-size: 11px;
+      color: var(--b-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    &__selected-clear {
+      flex: 0 0 auto;
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      background: transparent;
+      border: 0;
+      color: var(--b-muted);
+      font-size: 16px;
+      line-height: 1;
+      cursor: pointer;
+
+      &:hover {
+        color: #b63a3a;
+      }
+    }
+
     &__cap {
       width: 100%;
       padding: 6px 8px;

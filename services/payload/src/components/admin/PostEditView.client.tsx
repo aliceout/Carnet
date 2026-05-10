@@ -74,6 +74,15 @@ type BibEntry = {
   year?: number | string;
   title?: string;
 };
+type MediaEntry = {
+  id: number | string;
+  filename?: string | null;
+  alt?: string | null;
+  title?: string | null;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  mimeType?: string | null;
+};
 
 type Post = {
   id: number | string;
@@ -165,6 +174,7 @@ export default function PostEditViewClient({
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [allUsers, setAllUsers] = useState<CarnetUser[]>([]);
   const [biblioOptions, setBiblioOptions] = useState<BibEntry[]>([]);
+  const [mediaOptions, setMediaOptions] = useState<MediaEntry[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -215,6 +225,14 @@ export default function PostEditViewClient({
       .then((r) => r.json())
       .then((data: { docs: BibEntry[] }) => setBiblioOptions(data.docs ?? []))
       .catch(() => setBiblioOptions([]));
+    // Liste des médias pour le picker FigureRenderer (recherche +
+    // preview thumbnail). depth=0 pour ne pas charger les relations.
+    const mediaP = fetch('/cms/api/media?limit=500&depth=0&sort=-createdAt', {
+      credentials: 'include',
+    })
+      .then((r) => r.json())
+      .then((data: { docs: MediaEntry[] }) => setMediaOptions(data.docs ?? []))
+      .catch(() => setMediaOptions([]));
     // Liste des user·rices actifs du Carnet pour le picker auteur·ices.
     // status='active' uniquement — on n'expose pas les pending/disabled.
     const usersP = fetch(
@@ -237,8 +255,8 @@ export default function PostEditViewClient({
     if (!docId) {
       // Création : pas de fetch post, on part de EMPTY_DRAFT enrichi
       // par le user connecté comme premier·ère auteur·ice.
-      Promise.all([themesP, tagsP, biblioP, usersP, meP])
-        .then(([, , , , meId]) => {
+      Promise.all([themesP, tagsP, biblioP, mediaP, usersP, meP])
+        .then(([, , , , , meId]) => {
           if (meId != null) {
             const draft: typeof EMPTY_DRAFT = {
               ...EMPTY_DRAFT,
@@ -277,7 +295,7 @@ export default function PostEditViewClient({
         setError(err instanceof Error ? err.message : 'Erreur inconnue');
       });
 
-    Promise.all([themesP, tagsP, biblioP, usersP, meP, postP]).finally(() =>
+    Promise.all([themesP, tagsP, biblioP, mediaP, usersP, meP, postP]).finally(() =>
       setLoading(false),
     );
   }, [docId]);
@@ -864,6 +882,7 @@ export default function PostEditViewClient({
                   }
                 }}
                 biblioOptions={biblioOptions}
+                mediaOptions={mediaOptions}
                 onEditor={(editor) => {
                   editorRef.current = editor;
                 }}
