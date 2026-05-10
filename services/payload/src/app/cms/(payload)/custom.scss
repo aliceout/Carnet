@@ -5017,7 +5017,8 @@ button.btn--style-primary,
   }
 
   // Table Themes mobile : ne montrer que Nom + Billets (compteur).
-  // La description (2e colonne) est masquée.
+  // La description (2e colonne) est masquée. La colonne Billets a son
+  // header aligné à droite pour matcher les valeurs `.count`.
   .carnet-listview--themes .carnet-listview__row {
     grid-template-columns: 1fr 80px !important;
     gap: 12px !important;
@@ -5026,6 +5027,9 @@ button.btn--style-primary,
   }
   .carnet-listview--themes .carnet-listview__row > *:nth-child(2) {
     display: none !important;
+  }
+  .carnet-listview--themes .carnet-listview__row--head > *:nth-child(3) {
+    text-align: right;
   }
   .carnet-editview__form,
   .carnet-editview__hero,
