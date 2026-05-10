@@ -1731,11 +1731,15 @@ button.btn--style-primary,
   // Année / Titre / Éditeur spannent les 2 rangées (alignés au centre).
   @include tablet-only {
     &--biblio &__row {
-      // Col 1 (auteur) et 2 (année) : largeurs fixes pour aligner head ↔ data.
-      // Col 3 (titre) : 1fr → toute la largeur restante.
-      // Col 4 (éditeur) : auto → sizé sur le contenu max, collé au bord droit
-      //                   du row, contenu aligné à droite.
-      grid-template-columns: 170px 56px 1fr auto;
+      // Toutes les colonnes ont une largeur FIXE (sauf le titre en 1fr)
+      // pour que les rows aient EXACTEMENT la même structure — sinon
+      // chaque row étant sa propre grille, `auto` donne des largeurs
+      // de col différentes selon le contenu de chaque ligne.
+      //   170px : auteur (Prénom / Nom empilés)
+      //   56px  : année
+      //   1fr   : titre (toute la largeur restante)
+      //   240px : éditeur / revue (les très longs wrappent en 2 lignes)
+      grid-template-columns: 170px 56px 1fr 240px;
       grid-template-rows: auto auto;
       column-gap: 16px;
       row-gap: 2px;
