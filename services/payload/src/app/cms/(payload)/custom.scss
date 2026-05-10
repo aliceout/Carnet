@@ -396,14 +396,24 @@ textarea.field-type__input {
     }
   }
 
-  // Lien vers le front public, juste sous le brand. Discret (mono,
-  // muted, taille 11px), avec une flèche ↗ qui indique l'ouverture
-  // dans un nouvel onglet. Hover : couleur accent.
+  // Top row sous le brand : « Voir le site » à gauche + actions
+  // icônes (theme toggle + logout) à droite, alignées sur la même
+  // ligne. Espacement aéré pour rester discret.
+  &__top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 24px 12px;
+    min-height: 22px;
+  }
+
+  // Lien vers le front public. Discret (mono, muted, taille 11px),
+  // flèche ↗ qui indique l'ouverture dans un nouvel onglet.
   &__view-site {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    margin: 0 24px 12px;
     padding: 0;
     font-family: var(--font-mono);
     font-size: 11px;
@@ -418,6 +428,36 @@ textarea.field-type__input {
     .arrow {
       font-size: 10px;
       line-height: 1;
+    }
+  }
+
+  // Cluster d'icônes à droite du top-row : theme toggle + logout.
+  // Boutons ronds discrets, hover en accent.
+  &__top-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  // Icône logout (porte avec flèche) — même style que le theme toggle
+  // pour cohérence visuelle.
+  &__logout-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    color: var(--b-muted);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: color 0.12s, background 0.12s;
+
+    &:hover {
+      color: var(--b-accent);
+      background: color-mix(in oklch, var(--b-ink), transparent 92%);
     }
   }
 
@@ -534,23 +574,26 @@ textarea.field-type__input {
   // Toggle dark/light dans le footer de la sidebar (à droite du user
   // info, opposé à l'avatar). Discret : pas de bordure, pas de fond
   // par défaut, pastille au hover.
+  // Le theme toggle vit maintenant dans .carnet-nav__top-actions
+  // (top-row, à côté du lien Voir le site et du logout icon). Style
+  // aligné sur __logout-icon pour cohérence visuelle.
   &__theme-toggle {
-    flex-shrink: 0;
-    margin-left: auto;
-    background: transparent;
-    border: 0;
-    padding: 6px;
-    color: var(--b-muted);
-    cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 999px;
-    transition: color 0.12s, background-color 0.12s;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    color: var(--b-muted);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: color 0.12s, background 0.12s;
 
     &:hover {
-      color: var(--b-ink);
-      background: var(--b-accent-tint);
+      color: var(--b-accent);
+      background: color-mix(in oklch, var(--b-ink), transparent 92%);
     }
 
     &:focus-visible {

@@ -228,16 +228,64 @@ export default function NavClient({ activePath: serverActive, counts }: Props): 
       <Link href={ADMIN} className="carnet-nav__brand">
         Carnet<span className="dot">.</span>
       </Link>
-      <a
-        href={siteUrl}
-        className="carnet-nav__view-site"
-        target="_blank"
-        rel="noreferrer"
-        suppressHydrationWarning
-      >
-        Voir le site
-        <span aria-hidden="true" className="arrow">↗</span>
-      </a>
+      {/* Top row : « Voir le site » à gauche + actions icônes à
+          droite (theme toggle + logout). Compacte tout en haut, libère
+          le footer pour ne montrer que user/rôle. */}
+      <div className="carnet-nav__top-row">
+        <a
+          href={siteUrl}
+          className="carnet-nav__view-site"
+          target="_blank"
+          rel="noreferrer"
+          suppressHydrationWarning
+        >
+          Voir le site
+          <span aria-hidden="true" className="arrow">↗</span>
+        </a>
+        <div className="carnet-nav__top-actions">
+          <button
+            type="button"
+            className="carnet-nav__theme-toggle"
+            aria-label={
+              theme === 'dark'
+                ? 'Passer en thème clair'
+                : 'Passer en thème sombre'
+            }
+            title="Basculer le thème"
+            onClick={toggleTheme}
+          >
+            {theme === 'dark' ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2" />
+                <path d="M12 20v2" />
+                <path d="m4.93 4.93 1.41 1.41" />
+                <path d="m17.66 17.66 1.41 1.41" />
+                <path d="M2 12h2" />
+                <path d="M20 12h2" />
+                <path d="m6.34 17.66-1.41 1.41" />
+                <path d="m19.07 4.93-1.41 1.41" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+              </svg>
+            )}
+          </button>
+          <a
+            href={`${ADMIN}/logout`}
+            className="carnet-nav__logout-icon"
+            aria-label="Se déconnecter"
+            title="Se déconnecter"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </a>
+        </div>
+      </div>
 
       {sections.map((section) => (
         <div key={section.label} className="carnet-nav__section">
@@ -269,46 +317,8 @@ export default function NavClient({ activePath: serverActive, counts }: Props): 
             <div className="carnet-nav__user-name">{userName}</div>
             {userRole && <div className="carnet-nav__user-role">{userRole}</div>}
           </div>
-          <button
-            type="button"
-            className="carnet-nav__theme-toggle"
-            aria-label={
-              theme === 'dark'
-                ? 'Passer en thème clair'
-                : 'Passer en thème sombre'
-            }
-            title="Basculer le thème"
-            onClick={toggleTheme}
-          >
-            {theme === 'dark' ? (
-              // Soleil — clic = retour clair
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 2v2" />
-                <path d="M12 20v2" />
-                <path d="m4.93 4.93 1.41 1.41" />
-                <path d="m17.66 17.66 1.41 1.41" />
-                <path d="M2 12h2" />
-                <path d="M20 12h2" />
-                <path d="m6.34 17.66-1.41 1.41" />
-                <path d="m19.07 4.93-1.41 1.41" />
-              </svg>
-            ) : (
-              // Lune — clic = passage en dark
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-              </svg>
-            )}
-          </button>
         </div>
       )}
-
-      <a
-        className="carnet-nav__link carnet-nav__link--logout"
-        href={`${ADMIN}/logout`}
-      >
-        <span className="carnet-nav__link-label">Se déconnecter</span>
-      </a>
       </nav>
     </>
   );
