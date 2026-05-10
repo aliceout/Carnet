@@ -5015,6 +5015,18 @@ button.btn--style-primary,
   .carnet-listview--posts .carnet-listview__row > *:not(:first-child):not(:nth-last-child(2)) {
     display: none !important;
   }
+
+  // Table Themes mobile : ne montrer que Nom + Billets (compteur).
+  // La description (2e colonne) est masquée.
+  .carnet-listview--themes .carnet-listview__row {
+    grid-template-columns: 1fr 80px !important;
+    gap: 12px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  .carnet-listview--themes .carnet-listview__row > *:nth-child(2) {
+    display: none !important;
+  }
   .carnet-editview__form,
   .carnet-editview__hero,
   .carnet-editview__error,
