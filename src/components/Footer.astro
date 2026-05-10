@@ -79,7 +79,7 @@ const socialLinks = [
         <div class="brand-foot">Carnet<span class="dot">.</span></div>
         <p>{baseline}</p>
         <div class="mono copyright">{copyrightLine}</div>
-        {gitTag !== 'dev' && <div class="mono version">{gitTag}</div>}
+        <div class="mono version">{gitTag}</div>
       </div>
       <div>
         <h4>Naviguer</h4>
@@ -173,10 +173,9 @@ const socialLinks = [
     margin-top: 24px;
   }
   footer.site .version {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--color-muted);
-    opacity: 0.5;
-    margin-top: 6px;
+    margin-top: 4px;
   }
 
   @media (max-width: 900px) {
