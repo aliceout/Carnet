@@ -242,7 +242,7 @@ export default function PostListViewClient(): React.ReactElement {
   }
 
   return (
-    <div className="carnet-listview">
+    <div className="carnet-listview carnet-listview--posts">
       <CarnetTopbar
         crumbs={[{ href: '/cms/admin', label: 'Carnet' }, { label: 'Billets' }]}
       >

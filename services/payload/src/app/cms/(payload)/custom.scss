@@ -4986,8 +4986,16 @@ button.btn--style-primary,
     max-width: none;
     box-sizing: border-box;
   }
+  // Le label "Type :" ne doit pas wrap caractère par caractère quand
+  // le select prend toute la largeur. flex-shrink: 0 + nowrap, et le
+  // select prend le reste via flex: 1.
+  .carnet-listview__filter .lbl {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
   .carnet-listview__filter select {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
   }
 
   // Table Posts mobile : ne montrer que Titre + Statut + bouton ×.
