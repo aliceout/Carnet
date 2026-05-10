@@ -334,7 +334,7 @@ const SLASH_ITEMS: SlashItem[] = [
       $insertNodes([
         $createCarnetBlockNode({
           blockType: 'figure',
-          fields: { image: null, legende: '', credit: '', align: 'corps' },
+          fields: { image: null, legende: '', credit: '', align: 'left' },
         }),
       ]);
     },

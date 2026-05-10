@@ -50,7 +50,10 @@ export type FigureFields = {
   image: number | string | null;
   legende?: string;
   credit?: string;
-  align?: 'corps' | 'centre' | 'pleine';
+  // Valeurs alignées sur le schema Payload (cf. blocks/_shared.ts) et
+  // le rendu Astro (PageRenderer). Ne PAS utiliser corps/centre/pleine
+  // (ancien naming qui faisait planter la validation Payload au save).
+  align?: 'left' | 'center' | 'wide';
 };
 
 export type CarnetBlockData =
@@ -550,12 +553,12 @@ function FigureRenderer({
       />
       <select
         className="ed-fig__align"
-        value={local.align ?? 'corps'}
+        value={local.align ?? 'left'}
         onChange={(e) => patch({ align: e.target.value as FigureFields['align'] })}
       >
-        <option value="corps">Largeur du corps</option>
-        <option value="centre">Centré</option>
-        <option value="pleine">Pleine largeur</option>
+        <option value="left">Largeur du corps</option>
+        <option value="center">Centré</option>
+        <option value="wide">Pleine largeur</option>
       </select>
     </figure>
   );
@@ -626,7 +629,7 @@ export class CarnetBlockNode extends DecoratorNode<React.ReactElement> {
             image: (fields.image as number | string | null) ?? null,
             legende: String(fields.legende ?? ''),
             credit: String(fields.credit ?? ''),
-            align: (fields.align as FigureFields['align']) ?? 'corps',
+            align: (fields.align as FigureFields['align']) ?? 'left',
           }}
         />
       );
