@@ -5052,6 +5052,17 @@ button.btn--style-primary,
       max-height: none;
       overflow: visible;
     }
+    // Topbar : compactage intelligent pour ne pas faire wrapper
+    // « Modifications non enregistrées » sur 3 lignes (cf screenshot).
+    //   - Hide les labels texte de dirty/saved : l'état dirty est
+    //     déjà conveyé par le bouton « Sauvegarder » (disabled si rien
+    //     à sauvegarder, actif sinon). Plus besoin du label texte.
+    //   - Le chip status (« Brouillon » / « Publié ») reste visible
+    //     mais on l'empêche de wrap.
+    &__saved,
+    &__dirty {
+      display: none;
+    }
   }
 }
 
