@@ -4781,7 +4781,10 @@ button.btn--style-primary,
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 0 24px;
+  // padding-right: 0 sur tous les écrans — il cassait le design en
+  // décalant les actions vers l'intérieur. Padding-left 24px conservé
+  // pour que les crumbs (desktop) soient indentés depuis le bord.
+  padding: 0 0 0 24px;
   height: 56px;
   border-bottom: 1px solid var(--b-rule);
   background: var(--b-bg);
