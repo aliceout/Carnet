@@ -3137,6 +3137,36 @@ button.btn--style-primary,
         margin: 0;
       }
     }
+
+    // État invalide : bordure rouge sur l'input quand un champ
+    // obligatoire est vide au save (validation client). Cohérent avec
+    // le pattern .ed-title--invalid / .ed-lede--invalid côté PostEditView.
+    &--invalid {
+      input[type='text'],
+      input[type='email'],
+      input[type='url'],
+      input[type='number'],
+      input[type='password'],
+      select,
+      textarea {
+        border-color: #b63a3a;
+
+        &:focus {
+          border-color: #b63a3a;
+        }
+      }
+    }
+  }
+
+  // Message d'erreur affiché sous un .carnet-editview__field--invalid.
+  // Margin-top négatif pour grignoter le gap du field et coller le
+  // message à l'input.
+  &__field-error {
+    margin: -2px 0 6px;
+    color: #b63a3a;
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    max-width: 640px;
   }
 
   &__readonly-grid {

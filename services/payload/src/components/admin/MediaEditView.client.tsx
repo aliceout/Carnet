@@ -69,6 +69,10 @@ export default function MediaEditViewClient({
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Erreurs par champ — affichées sous l'input concerné (cf. pattern
+  // PostEditView fieldErrors). Plus lisible qu'un message générique
+  // dans la bannière error en haut du form.
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [drag, setDrag] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -120,16 +124,23 @@ export default function MediaEditViewClient({
   }
 
   async function save() {
-    setSaving(true);
     setError(null);
-    try {
-      // Validation client : titre + alt obligatoires (cf. schema).
-      // Mieux qu'une 400 Payload générique pour l'utilisatrice.
-      const title = (data.title ?? '').trim();
-      const alt = (data.alt ?? '').trim();
-      if (!title) throw new Error('Le titre est obligatoire.');
-      if (!alt) throw new Error('Le texte alternatif (alt) est obligatoire.');
+    // Validation client : titre + alt obligatoires (cf. schema). Erreurs
+    // posées sur chaque field plutôt qu'une bannière globale, pour que
+    // l'autrice voie immédiatement quel input corriger.
+    const title = (data.title ?? '').trim();
+    const alt = (data.alt ?? '').trim();
+    const errs: Record<string, string> = {};
+    if (!title) errs.title = 'Le titre est obligatoire.';
+    if (!alt) errs.alt = 'Le texte alternatif est obligatoire.';
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
+      return;
+    }
+    setFieldErrors({});
 
+    setSaving(true);
+    try {
       let res: Response;
       if (!data.id) {
         // Création : multipart obligatoire (Payload upload). Le fichier
@@ -317,27 +328,56 @@ export default function MediaEditViewClient({
             <section className="carnet-editview__section">
               <h2 className="carnet-editview__section-title">Description</h2>
 
-              <label className="carnet-editview__field">
+              <label
+                className={`carnet-editview__field${
+                  fieldErrors.title ? ' carnet-editview__field--invalid' : ''
+                }`}
+              >
                 <span className="lbl">Titre</span>
                 <input
                   type="text"
                   required
                   value={data.title ?? ''}
-                  onChange={(e) => patch('title', e.target.value)}
+                  onChange={(e) => {
+                    patch('title', e.target.value);
+                    if (fieldErrors.title) {
+                      setFieldErrors((prev) => {
+                        const { title: _omit, ...rest } = prev;
+                        return rest;
+                      });
+                    }
+                  }}
                   placeholder="Titre du média…"
                 />
                 <span className="hint">
                   Affiché en légende ou en infobulle selon le contexte.
                 </span>
               </label>
+              {fieldErrors.title && (
+                <div className="carnet-editview__field-error" role="alert">
+                  {fieldErrors.title}
+                </div>
+              )}
 
-              <label className="carnet-editview__field">
+              <label
+                className={`carnet-editview__field${
+                  fieldErrors.alt ? ' carnet-editview__field--invalid' : ''
+                }`}
+              >
                 <span className="lbl">Texte alternatif (alt)</span>
                 <input
                   type="text"
                   required
                   value={data.alt ?? ''}
-                  onChange={(e) => patch('alt', e.target.value)}
+                  onChange={(e) => {
+                    patch('alt', e.target.value);
+                    if (fieldErrors.alt) {
+                      setFieldErrors((prev) => {
+                        const { alt: _omit, ...rest } = prev;
+                        return rest;
+                      });
+                    }
+                  }}
                   placeholder="Décrivez l'image pour les lecteurs d'écran et le SEO."
                 />
                 <span className="hint">
@@ -345,6 +385,11 @@ export default function MediaEditViewClient({
                   <em> ce qu'on voit</em>, pas le contexte du billet.
                 </span>
               </label>
+              {fieldErrors.alt && (
+                <div className="carnet-editview__field-error" role="alert">
+                  {fieldErrors.alt}
+                </div>
+              )}
             </section>
           )}
 
@@ -368,27 +413,56 @@ export default function MediaEditViewClient({
                   </div>
                 )}
                 <div className="carnet-media-preview__side">
-                  <label className="carnet-editview__field">
+                  <label
+                    className={`carnet-editview__field${
+                      fieldErrors.title ? ' carnet-editview__field--invalid' : ''
+                    }`}
+                  >
                     <span className="lbl">Titre</span>
                     <input
                       type="text"
                       required
                       value={data.title ?? ''}
-                      onChange={(e) => patch('title', e.target.value)}
+                      onChange={(e) => {
+                        patch('title', e.target.value);
+                        if (fieldErrors.title) {
+                          setFieldErrors((prev) => {
+                            const { title: _omit, ...rest } = prev;
+                            return rest;
+                          });
+                        }
+                      }}
                       placeholder="Titre du média…"
                     />
                     <span className="hint">
                       Affiché en légende ou en infobulle selon le contexte.
                     </span>
                   </label>
+                  {fieldErrors.title && (
+                    <div className="carnet-editview__field-error" role="alert">
+                      {fieldErrors.title}
+                    </div>
+                  )}
 
-                  <label className="carnet-editview__field">
+                  <label
+                    className={`carnet-editview__field${
+                      fieldErrors.alt ? ' carnet-editview__field--invalid' : ''
+                    }`}
+                  >
                     <span className="lbl">Texte alternatif (alt)</span>
                     <input
                       type="text"
                       required
                       value={data.alt ?? ''}
-                      onChange={(e) => patch('alt', e.target.value)}
+                      onChange={(e) => {
+                        patch('alt', e.target.value);
+                        if (fieldErrors.alt) {
+                          setFieldErrors((prev) => {
+                            const { alt: _omit, ...rest } = prev;
+                            return rest;
+                          });
+                        }
+                      }}
                       placeholder="Décrivez l'image pour les lecteurs d'écran et le SEO."
                     />
                     <span className="hint">
@@ -396,6 +470,11 @@ export default function MediaEditViewClient({
                       <em> ce qu'on voit</em>, pas le contexte du billet.
                     </span>
                   </label>
+                  {fieldErrors.alt && (
+                    <div className="carnet-editview__field-error" role="alert">
+                      {fieldErrors.alt}
+                    </div>
+                  )}
 
                   <hr className="carnet-media-preview__rule" />
 
