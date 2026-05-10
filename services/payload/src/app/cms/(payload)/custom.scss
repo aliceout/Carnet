@@ -41,6 +41,25 @@ html {
   --font-mono: 'JetBrains Mono', 'Menlo', ui-monospace, monospace;
 }
 
+// ─── Breakpoints (mixins SCSS) ──────────────────────────────────
+// Source de vérité unique pour les breakpoints responsives.
+// Modifier la valeur ici → toutes les @media qui utilisent le mixin
+// suivent. À utiliser à la place de @media (max-width: ...).
+//
+//   @include mobile      → ≤ 900px       — vrai mobile (smartphone)
+//   @include tablet-sm   → ≤ 1180px      — tablette étroite (englobe mobile)
+//   @include tablet      → ≤ 1440px      — tablette / écran moyen sans nav latérale
+//                                          (englobe mobile + tablet-sm) ; constat
+//                                          empirique Firefox du seuil où le contenu
+//                                          passe sous la nav admin
+//   @include tablet-only → 901–1440px    — comportement DIFFÉRENT de mobile dans
+//                                          la zone tablette/moyenne uniquement
+
+@mixin mobile      { @media (max-width: 900px)  { @content; } }
+@mixin tablet-sm   { @include tablet-sm { @content; } }
+@mixin tablet      { @media (max-width: 1440px) { @content; } }
+@mixin tablet-only { @media (min-width: 901px) and (max-width: 1440px) { @content; } }
+
 // ─── Variantes d'accent (light) ──────────────────────────────────
 // data-accent est posé sur <html> par Nav.client.tsx au mount,
 // d'après la valeur Site → Branding → Couleur d'accentuation.
@@ -810,7 +829,7 @@ button.btn--style-primary,
     gap: 56px;
     margin-bottom: 56px;
 
-    @media (max-width: 900px) {
+    @include mobile {
       grid-template-columns: 1fr;
       gap: 32px;
     }
@@ -1334,7 +1353,7 @@ button.btn--style-primary,
   }
 
   // Responsive — colonnes les moins critiques cachées en small viewport
-  @media (max-width: 1180px) {
+  @include tablet-sm {
     &__row {
       grid-template-columns: 100px 130px 1fr 100px;
     }
@@ -1343,7 +1362,7 @@ button.btn--style-primary,
     }
   }
 
-  @media (max-width: 900px) {
+  @include mobile {
     // Padding horizontal piloté par .carnet-page__body (--carnet-pad-x).
     // On n'ajoute rien ici sinon ça doublerait le retrait au-dessus du
     // contenu ET de la topbar.
@@ -1380,7 +1399,7 @@ button.btn--style-primary,
     color: var(--b-muted);
     text-align: right;
   }
-  @media (max-width: 1180px) {
+  @include tablet-sm {
     &--themes &__row {
       grid-template-columns: 1fr 80px;
     }
@@ -1388,7 +1407,7 @@ button.btn--style-primary,
       display: none;
     }
   }
-  @media (max-width: 900px) {
+  @include mobile {
     &--themes &__row {
       grid-template-columns: 1fr 60px;
     }
@@ -1427,7 +1446,7 @@ button.btn--style-primary,
   &--tags &__row .actions {
     text-align: right;
   }
-  @media (max-width: 900px) {
+  @include mobile {
     &--tags &__row {
       grid-template-columns: 1fr 80px 40px;
     }
@@ -1535,7 +1554,7 @@ button.btn--style-primary,
     font-size: 11.5px;
     color: var(--b-muted);
   }
-  @media (max-width: 900px) {
+  @include mobile {
     &--pages &__row {
       grid-template-columns: 1fr 100px;
     }
@@ -1588,7 +1607,7 @@ button.btn--style-primary,
     font-size: 11.5px;
     color: var(--b-muted);
   }
-  @media (max-width: 1180px) {
+  @include tablet-sm {
     &--media &__row {
       grid-template-columns: 60px 1fr 90px 110px;
     }
@@ -1596,7 +1615,7 @@ button.btn--style-primary,
       display: none;
     }
   }
-  @media (max-width: 900px) {
+  @include mobile {
     &--media &__row {
       grid-template-columns: 50px 1fr 100px;
     }
@@ -1624,7 +1643,7 @@ button.btn--style-primary,
     font-size: 11.5px;
     color: var(--b-muted);
   }
-  @media (max-width: 1180px) {
+  @include tablet-sm {
     &--users &__row {
       grid-template-columns: 1fr 110px 130px;
     }
@@ -1678,7 +1697,7 @@ button.btn--style-primary,
   &--biblio &__row .actions {
     text-align: right;
   }
-  @media (max-width: 1180px) {
+  @include tablet-sm {
     &--biblio &__row {
       grid-template-columns: 60px 1fr 80px 36px;
     }
@@ -1701,7 +1720,7 @@ button.btn--style-primary,
   // rangée 1 et 2 respectivement. La ligne d'en-tête (sans className
   // sur les cells) est ciblée par nth-child et placée pareil — les
   // labels « Prénom » / « Nom » servent ainsi d'en-tête colonne 2.
-  @media (max-width: 900px) {
+  @include mobile {
     &--biblio &__row {
       grid-template-columns: 1fr auto;
       grid-template-rows: auto auto;
@@ -2176,7 +2195,7 @@ button.btn--style-primary,
     }
   }
 
-  @media (max-width: 900px) {
+  @include mobile {
     grid-template-columns: 1fr;
   }
 }
@@ -3117,7 +3136,7 @@ button.btn--style-primary,
     }
   }
 
-  @media (max-width: 900px) {
+  @include mobile {
     &__rowitem {
       grid-template-columns: 1fr 1fr;
     }
@@ -5048,7 +5067,7 @@ button.btn--style-primary,
 // fait passer le contenu sous la nav (constat empirique). En dessous,
 // layout mobile complet (nav cachée + burger + filtres 2x2 + tableaux
 // réduits). Au-delà, layout desktop avec nav latérale fixe.
-@media (max-width: 1440px) {
+@include tablet {
   .template-default {
     display: block !important;
   }
@@ -5094,18 +5113,22 @@ button.btn--style-primary,
     min-width: 0;
   }
 
-  // Table Posts mobile : ne montrer que Titre + Statut. Le bouton ×
-  // (suppression) et les autres cellules (Auteur·ice, Type, Thème,
-  // Date) sont masquées. On cible « ni le 1er enfant ni l'avant-
-  // dernier » → reste visible : 1er (Titre) + avant-dernier (Statut).
-  // S'applique aussi en `--with-authors`.
+  // Table Posts ≤ 1440 : 3 colonnes Titre + Type + Statut.
+  // Position « Type » dans le DOM :
+  //   - Sans authors (6 cells) : Title=1, Type=2, Theme=3, Date=4, Status=5, Actions=6
+  //   - Avec authors (7 cells) : Title=1, Author=2, Type=3, Theme=4, Date=5, Status=6, Actions=7
+  // Type est toujours :nth-last-child(5), Status toujours :nth-last-child(2).
+  // → On garde 1er (Titre), nth-last-child(5) (Type), nth-last-child(2) (Statut).
+  //
+  // Sous 900px (vrai mobile) le bloc @include mobile en dessous force
+  // le retour à 2 colonnes et cache aussi Type.
   .carnet-listview--posts .carnet-listview__row {
-    grid-template-columns: 1fr 65px !important;
+    grid-template-columns: 1fr 110px 65px !important;
     gap: 12px !important;
     padding-left: 12px !important;
     padding-right: 12px !important;
   }
-  .carnet-listview--posts .carnet-listview__row > *:not(:first-child):not(:nth-last-child(2)) {
+  .carnet-listview--posts .carnet-listview__row > *:not(:first-child):not(:nth-last-child(5)):not(:nth-last-child(2)) {
     display: none !important;
   }
 
@@ -5183,6 +5206,19 @@ button.btn--style-primary,
     inset: 0;
     background: rgba(0, 0, 0, 0.4);
     z-index: 190;
+  }
+}
+
+// Sous 900px (vrai mobile) : la liste des billets repasse en 2 colonnes
+// (Titre + Statut). On cache aussi la colonne Type qui était visible
+// dans la zone 901-1440. Cf. règles ≤1440 plus haut.
+@include mobile {
+  .carnet-listview--posts .carnet-listview__row {
+    grid-template-columns: 1fr 65px !important;
+  }
+  .carnet-listview--posts .carnet-listview__row > .type,
+  .carnet-listview--posts .carnet-listview__row--head > *:nth-last-child(5) {
+    display: none !important;
   }
 }
 
