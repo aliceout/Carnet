@@ -1227,7 +1227,12 @@ button.btn--style-primary,
     grid-template-columns: 1fr 130px 180px 110px 90px 20px;
     gap: 24px;
     padding: 14px 20px;
-    align-items: baseline;
+    // Centre vertical des cellules — les chips (status, role) et
+    // textes courts s'alignent visuellement avec les titres serif et
+    // les noms qui peuvent wrapper sur 2 lignes (cf. biblio mobile).
+    // baseline donnait des décrochages avec les chips qui ont leur
+    // propre baseline = bas du chip.
+    align-items: center;
     border-bottom: 1px solid var(--b-rule);
     color: var(--b-ink);
     text-decoration: none;
@@ -1677,8 +1682,11 @@ button.btn--style-primary,
   }
 
   // ─── Variante --users ────────────────────────────────────────
+  // Ordre des colonnes (DOM) : Nom · Email · Rôle · Statut · Dernière
+  // connexion. Nom en col 1 fixe (180px), Email en col 2 1fr (récupère
+  // l'espace restant — l'email est plus susceptible d'être long).
   &--users &__row {
-    grid-template-columns: 1fr 180px 110px 130px 110px;
+    grid-template-columns: 180px 1fr 110px 130px 110px;
   }
   &--users &__row .email {
     font-family: var(--font-mono);
@@ -1706,17 +1714,16 @@ button.btn--style-primary,
   // « Dernière connexion » est cachée (data .date + en-tête nth-child(5)).
   @include tablet-sm {
     &--users &__row {
-      grid-template-columns: 1fr 180px 110px 130px;
+      grid-template-columns: 180px 1fr 110px 130px;
     }
     &--users &__row > .date,
     &--users &__row--head > *:nth-child(5) {
       display: none;
     }
   }
-  // ≤ 900 : on remplace Email par Nom (donc on cache Email, Statut et
-  // Date data + leurs en-têtes). Visible : Nom + Rôle.
-  // Col 1 large pour le nom (qui peut wrapper), col 2 étroite (juste
-  // assez pour le chip Rôle).
+  // ≤ 900 : on garde Nom + Rôle, on cache Email, Statut, Date data +
+  // leurs en-têtes. Col 1 large pour le nom (qui peut wrapper), col 2
+  // étroite (juste assez pour le chip Rôle).
   @include mobile {
     &--users &__row {
       grid-template-columns: 1fr 80px;
@@ -1725,9 +1732,12 @@ button.btn--style-primary,
       // lignes, et que la row head (« RÔLE ») s'aligne pareil.
       align-items: center;
     }
+    // Hide cellules data : .email + .status-cell. Hide en-têtes :
+    // « Email » = nth-child(2) (le DOM order est Nom puis Email),
+    // « Statut » = nth-child(4).
     &--users &__row > .email,
     &--users &__row > .status-cell,
-    &--users &__row--head > *:nth-child(1),
+    &--users &__row--head > *:nth-child(2),
     &--users &__row--head > *:nth-child(4) {
       display: none;
     }

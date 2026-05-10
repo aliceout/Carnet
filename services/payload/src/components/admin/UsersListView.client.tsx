@@ -274,8 +274,8 @@ export default function UsersListViewClient(): React.ReactElement {
 
       <div className="carnet-listview__table" role="table">
         <div className="carnet-listview__row carnet-listview__row--head" role="row">
-          <div role="columnheader">Email</div>
           <div role="columnheader">Nom affiché</div>
+          <div role="columnheader">Email</div>
           <div role="columnheader">Rôle</div>
           <div role="columnheader">Statut</div>
           <div role="columnheader">Dernière connexion</div>
@@ -293,11 +293,11 @@ export default function UsersListViewClient(): React.ReactElement {
               className="carnet-listview__row"
               role="row"
             >
-              <div role="cell" className="email">
-                {u.email}
-              </div>
               <div role="cell" className="name">
                 {u.displayName?.trim() || '—'}
+              </div>
+              <div role="cell" className="email">
+                {u.email}
               </div>
               <div role="cell" className="role">
                 <span className={`carnet-role carnet-role--${u.role}`}>
