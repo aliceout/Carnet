@@ -4966,26 +4966,33 @@ button.btn--style-primary,
     box-shadow: 4px 0 16px rgba(0, 0, 0, 0.15);
   }
 
-  // Mêmes hauteur/style que les boutons .carnet-btn de la topbar pour
-  // s'aligner visuellement (padding 5px 14px, font 12.5px → ~30px de
-  // haut). On garde la largeur ~ même que la hauteur via un padding
-  // horizontal réduit, et on bumpe le font-size pour que l'icône
-  // reste lisible.
+  // Aligné pixel-près sur .carnet-btn (padding 5px 14px, font 12.5px,
+  // border 1px) pour être à la même hauteur. Padding horizontal réduit
+  // à 9px pour un aspect carré-ish ; le span aria-hidden est sizé en
+  // font-size de l'élément (12.5px) — c'est petit mais cohérent.
   .carnet-nav-burger {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     margin-left: 8px;
-    padding: 5px 10px;
+    padding: 5px 9px;
     background: var(--b-paper);
     border: 1px solid var(--b-rule);
     color: var(--b-ink);
     font-family: var(--font-sans);
-    font-size: 14px;
-    line-height: 1.4;
+    font-size: 12.5px;
+    font-weight: 500;
     cursor: pointer;
     transition: background 0.12s, border-color 0.12s;
     flex: 0 0 auto;
+
+    span {
+      // Icône ☰ légèrement plus grosse que le texte pour rester
+      // lisible — en font-size relative donc le glyph grossit sans
+      // changer la hauteur du bouton (line-height inherit gère).
+      font-size: 16px;
+      line-height: 1;
+    }
   }
   .carnet-nav-burger:hover {
     border-color: var(--b-ink);
