@@ -1731,7 +1731,11 @@ button.btn--style-primary,
   // Année / Titre / Éditeur spannent les 2 rangées (alignés au centre).
   @include tablet-only {
     &--biblio &__row {
-      grid-template-columns: 170px 56px 1fr 1fr;
+      // Col 1 (auteur) et 2 (année) : largeurs fixes pour aligner head ↔ data.
+      // Col 3 (titre) : 1fr → toute la largeur restante.
+      // Col 4 (éditeur) : auto → sizé sur le contenu max, collé au bord droit
+      //                   du row, contenu aligné à droite.
+      grid-template-columns: 170px 56px 1fr auto;
       grid-template-rows: auto auto;
       column-gap: 16px;
       row-gap: 2px;
@@ -1763,6 +1767,7 @@ button.btn--style-primary,
       grid-column: 4;
       grid-row: 1 / span 2;
       align-self: center;
+      text-align: right;  // contenu collé au bord droit de la cellule
     }
     &--biblio &__row > .type-cell,
     &--biblio &__row > *:last-child {
@@ -1798,6 +1803,7 @@ button.btn--style-primary,
       grid-column: 4;
       grid-row: 1 / span 2;
       align-self: center;
+      text-align: right;  // en-tête aligné sur les valeurs
     }
     &--biblio &__row--head > *:nth-child(6),
     &--biblio &__row--head > *:last-child {
