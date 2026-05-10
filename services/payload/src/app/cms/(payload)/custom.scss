@@ -1399,6 +1399,14 @@ button.btn--style-primary,
     color: var(--b-muted);
     text-align: right;
   }
+  // En-tête « Billets » (3e cell : <div role="columnheader"> sans
+  // className) aligné à droite pour matcher .count en dessous, à
+  // toutes les tailles d'écran. En mobile (≤ 900) la 2e cell « Description »
+  // est cachée → « Billets » devient nth-child(3) sur 2 cellules visibles
+  // mais reste la 3e dans le DOM, donc ce sélecteur continue de matcher.
+  &--themes &__row--head > *:nth-child(3) {
+    text-align: right;
+  }
   // ≥ 901px : on garde les 3 colonnes (Nom + Description + Billets)
   // — y compris en zone tablette (901-1440). Description cachée
   // uniquement en vrai mobile (≤ 900) où elle bouffe trop de place.
