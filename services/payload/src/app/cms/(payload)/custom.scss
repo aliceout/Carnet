@@ -4920,6 +4920,23 @@ button.btn--style-primary,
   display: none !important;
 }
 
+// Version déployée (tag + commit) en bas de la page Site global.
+// Discret — une seule ligne muted mono, pas une section.
+.carnet-site-version {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 0 8px 24px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--b-muted);
+  opacity: 0.6;
+
+  .sep {
+    opacity: 0.4;
+  }
+}
+
 // ─── Intégration Zotero ─────────────────────────────────────────────
 // Pas de marqueur visuel sur les refs Zotero dans la liste biblio :
 // avec un import majoritaire depuis Zotero, un badge ligne par ligne

@@ -644,19 +644,11 @@ export default function SiteEditViewClient({
       )}
 
       {version && (
-        <section className="carnet-editview__section carnet-editview__section--version">
-          <h2 className="carnet-editview__section-title">Version déployée</h2>
-          <div className="carnet-editview__readonly-grid">
-            <div className="carnet-editview__readonly">
-              <span className="lbl">Tag</span>
-              <span className="carnet-editview__readonly-value mono">{version.tag}</span>
-            </div>
-            <div className="carnet-editview__readonly">
-              <span className="lbl">Commit</span>
-              <span className="carnet-editview__readonly-value mono">{version.commit}</span>
-            </div>
-          </div>
-        </section>
+        <div className="carnet-site-version">
+          <span className="mono">{version.tag}</span>
+          <span className="sep">·</span>
+          <span className="mono">{version.commit}</span>
+        </div>
       )}
     </div>
   );
