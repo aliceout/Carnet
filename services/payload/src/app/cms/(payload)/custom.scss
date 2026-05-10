@@ -4961,28 +4961,17 @@ button.btn--style-primary,
     padding-right: 0 !important;
   }
 
-  // Plusieurs sections (toolbar, tableau, pagination, h1, sections
-  // d'édition) utilisent `margin-left: 24px` ou `padding-left: 24px`
-  // sans pendant à droite — pensé pour le desktop avec la nav 220px à
-  // gauche. Sur mobile, la nav disparaît : on retire ces marges
-  // complètement pour que le contenu prenne toute la largeur.
-  .carnet-listview__table,
-  .carnet-listview__pagination,
-  .carnet-listview__h1 {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-  }
   // Toolbar : grid 2 colonnes pour que les filtres se rangent 2 par
   // ligne. Le champ recherche prend toute la largeur en première ligne.
   // `minmax(0, 1fr)` au lieu de `1fr` pour autoriser les cellules à
   // shrink en dessous de leur min-content (sinon les filtres avec
   // long label « Périmètre : » débordent du viewport).
+  // Padding gauche conservé (24px desktop) — strippé seulement sous
+  // 900px pour les très petits écrans (cf. règle 900 plus bas).
   .carnet-listview__toolbar {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 8px !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
   }
   .carnet-listview__search {
     grid-column: 1 / -1;
@@ -5035,14 +5024,6 @@ button.btn--style-primary,
   .carnet-listview--themes .carnet-listview__row--head > *:nth-child(3) {
     text-align: right;
   }
-  .carnet-editview__form,
-  .carnet-editview__hero,
-  .carnet-editview__error,
-  .carnet-editview__loading {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-  }
-
   .carnet-nav {
     display: flex !important;
     flex-direction: column;
