@@ -4921,15 +4921,15 @@ button.btn--style-primary,
 }
 
 // Sur écrans étroits (≤ 900px) : masquer la nav latérale custom et
-// remettre --nav-width à 0 pour que la grille Payload rende le content
-// en plein écran. L'admin n'est pas prévu pour mobile ; les breadcrumbs
-// de chaque vue permettent de naviguer sans sidebar.
+// forcer le contenu à prendre toute la largeur disponible.
+// On override grid-template-columns directement (--nav-width: 0 ne
+// suffit pas — la colonne `auto` ne se comporte pas comme `1fr`).
 @media (max-width: 900px) {
-  :root {
-    --nav-width: 0px;
-  }
   .carnet-nav {
     display: none !important;
+  }
+  .template-default {
+    grid-template-columns: 0 1fr !important;
   }
 }
 
