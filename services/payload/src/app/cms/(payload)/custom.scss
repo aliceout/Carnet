@@ -4954,12 +4954,9 @@ button.btn--style-primary,
     display: none !important;
   }
 
-  // Topbar sans padding latéral sur mobile : on récupère 48px de
-  // largeur utile, et le burger se cale flush contre le bord gauche.
-  .carnet-topbar {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-  }
+  // Padding-left 24px naturel conservé sur la topbar (cohérent avec
+  // les listviews/editviews). Padding-right est déjà à 0 sur tous
+  // écrans depuis l'override de base.
 
   // Toolbar : grid 2 colonnes pour que les filtres se rangent 2 par
   // ligne. Le champ recherche prend toute la largeur en première ligne.
