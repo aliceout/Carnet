@@ -21,6 +21,13 @@ html {
   // gauche du content.
   --nav-width: 220px;
 
+  // Padding horizontal des pages admin (listview + editview + topbar).
+  // Source de vérité unique : changer ici recale tout le layout sans
+  // toucher aux enfants. Conséquence : éviter de hardcoder `24px` à
+  // gauche/droite dans .carnet-listview / .carnet-editview / .carnet-topbar
+  // et leurs descendants — laisser le container gérer.
+  --carnet-pad-x: 24px;
+
   --b-ink: #1a1d28;
   --b-bg: #fdfcf8;
   --b-paper: #fbfaf6;
@@ -998,7 +1005,10 @@ button.btn--style-primary,
 // Remplace la liste native Payload par le tableau éditorial du handoff.
 
 .carnet-listview {
-  padding: 0 24px 64px 0;
+  // Padding horizontal piloté par --carnet-pad-x (cf :root). Les
+  // enfants n'ajoutent JAMAIS de padding/margin gauche pour s'aligner
+  // sur le bord — c'est le container qui gère, point de vérité unique.
+  padding: 0 var(--carnet-pad-x) 64px;
   font-family: var(--font-sans);
   background: var(--b-bg);
   min-height: 100vh;
@@ -1019,7 +1029,7 @@ button.btn--style-primary,
     flex-wrap: wrap;
     align-items: center;
     gap: 10px;
-    padding: 12px 0 12px 24px;
+    padding: 12px 0;
     // Pas de border-top : le .carnet-topbar au-dessus a déjà un
     // border-bottom — éviter la double ligne.
     margin-bottom: 0;
@@ -1030,7 +1040,7 @@ button.btn--style-primary,
   &__scope {
     display: flex;
     gap: 0;
-    padding: 12px 0 0 24px;
+    padding: 12px 0 0;
 
     button {
       padding: 6px 14px;
@@ -1141,7 +1151,7 @@ button.btn--style-primary,
   }
 
   &__table {
-    margin: 16px 0 0 24px;
+    margin: 16px 0 0;
     background: var(--b-paper);
     border: 1px solid var(--b-rule);
     border-radius: 4px;
@@ -1268,7 +1278,7 @@ button.btn--style-primary,
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 14px 0 0 24px;
+    margin: 14px 0 0;
     font-size: 12px;
     color: var(--b-muted);
   }
@@ -2091,7 +2101,9 @@ button.btn--style-primary,
 // référencent l'entrée.
 
 .carnet-biblio-preview {
-  margin: 24px 24px 0;
+  // Rendu à l'intérieur de .carnet-editview qui fournit déjà le padding
+  // horizontal (--carnet-pad-x) — on ne remet pas de marge sur les côtés.
+  margin: 24px 0 0;
   background: var(--b-bg);
   border-left: 2px solid var(--b-accent);
   padding: 14px 18px;
@@ -2115,7 +2127,8 @@ button.btn--style-primary,
 }
 
 .carnet-biblio-usedin {
-  margin: 14px 24px 0;
+  // Idem : .carnet-editview gère déjà le padding horizontal.
+  margin: 14px 0 0;
   font-family: var(--font-sans);
   font-size: 12px;
   color: var(--b-muted);
@@ -2502,7 +2515,10 @@ button.btn--style-primary,
 // et payload.config admin.components.views.account.
 
 .carnet-editview {
-  padding: 0 24px 64px 0;
+  // Padding horizontal piloté par --carnet-pad-x (cf :root). Les
+  // enfants n'ajoutent pas de padding/margin gauche pour s'aligner
+  // sur le bord — c'est le container qui gère.
+  padding: 0 var(--carnet-pad-x) 64px;
   font-family: var(--font-sans);
   background: var(--b-bg);
   min-height: 100vh;
@@ -2524,7 +2540,7 @@ button.btn--style-primary,
   }
 
   &__error {
-    margin: 14px 24px 0;
+    margin-top: 14px;
     padding: 14px;
     background: rgba(182, 58, 58, 0.06);
     border: 1px solid #b63a3a;
@@ -2533,14 +2549,14 @@ button.btn--style-primary,
   }
 
   &__loading {
-    padding: 40px 24px;
+    padding: 40px 0;
     color: var(--b-muted);
     font-size: 12px;
   }
 
   &__form {
     margin-top: 0;
-    padding: 0 24px;
+    padding: 0;
   }
 
   &__section {
@@ -4782,9 +4798,10 @@ button.btn--style-primary,
   align-items: center;
   gap: 16px;
   // padding-right: 0 sur tous les écrans — il cassait le design en
-  // décalant les actions vers l'intérieur. Padding-left 24px conservé
-  // pour que les crumbs (desktop) soient indentés depuis le bord.
-  padding: 0 0 0 24px;
+  // décalant les actions vers l'intérieur. Padding-left piloté par
+  // --carnet-pad-x pour rester aligné sur les pages (listview/editview)
+  // depuis une seule source de vérité.
+  padding: 0 0 0 var(--carnet-pad-x);
   height: 56px;
   border-bottom: 1px solid var(--b-rule);
   background: var(--b-bg);
@@ -4954,17 +4971,15 @@ button.btn--style-primary,
     display: none !important;
   }
 
-  // Padding-left 24px naturel conservé sur la topbar (cohérent avec
-  // les listviews/editviews). Padding-right est déjà à 0 sur tous
-  // écrans depuis l'override de base.
+  // Padding horizontal piloté entièrement par --carnet-pad-x : pas de
+  // règle ad-hoc qui le strippe ici. Cohérent topbar / listview /
+  // editview, modifiable d'un seul endroit (cf :root).
 
   // Toolbar : grid 2 colonnes pour que les filtres se rangent 2 par
   // ligne. Le champ recherche prend toute la largeur en première ligne.
   // `minmax(0, 1fr)` au lieu de `1fr` pour autoriser les cellules à
   // shrink en dessous de leur min-content (sinon les filtres avec
   // long label « Périmètre : » débordent du viewport).
-  // Padding gauche conservé (24px desktop) — strippé seulement sous
-  // 900px pour les très petits écrans (cf. règle 900 plus bas).
   .carnet-listview__toolbar {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -5095,7 +5110,8 @@ button.btn--style-primary,
 // Banner d'avertissement affiché en haut de l'édition d'une ref Zotero,
 // pour expliquer pourquoi tout est verrouillé.
 .carnet-zotero-banner {
-  margin: 16px 24px 24px;
+  // Rendue dans .carnet-editview qui gère le padding horizontal.
+  margin: 16px 0 24px;
   padding: 14px 16px;
   background: var(--b-accent-tint);
   border-left: 3px solid var(--b-accent);
