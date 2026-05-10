@@ -19,7 +19,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 
-import CarnetTopbar from './CarnetTopbar';
+import CarnetPage from './CarnetPage';
 
 const API_MEDIA = '/cms/api/media';
 
@@ -229,51 +229,54 @@ export default function MediaEditViewClient({
   const displayName = file?.name ?? data.filename ?? null;
 
   return (
-    <div className="carnet-editview carnet-editview--media">
-      <CarnetTopbar
-        crumbs={[
-          { href: '/cms/admin', label: 'Carnet' },
-          { href: '/cms/admin/collections/media', label: 'Médias' },
-          { label: data.filename || (docId ? '—' : 'nouveau') },
-        ]}
-        suppressHydrationWarningOnActions
-      >
-        {dirty && (
-          <span className="carnet-editview__dirty" aria-live="polite">
-            Modifications non enregistrées
-          </span>
-        )}
-        {!dirty && savedAt && (
-          <span className="carnet-editview__saved" aria-live="polite">
-            Enregistré
-          </span>
-        )}
-        {data.id != null && (
+    <CarnetPage
+      variant="editview"
+      modifier="media"
+      crumbs={[
+        { href: '/cms/admin', label: 'Carnet' },
+        { href: '/cms/admin/collections/media', label: 'Médias' },
+        { label: data.filename || (docId ? '—' : 'nouveau') },
+      ]}
+      suppressHydrationWarningOnActions
+      topbarActions={
+        <>
+          {dirty && (
+            <span className="carnet-editview__dirty" aria-live="polite">
+              Modifications non enregistrées
+            </span>
+          )}
+          {!dirty && savedAt && (
+            <span className="carnet-editview__saved" aria-live="polite">
+              Enregistré
+            </span>
+          )}
+          {data.id != null && (
+            <button
+              type="button"
+              className="carnet-btn carnet-btn--ghost"
+              onClick={() => {
+                setDeleteOpen(true);
+                setDeleteError(null);
+              }}
+              disabled={saving}
+              suppressHydrationWarning
+            >
+              Supprimer
+            </button>
+          )}
           <button
             type="button"
-            className="carnet-btn carnet-btn--ghost"
-            onClick={() => {
-              setDeleteOpen(true);
-              setDeleteError(null);
-            }}
-            disabled={saving}
+            className="carnet-btn carnet-btn--accent"
+            onClick={() => void save()}
+            disabled={!dirty || saving || loading}
+            title="Sauvegarder (⌘S)"
             suppressHydrationWarning
           >
-            Supprimer
+            {saving ? 'Enregistrement…' : 'Sauvegarder'}
           </button>
-        )}
-        <button
-          type="button"
-          className="carnet-btn carnet-btn--accent"
-          onClick={() => void save()}
-          disabled={!dirty || saving || loading}
-          title="Sauvegarder (⌘S)"
-          suppressHydrationWarning
-        >
-          {saving ? 'Enregistrement…' : 'Sauvegarder'}
-        </button>
-      </CarnetTopbar>
-
+        </>
+      }
+    >
       {error && <div className="carnet-editview__error">Erreur : {error}</div>}
 
       {loading ? (
@@ -524,6 +527,6 @@ export default function MediaEditViewClient({
           </div>
         </div>
       )}
-    </div>
+    </CarnetPage>
   );
 }

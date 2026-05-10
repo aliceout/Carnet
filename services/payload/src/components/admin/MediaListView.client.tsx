@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-import CarnetTopbar from './CarnetTopbar';
+import CarnetPage from './CarnetPage';
 
 const PER_PAGE = 25;
 
@@ -86,18 +86,19 @@ export default function MediaListViewClient(): React.ReactElement {
   const endIdx = Math.min(page * PER_PAGE, totalDocs);
 
   return (
-    <div className="carnet-listview carnet-listview--media">
-      <CarnetTopbar
-        crumbs={[{ href: '/cms/admin', label: 'Carnet' }, { label: 'Médias' }]}
-      >
+    <CarnetPage
+      variant="listview"
+      modifier="media"
+      crumbs={[{ href: '/cms/admin', label: 'Carnet' }, { label: 'Médias' }]}
+      topbarActions={
         <Link
           href="/cms/admin/collections/media/create"
           className="carnet-btn carnet-btn--accent"
         >
           Nouveau média
         </Link>
-      </CarnetTopbar>
-
+      }
+    >
       <div className="carnet-listview__toolbar">
         <div className="carnet-listview__search">
           <span className="ic" aria-hidden="true">
@@ -204,6 +205,6 @@ export default function MediaListViewClient(): React.ReactElement {
           </div>
         )}
       </div>
-    </div>
+    </CarnetPage>
   );
 }

@@ -39,7 +39,7 @@ function useAutoGrow(value: string) {
 
 import { type LexicalEditor } from 'lexical';
 
-import CarnetTopbar from './CarnetTopbar';
+import CarnetPage from './CarnetPage';
 import PostBodyEditor, {
   deleteBiblioInlinesByEntry,
   deleteFootnoteByIndex,
@@ -703,62 +703,65 @@ export default function PostEditViewClient({
   }, [inlineBiblioIds, biblioOptions]);
 
   return (
-    <div className="carnet-postedit">
-      <CarnetTopbar
-        crumbs={[
-          { href: '/cms/admin', label: 'Carnet' },
-          { href: '/cms/admin/collections/posts', label: 'Billets' },
-          { label: <>n°&nbsp;{pad3(post.numero ?? null)}</> },
-        ]}
-        status={
-          <span className={`carnet-status carnet-status--${status}`}>
-            <span className="carnet-status__dot" aria-hidden="true" />
-            {STATUS_LABEL[status]}
-          </span>
-        }
-        suppressHydrationWarningOnActions
-      >
-        {savedLabel && !dirty && (
-          <span className="carnet-postedit__saved" aria-live="polite">
-            {savedLabel}
-          </span>
-        )}
-        {dirty && (
-          <span className="carnet-postedit__dirty" aria-live="polite">
-            Modifications non enregistrées
-          </span>
-        )}
-        {post.slug && post.id != null && (
-          <a
-            className="carnet-btn carnet-btn--ghost"
-            href={`/billets/${post.slug}/`}
-            target="_blank"
-            rel="noreferrer"
+    <CarnetPage
+      variant="postedit"
+      fullWidth
+      crumbs={[
+        { href: '/cms/admin', label: 'Carnet' },
+        { href: '/cms/admin/collections/posts', label: 'Billets' },
+        { label: <>n°&nbsp;{pad3(post.numero ?? null)}</> },
+      ]}
+      topbarStatus={
+        <span className={`carnet-status carnet-status--${status}`}>
+          <span className="carnet-status__dot" aria-hidden="true" />
+          {STATUS_LABEL[status]}
+        </span>
+      }
+      suppressHydrationWarningOnActions
+      topbarActions={
+        <>
+          {savedLabel && !dirty && (
+            <span className="carnet-postedit__saved" aria-live="polite">
+              {savedLabel}
+            </span>
+          )}
+          {dirty && (
+            <span className="carnet-postedit__dirty" aria-live="polite">
+              Modifications non enregistrées
+            </span>
+          )}
+          {post.slug && post.id != null && (
+            <a
+              className="carnet-btn carnet-btn--ghost"
+              href={`/billets/${post.slug}/`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Aperçu ↗
+            </a>
+          )}
+          <button
+            type="button"
+            className="carnet-btn"
+            onClick={() => void save()}
+            disabled={!dirty || saving || loading}
+            title="Sauvegarder"
+            suppressHydrationWarning
           >
-            Aperçu ↗
-          </a>
-        )}
-        <button
-          type="button"
-          className="carnet-btn"
-          onClick={() => void save()}
-          disabled={!dirty || saving || loading}
-          title="Sauvegarder"
-          suppressHydrationWarning
-        >
-          {saving ? 'Enregistrement…' : 'Sauvegarder'}
-        </button>
-        <button
-          type="button"
-          className="carnet-btn carnet-btn--accent"
-          onClick={() => void save({ publish: true })}
-          disabled={saving || loading}
-          suppressHydrationWarning
-        >
-          {post.draft ? 'Publier' : 'Publier les modifications'}
-        </button>
-      </CarnetTopbar>
-
+            {saving ? 'Enregistrement…' : 'Sauvegarder'}
+          </button>
+          <button
+            type="button"
+            className="carnet-btn carnet-btn--accent"
+            onClick={() => void save({ publish: true })}
+            disabled={saving || loading}
+            suppressHydrationWarning
+          >
+            {post.draft ? 'Publier' : 'Publier les modifications'}
+          </button>
+        </>
+      }
+    >
       {error && <div className="carnet-postedit__error">Erreur : {error}</div>}
 
       {loading ? (
@@ -1329,7 +1332,7 @@ export default function PostEditViewClient({
           </div>
         </div>
       )}
-    </div>
+    </CarnetPage>
   );
 }
 

@@ -15,7 +15,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 
-import CarnetTopbar from './CarnetTopbar';
+import CarnetPage from './CarnetPage';
 
 const PER_PAGE = 50;
 const API_TAGS = '/cms/api/tags';
@@ -170,11 +170,11 @@ export default function TagListViewClient(): React.ReactElement {
   const endIdx = Math.min(page * PER_PAGE, totalDocs);
 
   return (
-    <div className="carnet-listview carnet-listview--tags">
-      <CarnetTopbar
-        crumbs={[{ href: '/cms/admin', label: 'Carnet' }, { label: 'Tags' }]}
-      />
-
+    <CarnetPage
+      variant="listview"
+      modifier="tags"
+      crumbs={[{ href: '/cms/admin', label: 'Carnet' }, { label: 'Tags' }]}
+    >
       <div className="carnet-listview__toolbar">
         <div className="carnet-listview__search">
           <span className="ic" aria-hidden="true">
@@ -328,7 +328,7 @@ export default function TagListViewClient(): React.ReactElement {
           </div>
         </div>
       )}
-    </div>
+    </CarnetPage>
   );
 }
 

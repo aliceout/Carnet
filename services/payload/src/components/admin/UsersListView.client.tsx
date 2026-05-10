@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-import CarnetTopbar from './CarnetTopbar';
+import CarnetPage from './CarnetPage';
 
 const PER_PAGE = 25;
 
@@ -154,10 +154,11 @@ export default function UsersListViewClient(): React.ReactElement {
   const endIdx = Math.min(page * PER_PAGE, totalDocs);
 
   return (
-    <div className="carnet-listview carnet-listview--users">
-      <CarnetTopbar
-        crumbs={[{ href: '/cms/admin', label: 'Carnet' }, { label: 'Utilisateurs' }]}
-      >
+    <CarnetPage
+      variant="listview"
+      modifier="users"
+      crumbs={[{ href: '/cms/admin', label: 'Carnet' }, { label: 'Utilisateurs' }]}
+      topbarActions={
         <button
           type="button"
           className="carnet-btn carnet-btn--accent"
@@ -165,8 +166,8 @@ export default function UsersListViewClient(): React.ReactElement {
         >
           Inviter un·e utilisateur·ice
         </button>
-      </CarnetTopbar>
-
+      }
+    >
       {inviteOpen && (
         <div
           className="carnet-modal-backdrop"
@@ -354,6 +355,6 @@ export default function UsersListViewClient(): React.ReactElement {
           </div>
         )}
       </div>
-    </div>
+    </CarnetPage>
   );
 }

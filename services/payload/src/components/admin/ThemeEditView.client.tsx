@@ -13,7 +13,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-import CarnetTopbar from './CarnetTopbar';
+import CarnetPage from './CarnetPage';
 
 const API_THEMES = '/cms/api/themes';
 const API_POSTS = '/cms/api/posts';
@@ -170,51 +170,54 @@ export default function ThemeEditViewClient({
   }, [dirty, saving, data]);
 
   return (
-    <div className="carnet-editview carnet-editview--theme">
-      <CarnetTopbar
-        crumbs={[
-          { href: '/cms/admin', label: 'Carnet' },
-          { href: '/cms/admin/collections/themes', label: 'Thèmes' },
-          { label: data.slug || (docId ? '—' : 'nouveau') },
-        ]}
-        suppressHydrationWarningOnActions
-      >
-        {dirty && (
-          <span className="carnet-editview__dirty" aria-live="polite">
-            Modifications non enregistrées
-          </span>
-        )}
-        {!dirty && savedAt && (
-          <span className="carnet-editview__saved" aria-live="polite">
-            Enregistré
-          </span>
-        )}
-        {data.id != null && (
+    <CarnetPage
+      variant="editview"
+      modifier="theme"
+      crumbs={[
+        { href: '/cms/admin', label: 'Carnet' },
+        { href: '/cms/admin/collections/themes', label: 'Thèmes' },
+        { label: data.slug || (docId ? '—' : 'nouveau') },
+      ]}
+      suppressHydrationWarningOnActions
+      topbarActions={
+        <>
+          {dirty && (
+            <span className="carnet-editview__dirty" aria-live="polite">
+              Modifications non enregistrées
+            </span>
+          )}
+          {!dirty && savedAt && (
+            <span className="carnet-editview__saved" aria-live="polite">
+              Enregistré
+            </span>
+          )}
+          {data.id != null && (
+            <button
+              type="button"
+              className="carnet-btn carnet-btn--ghost"
+              onClick={() => {
+                setDeleteOpen(true);
+                setDeleteError(null);
+              }}
+              disabled={saving}
+              suppressHydrationWarning
+            >
+              Supprimer
+            </button>
+          )}
           <button
             type="button"
-            className="carnet-btn carnet-btn--ghost"
-            onClick={() => {
-              setDeleteOpen(true);
-              setDeleteError(null);
-            }}
-            disabled={saving}
+            className="carnet-btn carnet-btn--accent"
+            onClick={() => void save()}
+            disabled={!dirty || saving || loading}
+            title="Sauvegarder (⌘S)"
             suppressHydrationWarning
           >
-            Supprimer
+            {saving ? 'Enregistrement…' : 'Sauvegarder'}
           </button>
-        )}
-        <button
-          type="button"
-          className="carnet-btn carnet-btn--accent"
-          onClick={() => void save()}
-          disabled={!dirty || saving || loading}
-          title="Sauvegarder (⌘S)"
-          suppressHydrationWarning
-        >
-          {saving ? 'Enregistrement…' : 'Sauvegarder'}
-        </button>
-      </CarnetTopbar>
-
+        </>
+      }
+    >
       {error && <div className="carnet-editview__error">Erreur : {error}</div>}
 
       {loading ? (
@@ -364,6 +367,6 @@ export default function ThemeEditViewClient({
           </div>
         </div>
       )}
-    </div>
+    </CarnetPage>
   );
 }

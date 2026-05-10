@@ -18,7 +18,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-import CarnetTopbar from './CarnetTopbar';
+import CarnetPage from './CarnetPage';
 
 const API_URL = '/cms/api/globals/site';
 
@@ -297,30 +297,32 @@ export default function SiteEditViewClient({
   }
 
   return (
-    <div className="carnet-editview">
-      <CarnetTopbar
-        crumbs={[{ href: '/cms/admin', label: 'Carnet' }, { label: 'Site (global)' }]}
-      >
-        {dirty && (
-          <span className="carnet-editview__dirty" aria-live="polite">
-            Modifications non enregistrées
-          </span>
-        )}
-        {!dirty && savedAt && (
-          <span className="carnet-editview__saved" aria-live="polite">
-            Enregistré
-          </span>
-        )}
-        <button
-          type="button"
-          className="carnet-btn carnet-btn--accent"
-          onClick={save}
-          disabled={!dirty || saving || loading}
-        >
-          {saving ? 'Enregistrement…' : 'Enregistrer'}
-        </button>
-      </CarnetTopbar>
-
+    <CarnetPage
+      variant="editview"
+      crumbs={[{ href: '/cms/admin', label: 'Carnet' }, { label: 'Site (global)' }]}
+      topbarActions={
+        <>
+          {dirty && (
+            <span className="carnet-editview__dirty" aria-live="polite">
+              Modifications non enregistrées
+            </span>
+          )}
+          {!dirty && savedAt && (
+            <span className="carnet-editview__saved" aria-live="polite">
+              Enregistré
+            </span>
+          )}
+          <button
+            type="button"
+            className="carnet-btn carnet-btn--accent"
+            onClick={save}
+            disabled={!dirty || saving || loading}
+          >
+            {saving ? 'Enregistrement…' : 'Enregistrer'}
+          </button>
+        </>
+      }
+    >
       {error && <div className="carnet-editview__error">Erreur : {error}</div>}
 
       {loading ? (
@@ -658,6 +660,6 @@ export default function SiteEditViewClient({
           )}
         </form>
       )}
-    </div>
+    </CarnetPage>
   );
 }

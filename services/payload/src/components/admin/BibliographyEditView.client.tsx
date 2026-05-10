@@ -19,7 +19,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-import CarnetTopbar from './CarnetTopbar';
+import CarnetPage from './CarnetPage';
 import {
   type BibAuthor,
   formatAuthorsChicago,
@@ -310,53 +310,56 @@ export default function BibliographyEditViewClient({
   const isZoteroRef = data.source === 'zotero';
 
   return (
-    <div className="carnet-editview carnet-editview--biblio">
-      <CarnetTopbar
-        crumbs={[
-          { href: '/cms/admin', label: 'Carnet' },
-          { href: '/cms/admin/collections/bibliography', label: 'Bibliographie' },
-          { label: data.slug || (docId ? '—' : 'nouvelle') },
-        ]}
-        suppressHydrationWarningOnActions
-      >
-        {dirty && (
-          <span className="carnet-editview__dirty" aria-live="polite">
-            Modifications non enregistrées
-          </span>
-        )}
-        {!dirty && savedAt && (
-          <span className="carnet-editview__saved" aria-live="polite">
-            Enregistré
-          </span>
-        )}
-        {data.id != null && (
-          <button
-            type="button"
-            className="carnet-btn carnet-btn--ghost"
-            onClick={() => {
-              setDeleteOpen(true);
-              setDeleteError(null);
-            }}
-            disabled={saving}
-            suppressHydrationWarning
-          >
-            Supprimer
-          </button>
-        )}
-        {!isZoteroRef && (
-          <button
-            type="button"
-            className="carnet-btn carnet-btn--accent"
-            onClick={() => void save()}
-            disabled={!dirty || saving || loading}
-            title="Sauvegarder"
-            suppressHydrationWarning
-          >
-            {saving ? 'Enregistrement…' : 'Sauvegarder'}
-          </button>
-        )}
-      </CarnetTopbar>
-
+    <CarnetPage
+      variant="editview"
+      modifier="biblio"
+      crumbs={[
+        { href: '/cms/admin', label: 'Carnet' },
+        { href: '/cms/admin/collections/bibliography', label: 'Bibliographie' },
+        { label: data.slug || (docId ? '—' : 'nouvelle') },
+      ]}
+      suppressHydrationWarningOnActions
+      topbarActions={
+        <>
+          {dirty && (
+            <span className="carnet-editview__dirty" aria-live="polite">
+              Modifications non enregistrées
+            </span>
+          )}
+          {!dirty && savedAt && (
+            <span className="carnet-editview__saved" aria-live="polite">
+              Enregistré
+            </span>
+          )}
+          {data.id != null && (
+            <button
+              type="button"
+              className="carnet-btn carnet-btn--ghost"
+              onClick={() => {
+                setDeleteOpen(true);
+                setDeleteError(null);
+              }}
+              disabled={saving}
+              suppressHydrationWarning
+            >
+              Supprimer
+            </button>
+          )}
+          {!isZoteroRef && (
+            <button
+              type="button"
+              className="carnet-btn carnet-btn--accent"
+              onClick={() => void save()}
+              disabled={!dirty || saving || loading}
+              title="Sauvegarder"
+              suppressHydrationWarning
+            >
+              {saving ? 'Enregistrement…' : 'Sauvegarder'}
+            </button>
+          )}
+        </>
+      }
+    >
       {error && <div className="carnet-editview__error">Erreur : {error}</div>}
 
       {loading ? (
@@ -699,6 +702,6 @@ export default function BibliographyEditViewClient({
           </div>
         </div>
       )}
-    </div>
+    </CarnetPage>
   );
 }

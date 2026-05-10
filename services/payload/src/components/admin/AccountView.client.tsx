@@ -18,7 +18,7 @@ import Link from 'next/link';
 
 import AccountSecurity from '@/components/auth/AccountSecurity.client';
 
-import CarnetTopbar from './CarnetTopbar';
+import CarnetPage from './CarnetPage';
 
 const API_USERS = '/cms/api/users';
 
@@ -120,30 +120,33 @@ export default function AccountViewClient(): React.ReactElement {
   }
 
   return (
-    <div className="carnet-editview carnet-editview--account">
-      <CarnetTopbar
-        crumbs={[{ href: '/cms/admin', label: 'Carnet' }, { label: 'Mon compte' }]}
-      >
-        {dirty && (
-          <span className="carnet-editview__dirty" aria-live="polite">
-            Modifications non enregistrées
-          </span>
-        )}
-        {!dirty && savedAt && (
-          <span className="carnet-editview__saved" aria-live="polite">
-            Enregistré
-          </span>
-        )}
-        <button
-          type="button"
-          className="carnet-btn carnet-btn--accent"
-          onClick={save}
-          disabled={!dirty || saving || loading}
-        >
-          {saving ? 'Enregistrement…' : 'Enregistrer'}
-        </button>
-      </CarnetTopbar>
-
+    <CarnetPage
+      variant="editview"
+      modifier="account"
+      crumbs={[{ href: '/cms/admin', label: 'Carnet' }, { label: 'Mon compte' }]}
+      topbarActions={
+        <>
+          {dirty && (
+            <span className="carnet-editview__dirty" aria-live="polite">
+              Modifications non enregistrées
+            </span>
+          )}
+          {!dirty && savedAt && (
+            <span className="carnet-editview__saved" aria-live="polite">
+              Enregistré
+            </span>
+          )}
+          <button
+            type="button"
+            className="carnet-btn carnet-btn--accent"
+            onClick={save}
+            disabled={!dirty || saving || loading}
+          >
+            {saving ? 'Enregistrement…' : 'Enregistrer'}
+          </button>
+        </>
+      }
+    >
       {error && <div className="carnet-editview__error">Erreur : {error}</div>}
 
       {loading || !me ? (
@@ -226,7 +229,7 @@ export default function AccountViewClient(): React.ReactElement {
           </section>
         </form>
       )}
-    </div>
+    </CarnetPage>
   );
 }
 

@@ -10,7 +10,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-import CarnetTopbar from './CarnetTopbar';
+import CarnetPage from './CarnetPage';
 
 const PER_PAGE = 25;
 
@@ -93,18 +93,19 @@ export default function ThemeListViewClient(): React.ReactElement {
   const endIdx = Math.min(page * PER_PAGE, totalDocs);
 
   return (
-    <div className="carnet-listview carnet-listview--themes">
-      <CarnetTopbar
-        crumbs={[{ href: '/cms/admin', label: 'Carnet' }, { label: 'Thèmes' }]}
-      >
+    <CarnetPage
+      variant="listview"
+      modifier="themes"
+      crumbs={[{ href: '/cms/admin', label: 'Carnet' }, { label: 'Thèmes' }]}
+      topbarActions={
         <Link
           href="/cms/admin/collections/themes/create"
           className="carnet-btn carnet-btn--accent"
         >
           Nouveau thème
         </Link>
-      </CarnetTopbar>
-
+      }
+    >
       <div className="carnet-listview__toolbar">
         <div className="carnet-listview__search">
           <span className="ic" aria-hidden="true">
@@ -191,6 +192,6 @@ export default function ThemeListViewClient(): React.ReactElement {
           </div>
         )}
       </div>
-    </div>
+    </CarnetPage>
   );
 }

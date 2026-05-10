@@ -1000,20 +1000,38 @@ button.btn--style-primary,
   }
 }
 
+// ─── Page admin partagée : body avec padding horizontal ─────────
+// Wrapper rendu par <CarnetPage> entre la topbar et le contenu de la
+// page. Source de vérité unique pour le padding horizontal du contenu
+// admin — listview, editview, postedit l'utilisent tous via le composant
+// React partagé. Le container parent (.carnet-{variant}) n'a aucun
+// padding horizontal pour que la topbar soit full-bleed naturellement.
+//
+// Variante --full : pas de padding (postedit l'utilise pour son
+// __doc grid qui doit prendre toute la largeur — son __center interne
+// gère son propre padding pour la zone d'édition).
+.carnet-page__body {
+  padding-inline: var(--carnet-pad-x);
+}
+.carnet-page__body--full {
+  padding-inline: 0;
+}
+
 // ─── List view custom (Posts) ───────────────────────────────────
 // Composant React custom branché via Posts.admin.components.views.list.
 // Remplace la liste native Payload par le tableau éditorial du handoff.
 
 .carnet-listview {
-  // Padding horizontal piloté par --carnet-pad-x (cf :root). Les
-  // enfants n'ajoutent JAMAIS de padding/margin gauche pour s'aligner
-  // sur le bord — c'est le container qui gère, point de vérité unique.
-  padding: 0 var(--carnet-pad-x) 64px;
+  // Container = flex column SANS padding horizontal — la topbar (enfant
+  // direct) est full-bleed naturellement, pas de hack de margin-inline
+  // négative. Le padding latéral du contenu est porté par le wrapper
+  // .carnet-page__body qui l'enveloppe (cf <CarnetPage>).
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 64px;
   font-family: var(--font-sans);
   background: var(--b-bg);
   min-height: 100vh;
-  // Topbar (.carnet-topbar) maintenant rendue par <CarnetTopbar/> en
-  // sibling — plus de &__header / &__crumbs / &__actions ici.
 
   &__h1 {
     font-family: var(--font-serif);
@@ -2515,14 +2533,14 @@ button.btn--style-primary,
 // et payload.config admin.components.views.account.
 
 .carnet-editview {
-  // Padding horizontal piloté par --carnet-pad-x (cf :root). Les
-  // enfants n'ajoutent pas de padding/margin gauche pour s'aligner
-  // sur le bord — c'est le container qui gère.
-  padding: 0 var(--carnet-pad-x) 64px;
+  // Voir .carnet-listview pour la justification : flex column sans
+  // padding horizontal, padding latéral porté par .carnet-page__body.
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 64px;
   font-family: var(--font-sans);
   background: var(--b-bg);
   min-height: 100vh;
-  // Topbar (.carnet-topbar) maintenant rendue par <CarnetTopbar/>.
 
   &__dirty,
   &__saved {
@@ -4799,18 +4817,10 @@ button.btn--style-primary,
   gap: 16px;
   // Padding horizontal piloté par --carnet-pad-x : crumbs alignés avec
   // le contenu en dessous à gauche, actions décollées du bord à droite.
+  // La topbar est full-bleed naturellement parce que ses containers
+  // (.carnet-listview / .carnet-editview / .carnet-postedit) ne portent
+  // PAS de padding horizontal. Pas de hack de margin-inline.
   padding: 0 var(--carnet-pad-x);
-
-  // Full-bleed quand la topbar vit dans .carnet-listview / .carnet-editview :
-  // ces containers portent un padding horizontal --carnet-pad-x ; sans
-  // breakout, le border-bottom et le fond de la topbar ne touchent ni la
-  // navbar à gauche ni le viewport à droite. La marge négative la repousse
-  // jusqu'aux bords du container (qui collent au layout), pendant que son
-  // propre padding-left replace les crumbs à --carnet-pad-x du bord visible.
-  .carnet-listview > &,
-  .carnet-editview > & {
-    margin-inline: calc(-1 * var(--carnet-pad-x));
-  }
   height: 56px;
   border-bottom: 1px solid var(--b-rule);
   background: var(--b-bg);

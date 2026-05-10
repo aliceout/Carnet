@@ -25,7 +25,7 @@ import React, { useEffect, useState } from 'react';
 
 import AccountSecurity from '@/components/auth/AccountSecurity.client';
 
-import CarnetTopbar from './CarnetTopbar';
+import CarnetPage from './CarnetPage';
 
 const API_USERS = '/cms/api/users';
 
@@ -259,37 +259,44 @@ export default function UserEditViewClient({
   const canDelete = isAdmin && !isTargetRoot;
 
   return (
-    <div className="carnet-editview carnet-editview--user">
-      <CarnetTopbar
-        crumbs={[
-          { href: '/cms/admin', label: 'Carnet' },
-          { href: '/cms/admin/collections/users', label: 'Utilisateurs' },
-          { label: user?.email ?? (docId ? '—' : 'nouveau') },
-        ]}
-        suppressHydrationWarningOnActions
-      >
-        {dirty && (
-          <span className="carnet-editview__dirty" aria-live="polite">
-            Modifications non enregistrées
-          </span>
-        )}
-        {!dirty && savedAt && (
-          <span className="carnet-editview__saved" aria-live="polite">
-            Enregistré
-          </span>
-        )}
-        <button
-          type="button"
-          className="carnet-btn carnet-btn--accent"
-          onClick={() => void save()}
-          disabled={!dirty || saving || loading}
-          title="Sauvegarder"
-          suppressHydrationWarning
-        >
-          {saving ? 'Enregistrement…' : 'Sauvegarder'}
-        </button>
-      </CarnetTopbar>
-
+    <CarnetPage
+      variant="editview"
+      modifier="user"
+      // Layout 2-colonnes via .carnet-postedit__doc à l'intérieur :
+      // pas de padding latéral sur le body pour que le grid prenne
+      // toute la largeur (le __center interne a son propre padding).
+      fullWidth
+      crumbs={[
+        { href: '/cms/admin', label: 'Carnet' },
+        { href: '/cms/admin/collections/users', label: 'Utilisateurs' },
+        { label: user?.email ?? (docId ? '—' : 'nouveau') },
+      ]}
+      suppressHydrationWarningOnActions
+      topbarActions={
+        <>
+          {dirty && (
+            <span className="carnet-editview__dirty" aria-live="polite">
+              Modifications non enregistrées
+            </span>
+          )}
+          {!dirty && savedAt && (
+            <span className="carnet-editview__saved" aria-live="polite">
+              Enregistré
+            </span>
+          )}
+          <button
+            type="button"
+            className="carnet-btn carnet-btn--accent"
+            onClick={() => void save()}
+            disabled={!dirty || saving || loading}
+            title="Sauvegarder"
+            suppressHydrationWarning
+          >
+            {saving ? 'Enregistrement…' : 'Sauvegarder'}
+          </button>
+        </>
+      }
+    >
       {error && <div className="carnet-editview__error">Erreur : {error}</div>}
 
       {loading || !user ? (
@@ -529,6 +536,6 @@ export default function UserEditViewClient({
           </div>
         </div>
       )}
-    </div>
+    </CarnetPage>
   );
 }

@@ -9,7 +9,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-import CarnetTopbar from './CarnetTopbar';
+import CarnetPage from './CarnetPage';
 
 const PER_PAGE = 25;
 const API_BIBLIO = '/cms/api/bibliography';
@@ -132,18 +132,19 @@ export default function BibliographyListViewClient(): React.ReactElement {
   const endIdx = Math.min(page * PER_PAGE, totalDocs);
 
   return (
-    <div className="carnet-listview carnet-listview--biblio">
-      <CarnetTopbar
-        crumbs={[{ href: '/cms/admin', label: 'Carnet' }, { label: 'Bibliographie' }]}
-      >
+    <CarnetPage
+      variant="listview"
+      modifier="biblio"
+      crumbs={[{ href: '/cms/admin', label: 'Carnet' }, { label: 'Bibliographie' }]}
+      topbarActions={
         <Link
           href="/cms/admin/collections/bibliography/create"
           className="carnet-btn carnet-btn--accent"
         >
           Nouvelle référence
         </Link>
-      </CarnetTopbar>
-
+      }
+    >
       <div className="carnet-listview__toolbar">
         <div className="carnet-listview__search">
           <span className="ic" aria-hidden="true">
@@ -341,6 +342,6 @@ export default function BibliographyListViewClient(): React.ReactElement {
           </div>
         </div>
       )}
-    </div>
+    </CarnetPage>
   );
 }
