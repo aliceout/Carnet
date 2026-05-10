@@ -44,10 +44,12 @@ Seed de démo (idempotent, refuse en prod) : `pnpm --dir services/payload seed:d
 ## Tests & CI
 
 La CI (`.github/workflows/build.yml`) lance, sur PR comme sur push `main` :
-type-check Astro, tests unitaires Payload, et build SSR smoke. Pour
-rejouer ces vérifs en local avant de pousser :
+lint frontend + backend, type-check Astro, tests unitaires Payload, et
+build SSR smoke. Pour rejouer ces vérifs en local avant de pousser :
 
 ```bash
+pnpm lint                               # ESLint frontend (Astro + TS)
+pnpm --dir services/payload lint        # ESLint backend (Payload + react-hooks)
 pnpm check                              # Astro check (TS .astro + .ts)
 pnpm --dir services/payload test        # Tests Node natifs (node --test)
 pnpm build                              # Build SSR Astro (smoke)
@@ -60,9 +62,10 @@ modules avec dépendance DB ne sont pas testables ici — la CI tourne
 sans Postgres pour rester rapide ; pour tester un module qui touche
 la DB, on monte un container éphémère.
 
-Lint : actuellement cassé côté frontend (pas de `eslint.config.js`)
-et payload (`@eslint/eslintrc` manquant), à fixer dans une issue
-dédiée — pas dans la CI tant que les configs ne sont pas réparées.
+Lint : flat config ESLint v9 des deux côtés (`eslint.config.mjs`).
+Le backend Payload utilise `typescript-eslint` + `eslint-plugin-react-hooks`
+plutôt que `eslint-config-next`, qui a un bug de structure circulaire
+avec ESLint v9 (cf. vercel/next.js#68334).
 
 ## Prod
 

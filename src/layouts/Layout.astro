@@ -115,9 +115,9 @@ try {
     <script is:inline>
       (function () {
         try {
-          var saved = localStorage.getItem('theme');
-          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          var theme = saved === 'dark' || saved === 'light'
+          const saved = localStorage.getItem('theme');
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const theme = saved === 'dark' || saved === 'light'
             ? saved
             : prefersDark
               ? 'dark'

@@ -32,7 +32,7 @@ export function startCleanupJob(payload: Payload): void {
 
 async function runCleanup(payload: Payload): Promise<void> {
   const now = new Date();
-  let stats = { invitations: 0, trustedDevices: 0, inactiveUsers: 0, expiredOtps: 0 };
+  const stats = { invitations: 0, trustedDevices: 0, inactiveUsers: 0, expiredOtps: 0 };
 
   // 1. Comptes pending expirés.
   const expiredInvits = await payload.find({
