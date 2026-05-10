@@ -1465,9 +1465,15 @@ button.btn--style-primary,
   }
   @include mobile {
     &--tags &__row {
-      grid-template-columns: 1fr 80px 40px;
+      grid-template-columns: 1fr 80px;
     }
-    &--tags &__row > .slug {
+    // Hide slug et bouton × pour ne garder que Nom + Billets.
+    // Pour la row head : 2=Slug, 4=Actions (sans className car
+    // role=columnheader plain <div>).
+    &--tags &__row > .slug,
+    &--tags &__row > .actions,
+    &--tags &__row--head > *:nth-child(2),
+    &--tags &__row--head > *:last-child {
       display: none;
     }
   }
