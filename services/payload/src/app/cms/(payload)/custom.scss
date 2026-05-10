@@ -5035,6 +5035,24 @@ button.btn--style-primary,
       border-top: 1px solid var(--b-rule);
     }
   }
+
+  // ≤ 900px : sticky/scroll de la sidebar n'a plus de sens (la meta
+  // est stackée sous le contenu central via le break à 1100px), on
+  // désactive. On harmonise aussi le padding horizontal entre __center
+  // et __meta pour qu'ils aient la même marge gauche/droite — sinon
+  // l'œil voit deux blocs décalés.
+  @include mobile {
+    &__center {
+      padding-inline: var(--carnet-pad-x);
+    }
+    &__meta {
+      padding-inline: var(--carnet-pad-x);
+      position: static;
+      top: auto;
+      max-height: none;
+      overflow: visible;
+    }
+  }
 }
 
 // ─── Topbar normalisée (CarnetTopbar) ─────────────────────────────
