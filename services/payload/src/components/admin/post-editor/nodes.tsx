@@ -433,12 +433,22 @@ function FigureRenderer({
   fields: FigureFields;
 }) {
   const [local, patch] = useNodeFields<FigureFields>(nodeKey, fields);
+  const [editor] = useLexicalComposerContext();
   const mediaOptions = useMediaOptions();
   const [search, setSearch] = useState('');
 
   const selected = local.image
     ? mediaOptions.find((m) => String(m.id) === String(local.image))
     : null;
+
+  // Supprime le block figure entièrement du document (pas juste le
+  // média à l'intérieur). Utilisé par le × en haut à droite du picker.
+  function removeFigure() {
+    editor.update(() => {
+      const node = $getNodeByKey(nodeKey);
+      if (node) node.remove();
+    });
+  }
 
   // Filtrage live sur filename + alt + title (insensible à la casse).
   // Cap à 30 résultats pour ne pas dérouler à l'infini quand la
@@ -467,7 +477,18 @@ function FigureRenderer({
   return (
     <figure className="ed-fig" contentEditable={false}>
       <div className="ed-fig__upload">
-        <span className="lbl">Média</span>
+        <div className="ed-fig__upload-h">
+          <span className="lbl">Média</span>
+          <button
+            type="button"
+            className="ed-fig__close"
+            onClick={removeFigure}
+            aria-label="Supprimer ce block figure"
+            title="Supprimer ce block"
+          >
+            ×
+          </button>
+        </div>
         {selected ? (
           <div className="ed-fig__selected">
             <img

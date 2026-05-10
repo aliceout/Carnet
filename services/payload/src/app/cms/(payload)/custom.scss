@@ -4628,6 +4628,12 @@ button.btn--style-primary,
         letter-spacing: 0.08em;
         text-transform: uppercase;
         color: var(--b-muted);
+        // Le label est dans un decorator node Lexical (contentEditable
+        // false) mais cliquer dessus faisait apparaître un caret comme
+        // si on pouvait éditer. user-select: none + cursor: default
+        // pour clarifier que c'est un label, pas du texte.
+        user-select: none;
+        cursor: default;
       }
 
       input {
@@ -4650,6 +4656,32 @@ button.btn--style-primary,
         margin-top: 8px;
         background: var(--b-paper);
         border: 1px solid var(--b-rule);
+      }
+    }
+
+    // Header du picker : label « MÉDIA » à gauche, bouton × pour
+    // supprimer le block figure à droite. Flex space-between pour
+    // garder l'icône collée au bord droit.
+    &__upload-h {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    &__close {
+      flex: 0 0 auto;
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      background: transparent;
+      border: 0;
+      color: var(--b-muted);
+      font-size: 16px;
+      line-height: 1;
+      cursor: pointer;
+      transition: color 0.12s;
+
+      &:hover {
+        color: #b63a3a;
       }
     }
 
