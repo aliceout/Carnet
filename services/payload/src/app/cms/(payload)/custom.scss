@@ -1687,13 +1687,26 @@ button.btn--style-primary,
   }
   // ≤ 900 : on retire en plus la colonne Statut (data + en-tête).
   // Cells visibles : Email + Rôle uniquement.
+  // Col 1 large pour Email (qui peut wrapper), col 2 étroite (juste
+  // assez pour le chip Rôle), tout en bord droit.
   @include mobile {
     &--users &__row {
-      grid-template-columns: 1fr 110px;
+      grid-template-columns: 1fr 80px;
+      // Override align-items: baseline pour que le chip .carnet-role
+      // soit centré verticalement avec l'email multi-lignes, et que
+      // la row head (« RÔLE ») s'aligne pareil.
+      align-items: center;
     }
     &--users &__row > .status-cell,
     &--users &__row--head > *:nth-child(4) {
       display: none;
+    }
+    // Contenu Rôle à droite (data ET en-tête) → en-tête « RÔLE » et
+    // chip « Root » alignés au bord droit du tableau, l'œil n'a pas
+    // à voyager.
+    &--users &__row > .role,
+    &--users &__row--head > *:nth-child(3) {
+      text-align: right;
     }
   }
 
