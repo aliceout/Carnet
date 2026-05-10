@@ -125,6 +125,7 @@ function FootnoteRenderer({
   fields: FootnoteFields;
 }) {
   const [local, patch] = useNodeFields<FootnoteFields>(nodeKey, fields);
+  const [editor] = useLexicalComposerContext();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
   const anchorRef = useRef<HTMLSpanElement>(null);
@@ -148,6 +149,17 @@ function FootnoteRenderer({
       setPopoverTop(rect.bottom + 4);
     }
     setOpen((o) => !o);
+  }
+
+  // Supprime entièrement la note de bas de page (le node inline du
+  // document). Le tag [fn] disparaît du texte ; les notes ci-dessous
+  // sont automatiquement renumérotées au prochain render.
+  function removeFootnote() {
+    editor.update(() => {
+      const node = $getNodeByKey(nodeKey);
+      if (node) node.remove();
+    });
+    setOpen(false);
   }
 
   return (
@@ -176,7 +188,18 @@ function FootnoteRenderer({
               : undefined
           }
         >
-          <span className="lbl">Note de bas de page</span>
+          <span className="ed-fn__pop-h">
+            <span className="lbl">Note de bas de page</span>
+            <button
+              type="button"
+              className="ed-fn__close"
+              onClick={removeFootnote}
+              aria-label="Supprimer cette note de bas de page"
+              title="Supprimer cette note"
+            >
+              ×
+            </button>
+          </span>
           <textarea
             rows={3}
             value={local.content ?? ''}
@@ -197,6 +220,7 @@ function BiblioInlineRenderer({
   fields: BiblioInlineFields;
 }) {
   const [local, patch] = useNodeFields<BiblioInlineFields>(nodeKey, fields);
+  const [editor] = useLexicalComposerContext();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef<HTMLSpanElement>(null);
@@ -257,6 +281,18 @@ function BiblioInlineRenderer({
     setSearch('');
   }
 
+  // Supprime entièrement la citation biblio inline du document.
+  // Le tag (Auteur, an) disparaît du texte ; la référence biblio
+  // reste dans la collection (on supprime juste la citation, pas
+  // l'entrée biblio elle-même).
+  function removeBiblioInline() {
+    editor.update(() => {
+      const node = $getNodeByKey(nodeKey);
+      if (node) node.remove();
+    });
+    setOpen(false);
+  }
+
   return (
     <span ref={ref} className="ed-bi">
       <span
@@ -283,7 +319,18 @@ function BiblioInlineRenderer({
               : undefined
           }
         >
-          <span className="lbl">Référence bibliographique</span>
+          <span className="ed-bi__pop-h">
+            <span className="lbl">Référence bibliographique</span>
+            <button
+              type="button"
+              className="ed-bi__close"
+              onClick={removeBiblioInline}
+              aria-label="Supprimer cette citation biblio"
+              title="Supprimer cette citation"
+            >
+              ×
+            </button>
+          </span>
           {selected ? (
             <span className="ed-bi__selected">
               <span className="ed-bi__selected-label">

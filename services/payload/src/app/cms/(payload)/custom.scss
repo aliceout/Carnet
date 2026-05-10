@@ -4312,6 +4312,31 @@ button.btn--style-primary,
       }
     }
 
+    // Header du popover : label « NOTE DE BAS DE PAGE » à gauche +
+    // bouton × à droite pour supprimer le node footnote du document.
+    &__pop-h {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    &__close {
+      flex: 0 0 auto;
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      background: transparent;
+      border: 0;
+      color: var(--b-muted);
+      font-size: 16px;
+      line-height: 1;
+      cursor: pointer;
+      transition: color 0.12s;
+
+      &:hover {
+        color: #b63a3a;
+      }
+    }
+
     &__pop {
       position: absolute;
       top: 100%;
@@ -4359,6 +4384,10 @@ button.btn--style-primary,
         letter-spacing: 0.08em;
         text-transform: uppercase;
         color: var(--b-muted);
+        // Cliquer sur le label faisait clignoter un caret comme si
+        // c'était du texte éditable (cf. .ed-fig .lbl).
+        user-select: none;
+        cursor: default;
       }
 
       textarea,
@@ -4397,6 +4426,32 @@ button.btn--style-primary,
       &:hover {
         background: var(--b-accent);
         color: #fff;
+      }
+    }
+
+    // Header du popover : label « RÉFÉRENCE BIBLIOGRAPHIQUE » à
+    // gauche + bouton × à droite pour supprimer la citation biblio
+    // inline du document.
+    &__pop-h {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    &__close {
+      flex: 0 0 auto;
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      background: transparent;
+      border: 0;
+      color: var(--b-muted);
+      font-size: 16px;
+      line-height: 1;
+      cursor: pointer;
+      transition: color 0.12s;
+
+      &:hover {
+        color: #b63a3a;
       }
     }
 
@@ -4445,6 +4500,9 @@ button.btn--style-primary,
         letter-spacing: 0.08em;
         text-transform: uppercase;
         color: var(--b-muted);
+        // Cliquer sur le label faisait clignoter un caret (cf .ed-fig).
+        user-select: none;
+        cursor: default;
       }
 
       input {
