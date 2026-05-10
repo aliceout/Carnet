@@ -4942,6 +4942,12 @@ button.btn--style-primary,
     display: block !important;
   }
 
+  // Crumbs masqués sur mobile : bouffent trop de place dans la topbar.
+  // Le burger + le titre H1 de chaque vue suffisent à se repérer.
+  .carnet-topbar__crumbs {
+    display: none !important;
+  }
+
   .carnet-nav {
     display: flex !important;
     flex-direction: column;
