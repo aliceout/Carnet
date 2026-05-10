@@ -4672,66 +4672,23 @@ button.btn--style-primary,
     position: relative;
     margin: 18px 0;
 
-    // Preview compact (toujours visible) : trigger qui ouvre le
-    // popover d'édition. Comportement calqué sur les decorator inline
-    // (ed-fn / ed-bi) — pas de mur d'inputs visible en permanence.
-    &__preview {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      width: 100%;
-      padding: 10px 12px;
-      background: var(--b-bg);
-      border: 1px dashed var(--b-rule);
+    // Tag compact (même style que .ed-fn__anchor / .ed-bi__tag) :
+    // fond accent-tint, texte mono, petit. Click → popover.
+    &__tag {
+      display: inline-block;
+      padding: 0 6px;
+      background: var(--b-accent-tint);
+      color: var(--b-accent);
+      font-family: var(--font-mono);
+      font-size: 0.85em;
       cursor: pointer;
-      text-align: left;
-      font-family: var(--font-sans);
-      transition: border-color 0.12s, background 0.12s;
+      border-radius: 2px;
+      border: 0;
 
       &:hover {
-        border-color: var(--b-accent);
-        background: var(--b-accent-tint);
+        background: var(--b-accent);
+        color: #fff;
       }
-
-      &--empty {
-        justify-content: center;
-        font-style: italic;
-      }
-    }
-    &__preview-thumb {
-      flex: 0 0 auto;
-      width: 56px;
-      height: 56px;
-      object-fit: cover;
-      background: var(--b-paper);
-      border: 1px solid var(--b-rule);
-    }
-    &__preview-meta {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    &__preview-name {
-      font-size: 12px;
-      color: var(--b-ink);
-      font-family: var(--font-mono);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    &__preview-cap {
-      font-size: 12.5px;
-      font-family: var(--font-serif);
-      color: var(--b-muted);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    &__preview-empty-label {
-      font-size: 12.5px;
-      color: var(--b-muted);
     }
 
     // Popover d'édition (caché par défaut, ouvert au clic sur le

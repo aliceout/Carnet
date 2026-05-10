@@ -519,38 +519,19 @@ function FigureRenderer({
 
   return (
     <figure ref={ref} className="ed-fig" contentEditable={false}>
-      {/* Preview compact toujours visible : thumbnail + légende ou
-          placeholder. Click → ouvre le popover d'édition. Comportement
-          calqué sur les decorator inline (ed-fn / ed-bi) : tag
-          discret, popover au clic. */}
+      {/* Tag compact, même style que .ed-fn__anchor / .ed-bi__tag :
+          fond accent-tint, mono, petit. Click → ouvre le popover.
+          Affichage du title (ou alt/filename en fallback) si un média
+          est sélectionné, sinon « (figure à choisir) ». */}
       <button
         type="button"
-        className={`ed-fig__preview${selected ? '' : ' ed-fig__preview--empty'}`}
+        className="ed-fig__tag"
         onClick={() => setOpen((o) => !o)}
         aria-label={selected ? 'Modifier la figure' : 'Choisir un média'}
       >
-        {selected ? (
-          <>
-            <img
-              className="ed-fig__preview-thumb"
-              src={selected.thumbnailURL || selected.url || `/cms/api/media/${selected.id}`}
-              alt={selected.alt ?? ''}
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.display = 'none';
-              }}
-            />
-            <span className="ed-fig__preview-meta">
-              <span className="ed-fig__preview-name">{mediaPrimaryLabel(selected)}</span>
-              {local.legende && (
-                <span className="ed-fig__preview-cap">{local.legende}</span>
-              )}
-            </span>
-          </>
-        ) : (
-          <span className="ed-fig__preview-empty-label">
-            Figure — cliquer pour choisir un média
-          </span>
-        )}
+        {selected
+          ? `(figure : ${mediaPrimaryLabel(selected)})`
+          : '(figure à choisir)'}
       </button>
 
       {open && (
