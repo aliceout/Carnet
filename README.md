@@ -41,6 +41,29 @@ pnpm --dir services/payload generate:importmap
 
 Seed de démo (idempotent, refuse en prod) : `pnpm --dir services/payload seed:dev`
 
+## Tests & CI
+
+La CI (`.github/workflows/build.yml`) lance, sur PR comme sur push `main` :
+type-check Astro, tests unitaires Payload, et build SSR smoke. Pour
+rejouer ces vérifs en local avant de pousser :
+
+```bash
+pnpm check                              # Astro check (TS .astro + .ts)
+pnpm --dir services/payload test        # Tests Node natifs (node --test)
+pnpm build                              # Build SSR Astro (smoke)
+```
+
+Tests Payload : ajoute des fichiers `*.test.ts` à côté du module testé
+(modèle : `src/lib/extract-lexical-text.test.ts`, `src/zotero/mapping.test.ts`).
+Le runner `node --test` les ramasse via le glob `src/**/*.test.ts`. Les
+modules avec dépendance DB ne sont pas testables ici — la CI tourne
+sans Postgres pour rester rapide ; pour tester un module qui touche
+la DB, on monte un container éphémère.
+
+Lint : actuellement cassé côté frontend (pas de `eslint.config.js`)
+et payload (`@eslint/eslintrc` manquant), à fixer dans une issue
+dédiée — pas dans la CI tant que les configs ne sont pas réparées.
+
 ## Prod
 
 Push sur `main` → GitHub Actions build les images → push GHCR → webhook VPS →

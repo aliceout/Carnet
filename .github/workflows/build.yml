@@ -25,11 +25,26 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
-  # ─── Test : type-check + build smoke-test ──────────────────────
+  # ─── Test : type-check + tests + build smoke-test ──────────────
   # Tourne sur push ET PR. Les jobs build / deploy sont gated sur
   # push main only via leur `if`.
+  #
+  # Pipeline (failfast — premier step en erreur stoppe le job) :
+  #   1. Astro check      (type-check des .astro + TS frontend)
+  #   2. Payload tests    (node --test, sans dépendance DB)
+  #   3. Astro build SSR  (smoke build + check du bundle)
+  #
+  # Référence : issue #24.
+  #
+  # TODO lint : les configs eslint sont en panne (frontend = pas de
+  # config v9, payload = @eslint/eslintrc manquant). À traiter dans
+  # un PR dédié — quand ce sera fixé, ajouter ici :
+  #   - name: Lint frontend (Astro)
+  #     run: pnpm lint
+  #   - name: Lint backend (Payload)
+  #     run: pnpm --dir services/payload lint
   test:
-    name: Type check + Astro build
+    name: Type check + tests + build smoke
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -47,8 +62,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Type check
+      - name: Type check (Astro)
         run: pnpm check
+
+      # PAYLOAD_SECRET sentinelle pour les tests Payload — auth.test.ts
+      # pose un fallback en interne, mais on l'expose ici aussi pour
+      # tout module qui pourrait le checker au top-level. Aucune valeur
+      # sensible : c'est un secret de test fixé, jamais utilisé en prod.
+      - name: Test backend (Payload, node --test)
+        env:
+          PAYLOAD_SECRET: ci-test-secret-not-sensitive-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        run: pnpm --dir services/payload test
 
       - name: Build (Astro Node SSR)
         run: pnpm build
