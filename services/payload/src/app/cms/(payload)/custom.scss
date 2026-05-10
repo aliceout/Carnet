@@ -4920,6 +4920,19 @@ button.btn--style-primary,
   display: none !important;
 }
 
+// Sur écrans étroits (≤ 900px) : masquer la nav latérale custom et
+// remettre --nav-width à 0 pour que la grille Payload rende le content
+// en plein écran. L'admin n'est pas prévu pour mobile ; les breadcrumbs
+// de chaque vue permettent de naviguer sans sidebar.
+@media (max-width: 900px) {
+  :root {
+    --nav-width: 0px;
+  }
+  .carnet-nav {
+    display: none !important;
+  }
+}
+
 
 // ─── Intégration Zotero ─────────────────────────────────────────────
 // Pas de marqueur visuel sur les refs Zotero dans la liste biblio :
