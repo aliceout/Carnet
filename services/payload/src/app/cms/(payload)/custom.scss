@@ -4965,9 +4965,41 @@ button.btn--style-primary,
     margin-left: 0 !important;
     margin-right: 0 !important;
   }
+  // Toolbar : grid 2 colonnes pour que les filtres se rangent 2 par
+  // ligne. Le champ recherche prend toute la largeur en première ligne.
   .carnet-listview__toolbar {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
+  }
+  .carnet-listview__search {
+    grid-column: 1 / -1;
+    max-width: none;
+  }
+  .carnet-listview__filter {
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+  }
+  .carnet-listview__filter select {
+    width: 100%;
+  }
+
+  // Table Posts mobile : ne montrer que Titre + Statut + bouton ×.
+  // Les autres cellules (Auteur·ice, Type, Thème, Date) sont masquées.
+  // Marche pour les `--head` ET les lignes data : on cible toute
+  // colonne qui n'est ni la première (Titre) ni dans les 2 dernières
+  // (Statut + Supprimer). S'applique aussi en variante `--with-authors`.
+  .carnet-listview--posts .carnet-listview__row {
+    grid-template-columns: 1fr 110px 28px !important;
+    gap: 12px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  .carnet-listview--posts .carnet-listview__row > *:not(:first-child):not(:nth-last-child(-n+2)) {
+    display: none !important;
   }
   .carnet-editview__form,
   .carnet-editview__hero,
