@@ -4691,15 +4691,15 @@ button.btn--style-primary,
       }
     }
 
-    // Popover d'édition (caché par défaut, ouvert au clic sur le
-    // preview). Position absolute juste sous le preview en desktop ;
-    // en mobile, fixed centré horizontalement (cf. .ed-fn / .ed-bi).
+    // Popover d'édition (caché par défaut, ouvert au clic sur le tag).
+    // Mêmes règles de taille que .ed-bi__pop : 460px de large sur
+    // desktop, fixed centré viewport sur mobile.
     &__pop {
       position: absolute;
       top: 100%;
       left: 0;
-      right: 0;
       margin-top: 4px;
+      width: 460px;
       background: var(--b-paper);
       border: 1px solid var(--b-accent);
       padding: 12px;
@@ -4718,6 +4718,7 @@ button.btn--style-primary,
         left: 24px;
         right: 24px;
         transform: translateY(-50%);
+        width: auto;
         max-height: 70vh;
         overflow-y: auto;
         margin-top: 0;
