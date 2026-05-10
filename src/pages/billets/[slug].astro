@@ -33,6 +33,7 @@ import {
   type PostAuthorEntry,
 } from '../../lib/site';
 import { formatAuthorsChicago, formatTranslators } from '../../lib/format-authors';
+import { highwireMeta } from '../../lib/citations';
 
 type Theme = { id: number | string; slug: string; name: string };
 type Tag = { id: number | string; slug: string; name: string };
@@ -175,6 +176,21 @@ const authorCitation = postCitation || 'Auteur·ice';
 // Citation bibliographique du billet (Chicago author-date façon Carnet)
 const articleUrl = new URL(Astro.url.pathname, Astro.site).toString();
 const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel.replace('n° ', 'n° ')}, ${publishedFr}, ${articleUrl}.`;
+
+// Métadonnées Highwire/Google Scholar pour que l'extension Zotero
+// détecte automatiquement la citation à la visite de l'article (sans
+// que l'utilisatrice ait besoin de cliquer un bouton). Cf
+// src/lib/citations.ts.
+const citationMeta = highwireMeta(
+  {
+    slug: post.slug,
+    numero: post.numero,
+    title: post.title,
+    publishedAt: post.publishedAt,
+    authors: postAuthors,
+  },
+  { articleUrl, accessedAt: new Date().toISOString().slice(0, 10) },
+);
 ---
 
 <Layout
@@ -183,6 +199,14 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
   progressBar={true}
   bodyClass={`justify notes-${notesMode}`}
 >
+  {/* Métadonnées Highwire/Google Scholar — détection automatique de
+      la citation par l'extension Zotero quand on visite la page. */}
+  <Fragment slot="head">
+    {citationMeta.map((m) => (
+      <meta name={m.name} content={m.content} />
+    ))}
+  </Fragment>
+
   <!-- TOC flottant -->
   {tocEntries.length > 0 && (
     <aside class="toc" id="toc" aria-label="Sommaire">
@@ -311,9 +335,38 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
             >
               Copier
             </button>
-            <span class="placeholder" title="Téléchargement BibTeX prévu (issue #5)">BibTeX</span>
-            <span class="placeholder" title="Téléchargement RIS prévu (issue #5)">RIS</span>
-            <span class="placeholder" title="Export Zotero prévu (issue #5)">Zotero</span>
+            {/* Liens de téléchargement — formats académiques standards.
+                Les routes correspondantes vivent dans src/pages/billets/
+                [slug].bib.ts et [slug].ris.ts. Zotero importe RIS
+                nativement, on pointe donc sur le même fichier ; et la
+                détection auto via Highwire <meta> en <head> rend même
+                ce bouton accessoire pour les utilisateurs avec
+                l'extension installée. */}
+            <a
+              class="download-btn"
+              href={`/billets/${post.slug}.bib`}
+              download={`${post.slug}.bib`}
+              aria-label="Télécharger la citation au format BibTeX"
+            >
+              BibTeX
+            </a>
+            <a
+              class="download-btn"
+              href={`/billets/${post.slug}.ris`}
+              download={`${post.slug}.ris`}
+              aria-label="Télécharger la citation au format RIS"
+            >
+              RIS
+            </a>
+            <a
+              class="download-btn"
+              href={`/billets/${post.slug}.ris`}
+              download={`${post.slug}.ris`}
+              aria-label="Importer la citation dans Zotero (format RIS)"
+              title="Zotero importe RIS nativement"
+            >
+              Zotero
+            </a>
           </div>
         </section>
       )}
@@ -771,11 +824,14 @@ const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel
     color: var(--color-ink);
     text-decoration: none;
   }
-  .citation .acts .placeholder {
-    color: var(--color-muted);
-    cursor: not-allowed;
-    text-decoration: line-through;
-    text-decoration-style: dotted;
+  .citation .acts .download-btn {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+  .citation .acts .download-btn:hover {
+    color: var(--color-ink);
   }
 
   .related {

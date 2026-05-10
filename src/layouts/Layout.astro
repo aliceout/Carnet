@@ -129,6 +129,11 @@ try {
         }
       })();
     </script>
+    {/* Slot optionnel pour injecter des balises additionnelles dans
+        <head> (ex. métadonnées Highwire/Zotero sur la page article).
+        Vide par défaut — les pages qui n'en ont pas besoin n'ont rien
+        à fournir. */}
+    <slot name="head" />
   </head>
   <body class={bodyClass}>
     {progressBar && (
