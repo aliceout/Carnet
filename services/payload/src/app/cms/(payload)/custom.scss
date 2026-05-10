@@ -4920,16 +4920,17 @@ button.btn--style-primary,
   display: none !important;
 }
 
-// Sur écrans étroits (≤ 900px) : masquer la nav latérale custom et
-// forcer le contenu à prendre toute la largeur disponible.
-// On override grid-template-columns directement (--nav-width: 0 ne
-// suffit pas — la colonne `auto` ne se comporte pas comme `1fr`).
+// Sur écrans étroits (≤ 900px) : masquer la nav latérale custom.
+// Quand .carnet-nav est display:none il sort du flux de la grille, ce
+// qui place le contenu en colonne 1 (0px). Remède : désactiver la
+// grille entièrement (display:block) pour que le contenu prenne
+// toute la largeur naturellement.
 @media (max-width: 900px) {
   .carnet-nav {
     display: none !important;
   }
   .template-default {
-    grid-template-columns: 0 1fr !important;
+    display: block !important;
   }
 }
 
