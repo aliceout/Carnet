@@ -104,6 +104,23 @@ export default function NavClient({ activePath: serverActive, counts }: Props): 
       .catch(() => setMe(null));
   }, []);
 
+  // URL du front public pour le lien « Voir le site ↗ ». En prod
+  // l'admin et le front sont sur le même domaine (admin sur
+  // /cms/admin/*, front sur /), donc `/` suffit. En dev, Payload
+  // tourne sur :3001 et Astro sur :4321 → on rewrite vers :4321.
+  // Fallback `/` pendant le SSR (avant useEffect) pour éviter le
+  // hydration mismatch.
+  const [siteUrl, setSiteUrl] = useState<string>('/');
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const { hostname, protocol } = window.location;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      setSiteUrl(`${protocol}//${hostname}:4321/`);
+    } else {
+      setSiteUrl('/');
+    }
+  }, []);
+
   // Theme courant (light/dark) — controlled state pour le toggle.
   // Init depuis localStorage, fallback sur prefers-color-scheme.
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -212,10 +229,11 @@ export default function NavClient({ activePath: serverActive, counts }: Props): 
         Carnet<span className="dot">.</span>
       </Link>
       <a
-        href="/"
+        href={siteUrl}
         className="carnet-nav__view-site"
         target="_blank"
         rel="noreferrer"
+        suppressHydrationWarning
       >
         Voir le site
         <span aria-hidden="true" className="arrow">↗</span>
