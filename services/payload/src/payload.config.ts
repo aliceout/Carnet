@@ -15,6 +15,7 @@ import { Pages } from './collections/Pages';
 import { Site } from './globals/Site';
 import { authEndpoints } from './auth/endpoints';
 import { zoteroEndpoints } from './zotero/endpoints';
+import { postsSearchEndpoint } from './endpoints/posts-search';
 import { buildEmailAdapter } from './auth/transport';
 import { startCleanupJob } from './auth/cleanup';
 import { bootstrapRootUser } from './auth/bootstrap';
@@ -45,6 +46,15 @@ const UsersWithEndpoints = {
       beforeListTable: ['@/components/auth/InviteUserButton#default'],
     },
   },
+};
+
+// Endpoint custom de recherche fulltext (FTS Postgres) branché sur la
+// collection posts → exposé sous /cms/api/posts/search. Cf
+// endpoints/posts-search.ts.
+const postsBaseEndpoints = Array.isArray(Posts.endpoints) ? Posts.endpoints : [];
+const PostsWithEndpoints = {
+  ...Posts,
+  endpoints: [...postsBaseEndpoints, postsSearchEndpoint],
 };
 
 export default buildConfig({
@@ -102,7 +112,7 @@ export default buildConfig({
     },
   },
   collections: [
-    Posts,
+    PostsWithEndpoints,
     Themes,
     Tags,
     Bibliography,

@@ -165,3 +165,43 @@ export function filterPublished<T extends { draft?: boolean }>(docs: T[]): T[] {
   if (process.env.SHOW_DRAFTS === '1') return docs;
   return docs.filter((d) => !d.draft);
 }
+
+// ─── Recherche fulltext ─────────────────────────────────────────
+// Tape l'endpoint custom Payload /cms/api/posts/search qui exécute
+// websearch_to_tsquery + ts_rank côté Postgres (cf. services/payload/
+// src/endpoints/posts-search.ts). Le filtre `draft = false` est posé
+// côté serveur, donc ici on n'a pas besoin de filterPublished.
+
+export type SearchPost = {
+  id: number | string;
+  numero: number | null;
+  slug: string | null;
+  title: string | null;
+  lede: string | null;
+  publishedAt: string | null;
+  idCarnet: string | null;
+  /** Extrait court avec mots matchés enveloppés dans <mark>…</mark>.
+   *  Vient de ts_headline. À injecter via set:html après check de la
+   *  source (Postgres, donc ok). */
+  excerpt: string | null;
+  rank: number;
+};
+
+export type SearchResult = {
+  docs: SearchPost[];
+  totalDocs: number;
+  totalPages: number;
+  page: number;
+  q: string;
+};
+
+export async function searchPosts(
+  q: string,
+  opts: { page?: number; limit?: number } = {},
+): Promise<SearchResult> {
+  const params = new URLSearchParams();
+  params.set('q', q);
+  if (opts.page) params.set('page', String(opts.page));
+  if (opts.limit) params.set('limit', String(opts.limit));
+  return fetchPayload<SearchResult>(`/posts/search?${params.toString()}`);
+}

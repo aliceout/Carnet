@@ -6,6 +6,8 @@ import {
 
 import { authenticated } from '../access/authenticated';
 import { Footnote, CitationBloc, BiblioInline, Figure } from '../blocks';
+import { extractLexicalText } from '../lib/extract-lexical-text';
+import { updatePostSearchVector } from '../hooks/update-post-search-vector';
 
 /**
  * Collection principale du Carnet — un billet académique.
@@ -78,6 +80,10 @@ export const Posts: CollectionConfig = {
         return next;
       },
     ],
+    // Recalcule la colonne search_vector (FTS Postgres) après chaque
+    // create/update. Cf hooks/update-post-search-vector + lib/post-
+    // search-vector et la migration qui ajoute la colonne + l'index GIN.
+    afterChange: [updatePostSearchVector],
   },
   admin: {
     useAsTitle: 'title',
@@ -385,27 +391,14 @@ export const Posts: CollectionConfig = {
 };
 
 /**
- * Extrait grossier du texte d'un node Lexical (rich text Payload). Suffit
- * pour estimer le temps de lecture — on prend tous les `text` récursivement
- * et on ignore les blocks (footnote, citation, etc.) qui ne sont pas des
- * « lecture courante ».
+ * Helper local : extrait le texte « courant » du body pour le calcul
+ * du temps de lecture. Délègue à extractLexicalText() avec les options
+ * par défaut (pas de blocks custom, pas de zones brouillon) — on
+ * n'inclut PAS les notes de bas de page / citations dans le compte
+ * mots, considérées comme « hors flux de lecture principale ».
  */
 function extractTextFromLexical(node: unknown): string {
-  if (!node || typeof node !== 'object') return '';
-  const obj = node as Record<string, unknown>;
-  // Les zones brouillon ne sont pas rendues côté public — leur texte
-  // ne compte pas dans le temps de lecture estimé.
-  if (obj.type === 'draft_container') return '';
-  let out = '';
-  if (typeof obj.text === 'string') out += obj.text + ' ';
-  const root = (obj.root ?? obj) as Record<string, unknown>;
-  const children = root.children;
-  if (Array.isArray(children)) {
-    for (const child of children) {
-      out += extractTextFromLexical(child);
-    }
-  }
-  return out;
+  return extractLexicalText(node);
 }
 
 /**
