@@ -61,7 +61,7 @@ const heroTitleHtml = formatHeroTitle('Chercher dans le *Carnet*.');
 const heroLedeHtml = q
   ? `${totalDocs} résultat${totalDocs > 1 ? 's' : ''} pour <em>${escapeHtml(q)}</em>.`
   : formatHeroLede(
-      'Tape un mot, une phrase entre guillemets, ou plusieurs mots à la fois. Le moteur cherche dans le titre, le chapô, le corps, les notes et la bibliographie liée.',
+      'Tapez un mot, une phrase entre guillemets, ou plusieurs mots à la fois. Le moteur cherche dans le titre, le chapô, le corps, les notes et la bibliographie liée.',
     );
 
 function pageHref(p: number): string {
@@ -85,7 +85,7 @@ function pageHref(p: number): string {
         type="search"
         name="q"
         value={q}
-        placeholder="Cherche dans le carnet…"
+        placeholder="Cherchez dans le carnet…"
         autofocus={!q}
         aria-label="Rechercher"
       />
