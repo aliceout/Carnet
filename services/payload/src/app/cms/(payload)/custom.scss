@@ -4304,21 +4304,15 @@ button.btn--style-primary,
       color: var(--b-ink);
       line-height: 1.4;
 
-      // Mobile : centre le popover dans le viewport (style modal),
-      // même logique que .ed-bi__pop. Évite le débordement quand le
-      // tag de note est au milieu/droite du texte.
+      // Mobile : on reste ancré juste sous le tag note (comportement
+      // popover natif), même logique que .ed-bi__pop. Largeur contrainte
+      // au viewport pour éviter le débordement quand le tag est au
+      // milieu/droite du texte.
       @include mobile {
-        position: fixed;
-        top: 50%;
-        left: 24px;
-        right: 24px;
-        transform: translateY(-50%);
-        width: auto;
-        max-width: none;
+        width: calc(100vw - 48px);
+        max-width: 320px;
         max-height: 70vh;
         overflow-y: auto;
-        margin-top: 0;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
       }
 
       .lbl {
@@ -4387,25 +4381,17 @@ button.btn--style-primary,
       font-style: normal;
       color: var(--b-ink);
 
-      // Mobile : centre le popover dans le viewport (style modal).
-      // En desktop, position: absolute ancrée au tag biblio (left: 0,
-      // width: 460) ; en mobile cette largeur déborde du viewport
-      // quand le tag est au milieu/droite du texte. On bascule en
-      // `fixed` centré → le popover reste à sa position au scroll
-      // (comportement modal attendu) plutôt que de coller au bord
-      // bas du viewport (qui donnait un effet « sticky-bottom »
-      // surprenant).
+      // Mobile : on reste ancré juste sous le tag biblio (comportement
+      // popover natif, à côté du point de clic) mais on contraint la
+      // largeur au viewport pour éviter que le popover de 460px ne
+      // déborde. Si le tag est au milieu du texte un peu vers la
+      // droite, le popover peut légèrement déborder — accepté pour
+      // garder la proximité visuelle.
       @include mobile {
-        position: fixed;
-        top: 50%;
-        left: 24px;
-        right: 24px;
-        transform: translateY(-50%);
-        width: auto;
+        width: calc(100vw - 48px);
+        max-width: 360px;
         max-height: 70vh;
         overflow-y: auto;
-        margin-top: 0;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
       }
 
       .lbl {
