@@ -95,7 +95,11 @@ const EMPTY: SiteData = {
   navFooter: [],
 };
 
-export default function SiteEditViewClient(): React.ReactElement {
+export default function SiteEditViewClient({
+  version,
+}: {
+  version?: { commit: string; tag: string };
+}): React.ReactElement {
   const [data, setData] = useState<SiteData>(EMPTY);
   const [initial, setInitial] = useState<SiteData>(EMPTY);
   const [loading, setLoading] = useState(true);
@@ -637,6 +641,22 @@ export default function SiteEditViewClient(): React.ReactElement {
             </div>
           </section>
         </form>
+      )}
+
+      {version && (
+        <section className="carnet-editview__section carnet-editview__section--version">
+          <h2 className="carnet-editview__section-title">Version déployée</h2>
+          <div className="carnet-editview__readonly-grid">
+            <div className="carnet-editview__readonly">
+              <span className="lbl">Tag</span>
+              <span className="carnet-editview__readonly-value mono">{version.tag}</span>
+            </div>
+            <div className="carnet-editview__readonly">
+              <span className="lbl">Commit</span>
+              <span className="carnet-editview__readonly-value mono">{version.commit}</span>
+            </div>
+          </div>
+        </section>
       )}
     </div>
   );

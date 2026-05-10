@@ -51,6 +51,9 @@ try {
 }
 
 const baseline = site.baseline || DEFAULT_BASELINE;
+// Tag git injecté au build du container (process.env.GIT_TAG).
+// Fallback 'dev' si non défini (build local ou CI sans build-args).
+const gitTag = process.env.GIT_TAG || 'dev';
 const copyrightLine = site.copyrightLine || DEFAULT_COPYRIGHT;
 const navFooter = site.navFooter && site.navFooter.length > 0 ? site.navFooter : DEFAULT_NAV;
 const social = site.social ?? {};
@@ -76,6 +79,7 @@ const socialLinks = [
         <div class="brand-foot">Carnet<span class="dot">.</span></div>
         <p>{baseline}</p>
         <div class="mono copyright">{copyrightLine}</div>
+        <div class="mono version">{gitTag}</div>
       </div>
       <div>
         <h4>Naviguer</h4>
@@ -167,6 +171,12 @@ const socialLinks = [
     font-size: 11px;
     color: var(--color-accent);
     margin-top: 24px;
+  }
+  footer.site .version {
+    font-size: 10px;
+    color: var(--color-muted);
+    opacity: 0.5;
+    margin-top: 6px;
   }
 
   @media (max-width: 900px) {

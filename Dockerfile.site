@@ -45,9 +45,16 @@ RUN pnpm install --frozen-lockfile --prod
 FROM node:24-alpine AS runner
 WORKDIR /app
 
+# GIT_COMMIT / GIT_TAG injectés au build (cf. .github/workflows/build.yml).
+# Lus à l'exécution par le footer Astro via process.env.
+ARG GIT_COMMIT=dev
+ARG GIT_TAG=dev
+
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
-    PORT=4321
+    PORT=4321 \
+    GIT_COMMIT=$GIT_COMMIT \
+    GIT_TAG=$GIT_TAG
 
 COPY --from=builder /app/dist ./dist
 COPY --from=deps-prod /app/node_modules ./node_modules

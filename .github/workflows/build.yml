@@ -67,7 +67,11 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
+      # fetch-depth: 0 pour que `git describe --tags` voit l'historique
+      # complet (sinon shallow clone et pas de tags).
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -141,15 +145,28 @@ jobs:
           fi
           echo "ADDRESS=$ADDRESS_FROM_SECRET" >> "$GITHUB_ENV"
 
+      # Récupère le commit court + le tag git le plus récent (ou le
+      # commit si aucun tag) pour l'affichage de version dans le
+      # footer site et l'admin Payload. `actions/checkout@v5` avec
+      # fetch-depth=0 ci-dessus nous donne l'historique complet.
+      - name: Compute version info
+        id: version
+        run: |
+          echo "commit=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "tag=$(git describe --tags --always)" >> "$GITHUB_OUTPUT"
+
       - name: Build and push web
         uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile.site
           # ADDRESS baké dans Astro.site au build (cf. astro.config.mjs).
-          # Reçu en ARG par le stage `builder` du Dockerfile.
+          # GIT_COMMIT / GIT_TAG affichés dans le footer du site.
+          # Reçus en ARG par le stage `builder` du Dockerfile.
           build-args: |
             ADDRESS=${{ env.ADDRESS }}
+            GIT_COMMIT=${{ steps.version.outputs.commit }}
+            GIT_TAG=${{ steps.version.outputs.tag }}
           push: true
           tags: |
             ghcr.io/aliceout/carnet/web:latest
@@ -164,7 +181,10 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
+      # fetch-depth: 0 pour `git describe --tags` (cf. job build-web).
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -176,11 +196,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Compute version info
+        id: version
+        run: |
+          echo "commit=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "tag=$(git describe --tags --always)" >> "$GITHUB_OUTPUT"
+
       - name: Build and push payload
         uses: docker/build-push-action@v6
         with:
           context: services/payload
           file: services/payload/Dockerfile
+          # GIT_COMMIT / GIT_TAG affichés dans la page Site (Payload admin).
+          build-args: |
+            GIT_COMMIT=${{ steps.version.outputs.commit }}
+            GIT_TAG=${{ steps.version.outputs.tag }}
           push: true
           tags: |
             ghcr.io/aliceout/carnet/payload:latest

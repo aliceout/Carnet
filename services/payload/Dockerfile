@@ -24,9 +24,16 @@ RUN corepack enable pnpm && pnpm run build
 FROM base AS runner
 WORKDIR /app
 
+# GIT_COMMIT / GIT_TAG injectés au build (cf. .github/workflows/build.yml).
+# Lus à l'exécution par la page Site (Payload admin) via process.env.
+ARG GIT_COMMIT=dev
+ARG GIT_TAG=dev
+
 ENV NODE_ENV=production \
     PORT=3001 \
-    HOSTNAME=0.0.0.0
+    HOSTNAME=0.0.0.0 \
+    GIT_COMMIT=$GIT_COMMIT \
+    GIT_TAG=$GIT_TAG
 
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
