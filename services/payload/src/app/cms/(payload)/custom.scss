@@ -1670,6 +1670,13 @@ button.btn--style-primary,
     font-size: 11.5px;
     color: var(--b-muted);
   }
+  // Contenu Rôle à droite (data ET en-tête) à toutes les tailles —
+  // chip « Root » et en-tête « RÔLE » alignés au même bord droit de la
+  // colonne, l'œil n'a pas à voyager.
+  &--users &__row > .role,
+  &--users &__row--head > *:nth-child(3) {
+    text-align: right;
+  }
   // ≤ 1180 : on garde Email + Nom affiché + Rôle + Statut. Seule
   // « Dernière connexion » est cachée (data .date + en-tête nth-child(5)).
   @include tablet-sm {
@@ -1684,7 +1691,7 @@ button.btn--style-primary,
   // ≤ 900 : on remplace Email par Nom (donc on cache Email, Statut et
   // Date data + leurs en-têtes). Visible : Nom + Rôle.
   // Col 1 large pour le nom (qui peut wrapper), col 2 étroite (juste
-  // assez pour le chip Rôle), tout en bord droit.
+  // assez pour le chip Rôle).
   @include mobile {
     &--users &__row {
       grid-template-columns: 1fr 80px;
@@ -1698,13 +1705,6 @@ button.btn--style-primary,
     &--users &__row--head > *:nth-child(1),
     &--users &__row--head > *:nth-child(4) {
       display: none;
-    }
-    // Contenu Rôle à droite (data ET en-tête) → en-tête « RÔLE » et
-    // chip « Root » alignés au bord droit du tableau, l'œil n'a pas
-    // à voyager.
-    &--users &__row > .role,
-    &--users &__row--head > *:nth-child(3) {
-      text-align: right;
     }
   }
 
