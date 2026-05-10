@@ -1670,34 +1670,32 @@ button.btn--style-primary,
     font-size: 11.5px;
     color: var(--b-muted);
   }
+  // ≤ 1180 : on garde Email + Nom affiché + Rôle + Statut. Seule
+  // « Dernière connexion » est cachée (data .date + en-tête nth-child(5)).
   @include tablet-sm {
     &--users &__row {
-      grid-template-columns: 1fr 110px 130px;
+      grid-template-columns: 1fr 180px 110px 130px;
     }
-    // Hide cellules data (.name, .date) ET les en-têtes correspondantes
-    // (« Nom affiché » = nth-child(2), « Dernière connexion » = nth-child(5))
-    // sinon la row head garde 5 cells et wrap en 2 lignes alors que
-    // les data n'en ont plus que 3.
-    &--users &__row > .name,
     &--users &__row > .date,
-    &--users &__row--head > *:nth-child(2),
     &--users &__row--head > *:nth-child(5) {
       display: none;
     }
   }
-  // ≤ 900 : on retire en plus la colonne Statut (data + en-tête).
-  // Cells visibles : Email + Rôle uniquement.
-  // Col 1 large pour Email (qui peut wrapper), col 2 étroite (juste
+  // ≤ 900 : on remplace Email par Nom (donc on cache Email, Statut et
+  // Date data + leurs en-têtes). Visible : Nom + Rôle.
+  // Col 1 large pour le nom (qui peut wrapper), col 2 étroite (juste
   // assez pour le chip Rôle), tout en bord droit.
   @include mobile {
     &--users &__row {
       grid-template-columns: 1fr 80px;
       // Override align-items: baseline pour que le chip .carnet-role
-      // soit centré verticalement avec l'email multi-lignes, et que
-      // la row head (« RÔLE ») s'aligne pareil.
+      // soit centré verticalement avec le nom potentiellement multi-
+      // lignes, et que la row head (« RÔLE ») s'aligne pareil.
       align-items: center;
     }
+    &--users &__row > .email,
     &--users &__row > .status-cell,
+    &--users &__row--head > *:nth-child(1),
     &--users &__row--head > *:nth-child(4) {
       display: none;
     }
