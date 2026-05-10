@@ -16,6 +16,7 @@ import { Site } from './globals/Site';
 import { authEndpoints } from './auth/endpoints';
 import { zoteroEndpoints } from './zotero/endpoints';
 import { postsSearchEndpoint } from './endpoints/posts-search';
+import { extendPostsSearchVector } from './db/extend-posts-search-vector';
 import { buildEmailAdapter } from './auth/transport';
 import { startCleanupJob } from './auth/cleanup';
 import { bootstrapRootUser } from './auth/bootstrap';
@@ -151,6 +152,11 @@ export default buildConfig({
       database: process.env.POSTGRES_DB,
     },
     push: process.env.NODE_ENV !== 'production',
+    // Étend le schéma Drizzle généré par Payload pour y déclarer la
+    // colonne `posts.search_vector` (tsvector, FTS Postgres) + son
+    // index GIN. Sans ça, `push: true` la verrait comme inconnue et
+    // proposerait de la drop à chaque boot dev.
+    afterSchemaInit: [extendPostsSearchVector],
   }),
   serverURL: ADDRESS,
   // CORS : restreint aux domaines connus. En dev on autorise les
