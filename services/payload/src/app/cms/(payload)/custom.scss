@@ -4370,6 +4370,28 @@ button.btn--style-primary,
       font-style: normal;
       color: var(--b-ink);
 
+      // Mobile : passe en bottom-sheet positionné par rapport au
+      // viewport. En desktop, le popover est positionné par rapport
+      // au tag biblio dans le texte (left: 0 du tag) et fait 460px ;
+      // en mobile cette largeur déborde du viewport quand le tag est
+      // au milieu/droite du texte. On bascule en `fixed` pour se
+      // détacher de la position du tag, ancré en bas avec
+      // left/right: 24px (= --carnet-pad-x). max-height + overflow
+      // pour que le contenu reste accessible si la liste de résultats
+      // est longue.
+      @include mobile {
+        position: fixed;
+        left: 24px;
+        right: 24px;
+        bottom: 24px;
+        top: auto;
+        width: auto;
+        max-height: 70vh;
+        overflow-y: auto;
+        margin-top: 0;
+        box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.12);
+      }
+
       .lbl {
         font-size: 10.5px;
         font-weight: 600;
