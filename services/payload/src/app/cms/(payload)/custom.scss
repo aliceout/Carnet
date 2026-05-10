@@ -4304,19 +4304,26 @@ button.btn--style-primary,
       color: var(--b-ink);
       line-height: 1.4;
 
-      // Mobile : on reste ancré verticalement sous le tag (top: 100%
-      // hérité), mais on centre HORIZONTALEMENT sur le tag via
-      // left: 50% + translateX(-50%) au lieu de partir du bord gauche
-      // du tag (qui faisait déborder le popover quand le tag était
-      // déjà sur la droite du viewport). Largeur capée pour fit dans
-      // le viewport.
+      // Mobile : modal centré dans le viewport via position: fixed,
+      // left/right: 24px, top: 50% + translateY(-50%). Le parent
+      // .ed-fn est `display: inline; position: relative` ce qui rend
+      // le calcul de left:50% peu fiable (la boîte du parent inline
+      // wrap sur plusieurs lignes selon le texte). On bascule donc
+      // au viewport-relative qui est garanti — comportement modal
+      // déjà éprouvé. La perte = le popover s'éloigne du tag, mais
+      // c'est inévitable sans anchor positioning ou JS.
       @include mobile {
-        left: 50%;
-        transform: translateX(-50%);
-        width: calc(100vw - 48px);
-        max-width: 320px;
+        position: fixed;
+        top: 50%;
+        left: 24px;
+        right: 24px;
+        transform: translateY(-50%);
+        width: auto;
+        max-width: none;
         max-height: 70vh;
         overflow-y: auto;
+        margin-top: 0;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
       }
 
       .lbl {
@@ -4385,19 +4392,26 @@ button.btn--style-primary,
       font-style: normal;
       color: var(--b-ink);
 
-      // Mobile : on reste ancré verticalement sous le tag (top: 100%
-      // hérité), mais on centre HORIZONTALEMENT sur le tag via
-      // left: 50% + translateX(-50%) au lieu de partir du bord gauche
-      // du tag. Quand le tag est en milieu de texte, le popover s'étend
-      // à parts égales de chaque côté → fit le mieux possible dans le
-      // viewport sans s'éloigner du point de clic.
+      // Mobile : modal centré dans le viewport via position: fixed,
+      // left/right: 24px, top: 50% + translateY(-50%). Le parent
+      // .ed-bi est `display: inline; position: relative` ce qui rend
+      // le calcul de left:50% peu fiable (la boîte du parent inline
+      // wrap sur plusieurs lignes selon le texte). On bascule donc
+      // au viewport-relative qui est garanti — comportement modal
+      // déjà éprouvé. La perte = le popover s'éloigne du tag, mais
+      // c'est inévitable sans anchor positioning ou JS.
       @include mobile {
-        left: 50%;
-        transform: translateX(-50%);
-        width: calc(100vw - 48px);
-        max-width: 360px;
+        position: fixed;
+        top: 50%;
+        left: 24px;
+        right: 24px;
+        transform: translateY(-50%);
+        width: auto;
+        max-width: none;
         max-height: 70vh;
         overflow-y: auto;
+        margin-top: 0;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
       }
 
       .lbl {
