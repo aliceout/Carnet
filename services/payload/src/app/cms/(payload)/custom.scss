@@ -4333,7 +4333,7 @@ button.btn--style-primary,
       transition: color 0.12s;
 
       &:hover {
-        color: #b63a3a;
+        color: var(--b-ink);
       }
     }
 
@@ -4451,7 +4451,7 @@ button.btn--style-primary,
       transition: color 0.12s;
 
       &:hover {
-        color: #b63a3a;
+        color: var(--b-ink);
       }
     }
 
@@ -4669,58 +4669,120 @@ button.btn--style-primary,
   }
 
   .ed-fig {
-    margin: 24px 0;
-    padding: 14px;
-    background: var(--b-bg);
-    border: 1px dashed var(--b-rule);
+    position: relative;
+    margin: 18px 0;
 
-    &__upload {
-      margin-bottom: 8px;
+    // Preview compact (toujours visible) : trigger qui ouvre le
+    // popover d'édition. Comportement calqué sur les decorator inline
+    // (ed-fn / ed-bi) — pas de mur d'inputs visible en permanence.
+    &__preview {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--b-bg);
+      border: 1px dashed var(--b-rule);
+      cursor: pointer;
+      text-align: left;
+      font-family: var(--font-sans);
+      transition: border-color 0.12s, background 0.12s;
+
+      &:hover {
+        border-color: var(--b-accent);
+        background: var(--b-accent-tint);
+      }
+
+      &--empty {
+        justify-content: center;
+        font-style: italic;
+      }
+    }
+    &__preview-thumb {
+      flex: 0 0 auto;
+      width: 56px;
+      height: 56px;
+      object-fit: cover;
+      background: var(--b-paper);
+      border: 1px solid var(--b-rule);
+    }
+    &__preview-meta {
+      flex: 1;
+      min-width: 0;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 2px;
+    }
+    &__preview-name {
+      font-size: 12px;
+      color: var(--b-ink);
+      font-family: var(--font-mono);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    &__preview-cap {
+      font-size: 12.5px;
+      font-family: var(--font-serif);
+      color: var(--b-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    &__preview-empty-label {
+      font-size: 12.5px;
+      color: var(--b-muted);
+    }
 
-      .lbl {
-        font-size: 10.5px;
-        font-weight: 600;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--b-muted);
-        // Le label est dans un decorator node Lexical (contentEditable
-        // false) mais cliquer dessus faisait apparaître un caret comme
-        // si on pouvait éditer. user-select: none + cursor: default
-        // pour clarifier que c'est un label, pas du texte.
-        user-select: none;
-        cursor: default;
-      }
+    // Popover d'édition (caché par défaut, ouvert au clic sur le
+    // preview). Position absolute juste sous le preview en desktop ;
+    // en mobile, fixed centré horizontalement (cf. .ed-fn / .ed-bi).
+    &__pop {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      margin-top: 4px;
+      background: var(--b-paper);
+      border: 1px solid var(--b-accent);
+      padding: 12px;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--b-ink);
 
-      input {
-        padding: 6px 8px;
-        background: var(--b-paper);
-        border: 1px solid var(--b-rule);
-        font-family: var(--font-mono);
-        font-size: 12px;
-        color: var(--b-ink);
-
-        &:focus {
-          outline: none;
-          border-color: var(--b-accent);
-        }
-      }
-
-      img {
-        max-width: 100%;
-        max-height: 280px;
-        margin-top: 8px;
-        background: var(--b-paper);
-        border: 1px solid var(--b-rule);
+      @include mobile {
+        position: fixed;
+        top: 50%;
+        left: 24px;
+        right: 24px;
+        transform: translateY(-50%);
+        max-height: 70vh;
+        overflow-y: auto;
+        margin-top: 0;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
       }
     }
 
-    // Header du picker : label « MÉDIA » à gauche, bouton × pour
-    // supprimer le block figure à droite. Flex space-between pour
-    // garder l'icône collée au bord droit.
-    &__upload-h {
+    // Label commun (« FIGURE ») dans le header du popover, pas
+    // sélectionnable (cf. .ed-fn .lbl).
+    .lbl {
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--b-muted);
+      user-select: none;
+      cursor: default;
+    }
+
+    // Header du popover : label « FIGURE » à gauche + bouton × à
+    // droite pour FERMER le popover (PAS supprimer le node).
+    &__pop-h {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -4739,7 +4801,7 @@ button.btn--style-primary,
       transition: color 0.12s;
 
       &:hover {
-        color: #b63a3a;
+        color: var(--b-ink);
       }
     }
 

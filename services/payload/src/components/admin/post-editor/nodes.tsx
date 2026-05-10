@@ -125,7 +125,6 @@ function FootnoteRenderer({
   fields: FootnoteFields;
 }) {
   const [local, patch] = useNodeFields<FootnoteFields>(nodeKey, fields);
-  const [editor] = useLexicalComposerContext();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
   const anchorRef = useRef<HTMLSpanElement>(null);
@@ -151,14 +150,11 @@ function FootnoteRenderer({
     setOpen((o) => !o);
   }
 
-  // Supprime entièrement la note de bas de page (le node inline du
-  // document). Le tag [fn] disparaît du texte ; les notes ci-dessous
-  // sont automatiquement renumérotées au prochain render.
-  function removeFootnote() {
-    editor.update(() => {
-      const node = $getNodeByKey(nodeKey);
-      if (node) node.remove();
-    });
+  // Le × du popover ferme juste l'éditeur — la note reste dans le
+  // document. Pour supprimer la note, il faut effacer le tag [fn]
+  // dans le texte (Backspace) ou cliquer × dans le panneau Notes
+  // de bas de page en pied de billet.
+  function closePopover() {
     setOpen(false);
   }
 
@@ -193,9 +189,9 @@ function FootnoteRenderer({
             <button
               type="button"
               className="ed-fn__close"
-              onClick={removeFootnote}
-              aria-label="Supprimer cette note de bas de page"
-              title="Supprimer cette note"
+              onClick={closePopover}
+              aria-label="Fermer"
+              title="Fermer"
             >
               ×
             </button>
@@ -220,7 +216,6 @@ function BiblioInlineRenderer({
   fields: BiblioInlineFields;
 }) {
   const [local, patch] = useNodeFields<BiblioInlineFields>(nodeKey, fields);
-  const [editor] = useLexicalComposerContext();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef<HTMLSpanElement>(null);
@@ -281,15 +276,10 @@ function BiblioInlineRenderer({
     setSearch('');
   }
 
-  // Supprime entièrement la citation biblio inline du document.
-  // Le tag (Auteur, an) disparaît du texte ; la référence biblio
-  // reste dans la collection (on supprime juste la citation, pas
-  // l'entrée biblio elle-même).
-  function removeBiblioInline() {
-    editor.update(() => {
-      const node = $getNodeByKey(nodeKey);
-      if (node) node.remove();
-    });
+  // Le × du popover ferme juste l'éditeur — la citation reste dans
+  // le document. Pour la supprimer, effacer le tag (Auteur, an) dans
+  // le texte (Backspace).
+  function closePopover() {
     setOpen(false);
   }
 
@@ -324,9 +314,9 @@ function BiblioInlineRenderer({
             <button
               type="button"
               className="ed-bi__close"
-              onClick={removeBiblioInline}
-              aria-label="Supprimer cette citation biblio"
-              title="Supprimer cette citation"
+              onClick={closePopover}
+              aria-label="Fermer"
+              title="Fermer"
             >
               ×
             </button>
@@ -480,22 +470,24 @@ function FigureRenderer({
   fields: FigureFields;
 }) {
   const [local, patch] = useNodeFields<FigureFields>(nodeKey, fields);
-  const [editor] = useLexicalComposerContext();
   const mediaOptions = useMediaOptions();
+  const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const ref = useRef<HTMLElement>(null);
 
   const selected = local.image
     ? mediaOptions.find((m) => String(m.id) === String(local.image))
     : null;
 
-  // Supprime le block figure entièrement du document (pas juste le
-  // média à l'intérieur). Utilisé par le × en haut à droite du picker.
-  function removeFigure() {
-    editor.update(() => {
-      const node = $getNodeByKey(nodeKey);
-      if (node) node.remove();
-    });
-  }
+  // Click outside ferme le popover (idem ed-fn / ed-bi).
+  useEffect(() => {
+    function onDoc(e: MouseEvent) {
+      if (!ref.current) return;
+      if (!ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
 
   // Filtrage live sur filename + alt + title (insensible à la casse).
   // Cap à 30 résultats pour ne pas dérouler à l'infini quand la
@@ -521,113 +513,156 @@ function FigureRenderer({
     setSearch('');
   }
 
+  function closePopover() {
+    setOpen(false);
+  }
+
   return (
-    <figure className="ed-fig" contentEditable={false}>
-      <div className="ed-fig__upload">
-        <div className="ed-fig__upload-h">
-          <span className="lbl">Média</span>
-          <button
-            type="button"
-            className="ed-fig__close"
-            onClick={removeFigure}
-            aria-label="Supprimer ce block figure"
-            title="Supprimer ce block"
-          >
-            ×
-          </button>
-        </div>
+    <figure ref={ref} className="ed-fig" contentEditable={false}>
+      {/* Preview compact toujours visible : thumbnail + légende ou
+          placeholder. Click → ouvre le popover d'édition. Comportement
+          calqué sur les decorator inline (ed-fn / ed-bi) : tag
+          discret, popover au clic. */}
+      <button
+        type="button"
+        className={`ed-fig__preview${selected ? '' : ' ed-fig__preview--empty'}`}
+        onClick={() => setOpen((o) => !o)}
+        aria-label={selected ? 'Modifier la figure' : 'Choisir un média'}
+      >
         {selected ? (
-          <div className="ed-fig__selected">
+          <>
             <img
-              className="ed-fig__selected-thumb"
+              className="ed-fig__preview-thumb"
               src={selected.thumbnailURL || selected.url || `/cms/api/media/${selected.id}`}
               alt={selected.alt ?? ''}
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).style.display = 'none';
               }}
             />
-            <span className="ed-fig__selected-meta">
-              <span className="ed-fig__selected-name">{mediaPrimaryLabel(selected)}</span>
-              {formatMediaMeta(selected) && (
-                <span className="ed-fig__selected-alt">{formatMediaMeta(selected)}</span>
+            <span className="ed-fig__preview-meta">
+              <span className="ed-fig__preview-name">{mediaPrimaryLabel(selected)}</span>
+              {local.legende && (
+                <span className="ed-fig__preview-cap">{local.legende}</span>
               )}
             </span>
+          </>
+        ) : (
+          <span className="ed-fig__preview-empty-label">
+            Figure — cliquer pour choisir un média
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div className="ed-fig__pop">
+          <div className="ed-fig__pop-h">
+            <span className="lbl">Figure</span>
             <button
               type="button"
-              className="ed-fig__selected-clear"
-              onClick={clearMedia}
-              aria-label="Retirer le média"
-              title="Retirer"
+              className="ed-fig__close"
+              onClick={closePopover}
+              aria-label="Fermer"
+              title="Fermer"
             >
               ×
             </button>
           </div>
-        ) : (
-          <>
-            <input
-              type="text"
-              className="ed-fig__search"
-              value={search}
-              placeholder="Rechercher un média (titre, alt, nom)…"
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            {search.trim() && (
-              <div className="ed-fig__results">
-                {filtered.length === 0 ? (
-                  <span className="ed-fig__empty">Aucun média trouvé.</span>
-                ) : (
-                  filtered.map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      className="ed-fig__result"
-                      onClick={() => pickMedia(m.id)}
-                    >
-                      <img
-                        className="ed-fig__result-thumb"
-                        src={m.thumbnailURL || m.url || `/cms/api/media/${m.id}`}
-                        alt={m.alt ?? ''}
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                      <span className="ed-fig__result-meta">
-                        <span className="ed-fig__result-name">{mediaPrimaryLabel(m)}</span>
-                        {formatMediaMeta(m) && (
-                          <span className="ed-fig__result-alt">{formatMediaMeta(m)}</span>
-                        )}
-                      </span>
-                    </button>
-                  ))
+
+          {/* Picker média : sélectionné = chip avec ×, sinon search */}
+          {selected ? (
+            <div className="ed-fig__selected">
+              <img
+                className="ed-fig__selected-thumb"
+                src={selected.thumbnailURL || selected.url || `/cms/api/media/${selected.id}`}
+                alt={selected.alt ?? ''}
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                }}
+              />
+              <span className="ed-fig__selected-meta">
+                <span className="ed-fig__selected-name">{mediaPrimaryLabel(selected)}</span>
+                {formatMediaMeta(selected) && (
+                  <span className="ed-fig__selected-alt">{formatMediaMeta(selected)}</span>
                 )}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-      <textarea
-        className="ed-fig__cap"
-        rows={2}
-        value={local.legende ?? ''}
-        placeholder="Légende…"
-        onChange={(e) => patch({ legende: e.target.value })}
-      />
-      <input
-        className="ed-fig__credit"
-        type="text"
-        value={local.credit ?? ''}
-        placeholder="Crédit / source"
-        onChange={(e) => patch({ credit: e.target.value })}
-      />
-      <select
-        className="ed-fig__align"
-        value={local.align ?? 'left'}
-        onChange={(e) => patch({ align: e.target.value as FigureFields['align'] })}
-      >
-        <option value="left">Largeur du corps</option>
-        <option value="center">Centré</option>
-        <option value="wide">Pleine largeur</option>
-      </select>
+              </span>
+              <button
+                type="button"
+                className="ed-fig__selected-clear"
+                onClick={clearMedia}
+                aria-label="Retirer le média"
+                title="Retirer"
+              >
+                ×
+              </button>
+            </div>
+          ) : (
+            <>
+              <input
+                type="text"
+                className="ed-fig__search"
+                value={search}
+                placeholder="Rechercher un média (titre, alt, nom)…"
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              {search.trim() && (
+                <div className="ed-fig__results">
+                  {filtered.length === 0 ? (
+                    <span className="ed-fig__empty">Aucun média trouvé.</span>
+                  ) : (
+                    filtered.map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        className="ed-fig__result"
+                        onClick={() => pickMedia(m.id)}
+                      >
+                        <img
+                          className="ed-fig__result-thumb"
+                          src={m.thumbnailURL || m.url || `/cms/api/media/${m.id}`}
+                          alt={m.alt ?? ''}
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                        <span className="ed-fig__result-meta">
+                          <span className="ed-fig__result-name">{mediaPrimaryLabel(m)}</span>
+                          {formatMediaMeta(m) && (
+                            <span className="ed-fig__result-alt">{formatMediaMeta(m)}</span>
+                          )}
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </>
+          )}
+
+          <textarea
+            className="ed-fig__cap"
+            rows={2}
+            value={local.legende ?? ''}
+            placeholder="Légende…"
+            onChange={(e) => patch({ legende: e.target.value })}
+          />
+          <input
+            className="ed-fig__credit"
+            type="text"
+            value={local.credit ?? ''}
+            placeholder="Crédit / source"
+            onChange={(e) => patch({ credit: e.target.value })}
+          />
+          <select
+            className="ed-fig__align"
+            value={local.align ?? 'left'}
+            onChange={(e) => patch({ align: e.target.value as FigureFields['align'] })}
+          >
+            <option value="left">Largeur du corps</option>
+            <option value="center">Centré</option>
+            <option value="wide">Pleine largeur</option>
+          </select>
+        </div>
+      )}
     </figure>
   );
 }
