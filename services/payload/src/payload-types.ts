@@ -482,9 +482,9 @@ export interface Page {
 export interface Media {
   id: number;
   /**
-   * Optionnel. Si vide à la sauvegarde, le texte alternatif est utilisé.
+   * Affiché en légende ou en infobulle selon le contexte.
    */
-  title?: string | null;
+  title: string;
   alt: string;
   updatedAt: string;
   createdAt: string;

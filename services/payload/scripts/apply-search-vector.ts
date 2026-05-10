@@ -1,17 +1,19 @@
 /**
- * Script one-shot — applique uniquement la migration search_vector
- * sur le dev DB, sans passer par `payload migrate`.
+ * Script one-shot — backfill de la colonne `posts.search_vector`
+ * pour le dev DB.
  *
- * Pourquoi : en dev `push: true` synchronise le schéma à chaque boot
- * Payload, mais ne touche pas la table `payload_migrations`. Quand
- * on lance `pnpm migrate`, Payload voit aucune migration appliquée
- * et tente de rejouer la première (initial_schema) → plante sur
- * « type enum_posts_type already exists ».
+ * Pourquoi : en dev `push: true` crée la colonne via le hook
+ * afterSchemaInit (Drizzle), mais aucune migration ne tourne — donc
+ * pas de backfill automatique des billets pré-existants. Sans
+ * backfill, leur tsvector reste NULL et ils n'apparaissent jamais
+ * dans la recherche.
  *
- * Plutôt que de marquer les 9 migrations comme appliquées à la main,
- * on appelle juste l'`up` de la migration search_vector qui est
- * idempotent (IF NOT EXISTS sur la colonne et l'index, backfill
- * sur tous les billets). Sûr à relancer.
+ * Le script appelle directement la fonction `up` de la migration
+ * de backfill, qui parcourt tous les billets via la local API et
+ * écrit leur tsvector. Idempotent — sûr à relancer.
+ *
+ * En prod, ce script n'est PAS nécessaire : la migration tourne
+ * automatiquement au boot du container via `payload migrate`.
  *
  * Usage : pnpm apply:search-vector
  */
@@ -20,7 +22,7 @@ import 'dotenv/config';
 import { getPayload } from 'payload';
 
 import config from '../src/payload.config';
-import { up } from '../src/migrations/20260510_170000_posts_search_vector';
+import { up } from '../src/migrations/20260510_180000_posts_search_vector_backfill';
 
 async function main(): Promise<void> {
   const payload = await getPayload({ config });

@@ -1,17 +1,20 @@
 /**
- * Recherche fulltext sur les billets — ajout de la colonne tsvector
- * `search_vector` sur `posts` + index GIN pour des queries rapides
- * (`@@` opérateur). Backfill du tsvector pour les billets déjà
- * existants.
+ * Backfill de la colonne `posts.search_vector` (FTS Postgres) pour
+ * tous les billets existants au moment de l'application.
  *
- * La colonne est mise à jour à chaque save par un hook Payload
- * (services/payload/src/hooks/update-post-search-vector.ts), pas par
- * un trigger SQL — extraire le texte d'un body Lexical (jsonb) en
- * pl/pgsql serait ingérable.
+ * Migration séparée de la création de la colonne (cf migration auto-
+ * générée par le pre-commit hook qui tourne juste avant celle-ci) :
+ *  - La création column+index est purement structurelle, gérée par
+ *    Drizzle via le schéma déclaré (afterSchemaInit) + auto-gen.
+ *  - Le backfill nécessite la local API Payload pour résoudre les
+ *    relations (themes, tags, authors) — pas exprimable en SQL pur,
+ *    donc dans une migration manuelle.
  *
- * Cf collections/Posts.ts pour le câblage du hook,
- * lib/post-search-vector.ts pour la pondération, et
- * endpoints/posts-search.ts pour la query côté lecture.
+ * Idempotent : on UPDATE row par row. Si la migration est rejouée
+ * (rare en prod), le tsvector est juste recalculé à l'identique.
+ *
+ * Pattern aligné sur la migration 20260508_214735_backfill (qui fait
+ * un backfill similaire pour zoteroKey / source des biblio).
  */
 
 import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-postgres';
@@ -19,27 +22,6 @@ import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-postgres';
 import { buildPostSearchVectorSQL } from '../lib/post-search-vector';
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
-  // 1) Colonne tsvector. NULL accepté pour ne pas bloquer l'add column
-  //    sur une table peuplée ; le backfill ci-dessous remplit toutes
-  //    les rows existantes, et le hook Payload garantit ensuite que
-  //    chaque save écrit la valeur.
-  await db.execute(sql`
-    ALTER TABLE "posts" ADD COLUMN IF NOT EXISTS "search_vector" tsvector;
-  `);
-
-  // 2) Index GIN — l'index spécialisé pour tsvector. Sans lui, le
-  //    `WHERE search_vector @@ ...` fait un seq scan ; avec, c'est
-  //    quasi instantané même à plusieurs dizaines de milliers de rows.
-  await db.execute(sql`
-    CREATE INDEX IF NOT EXISTS "posts_search_vector_idx"
-      ON "posts" USING GIN ("search_vector");
-  `);
-
-  // 3) Backfill : on parcourt tous les billets via la local API Payload
-  //    pour récupérer les relations (themes, tags, authors) résolues,
-  //    on calcule le tsvector via le même module que le hook, puis on
-  //    UPDATE row par row. La taille du corpus reste petite (centaines
-  //    de billets max), donc pas besoin de batching.
   const all = await payload.find({
     collection: 'posts',
     limit: 5000,
@@ -93,6 +75,8 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
 }
 
 export async function down({ db }: MigrateDownArgs): Promise<void> {
-  await db.execute(sql`DROP INDEX IF EXISTS "posts_search_vector_idx";`);
-  await db.execute(sql`ALTER TABLE "posts" DROP COLUMN IF EXISTS "search_vector";`);
+  // Le down ne défait pas le backfill — il met juste les vecteurs
+  // à NULL au cas où (cohérent avec un down qui rollback la migration
+  // de schéma juste avant, qui dropera la colonne de toute façon).
+  await db.execute(sql`UPDATE "posts" SET "search_vector" = NULL`);
 }
