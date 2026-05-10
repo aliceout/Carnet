@@ -1721,12 +1721,17 @@ button.btn--style-primary,
   //   Prénom    Année    Titre du livre qui peut wrapper      Éditeur / Revue
   //     Nom              sur deux lignes
   //
-  // Implémentation : 4 colonnes auto / auto / 1fr / 1fr, 2 rangées.
+  // Implémentation : 4 colonnes avec largeurs FIXES sur col 1 et 2,
+  // pour que les positions soient identiques entre row head (« PRÉNOM /
+  // NOM » courts) et row data (« Buyantueva et al. » longs). Sans
+  // largeur fixe, chaque row a sa propre grille avec auto-sizing par
+  // ligne → les colonnes 2 et 3 ne s'alignent pas verticalement entre
+  // l'en-tête et les lignes de données.
   // Le bloc auteur occupe col 1 sur 2 rangées (Prénom row 1, Nom row 2).
   // Année / Titre / Éditeur spannent les 2 rangées (alignés au centre).
   @include tablet-only {
     &--biblio &__row {
-      grid-template-columns: auto auto 1fr 1fr;
+      grid-template-columns: 170px 56px 1fr 1fr;
       grid-template-rows: auto auto;
       column-gap: 16px;
       row-gap: 2px;
