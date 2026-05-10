@@ -4765,8 +4765,21 @@ button.btn--style-primary,
 
     // Picker média : input de recherche + dropdown de résultats avec
     // thumbnail. Remplace le coller-l'id-Payload qui était inutilisable.
+    // Style aligné sur la barre de recherche du picker biblio
+    // (.ed-bi__pop input) — fond bg, mono, accent au focus.
     &__search {
       width: 100%;
+      padding: 6px 8px;
+      background: var(--b-bg);
+      border: 1px solid var(--b-rule);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--b-ink);
+
+      &:focus {
+        outline: none;
+        border-color: var(--b-accent);
+      }
     }
     &__results {
       display: flex;
