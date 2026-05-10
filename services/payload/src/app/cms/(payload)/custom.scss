@@ -1273,7 +1273,7 @@ button.btn--style-primary,
     }
 
     .status {
-      text-align: right;
+      text-align: center;
     }
 
     // Bouton × en bout de ligne — ouvre la modale de suppression. Le
@@ -1420,6 +1420,14 @@ button.btn--style-primary,
     &--themes &__row--head > *:nth-child(2) {
       display: none;
     }
+  }
+
+  // En-tête « Statut » (posts) centré, à toutes les tailles, pour
+  // matcher les chips .status (eux-mêmes centrés via text-align center
+  // sur la cellule data). Position :nth-last-child(2) — toujours juste
+  // avant la cell Actions, indépendamment du mode `--with-authors`.
+  &--posts &__row--head > *:nth-last-child(2) {
+    text-align: center;
   }
 
   // ─── Variante --tags ─────────────────────────────────────────
