@@ -176,6 +176,7 @@ function isActive(item: NavItem): boolean {
       flex-direction: column;
       gap: 12px;
       align-items: flex-start;
+      position: relative;
     }
     header.site.is-scrolled .row {
       padding-top: 14px;
@@ -184,6 +185,13 @@ function isActive(item: NavItem): boolean {
     header.site nav {
       gap: 18px;
       flex-wrap: wrap;
+    }
+    /* Sur mobile, le toggle sort du flux nav et se colle en haut à droite
+       du header, sur la même ligne visuelle que "Carnet.". */
+    header.site nav .theme-toggle {
+      position: absolute;
+      right: 24px;
+      top: 16px;
     }
   }
 </style>
