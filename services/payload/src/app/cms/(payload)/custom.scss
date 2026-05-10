@@ -1399,17 +1399,15 @@ button.btn--style-primary,
     color: var(--b-muted);
     text-align: right;
   }
-  @include tablet-sm {
-    &--themes &__row {
-      grid-template-columns: 1fr 80px;
-    }
-    &--themes &__row > .desc {
-      display: none;
-    }
-  }
+  // ≥ 901px : on garde les 3 colonnes (Nom + Description + Billets)
+  // — y compris en zone tablette (901-1440). Description cachée
+  // uniquement en vrai mobile (≤ 900) où elle bouffe trop de place.
   @include mobile {
     &--themes &__row {
       grid-template-columns: 1fr 60px;
+    }
+    &--themes &__row > .desc {
+      display: none;
     }
   }
 
@@ -5132,21 +5130,10 @@ button.btn--style-primary,
     display: none !important;
   }
 
-  // Table Themes mobile : ne montrer que Nom + Billets (compteur).
-  // La description (2e colonne) est masquée. La colonne Billets a son
-  // header aligné à droite pour matcher les valeurs `.count`.
-  .carnet-listview--themes .carnet-listview__row {
-    grid-template-columns: 1fr 80px !important;
-    gap: 12px !important;
-    padding-left: 12px !important;
-    padding-right: 12px !important;
-  }
-  .carnet-listview--themes .carnet-listview__row > *:nth-child(2) {
-    display: none !important;
-  }
-  .carnet-listview--themes .carnet-listview__row--head > *:nth-child(3) {
-    text-align: right;
-  }
+  // Table Themes ≤ 1440 : on conserve les 3 colonnes par défaut
+  // (Nom + Description + Billets) — la description tient encore en
+  // tablette. Hide / réduction à 2 colonnes uniquement en vrai mobile
+  // (cf. @include mobile dans .carnet-listview).
   .carnet-nav {
     display: flex !important;
     flex-direction: column;
