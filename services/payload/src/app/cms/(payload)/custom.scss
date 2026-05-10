@@ -1674,8 +1674,14 @@ button.btn--style-primary,
     &--users &__row {
       grid-template-columns: 1fr 110px 130px;
     }
+    // Hide cellules data (.name, .date) ET les en-têtes correspondantes
+    // (« Nom affiché » = nth-child(2), « Dernière connexion » = nth-child(5))
+    // sinon la row head garde 5 cells et wrap en 2 lignes alors que
+    // les data n'en ont plus que 3.
     &--users &__row > .name,
-    &--users &__row > .date {
+    &--users &__row > .date,
+    &--users &__row--head > *:nth-child(2),
+    &--users &__row--head > *:nth-child(5) {
       display: none;
     }
   }
