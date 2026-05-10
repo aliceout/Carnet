@@ -4026,7 +4026,11 @@ button.btn--style-primary,
   .ed-card {
     background: var(--b-paper);
     border: 1px solid var(--b-rule);
-    padding: 32px 36px 28px;
+    // Padding latéral aligné avec .fn-block / .bib-block en dessous
+    // (qui ont padding 20px L/R sur leurs __h et leurs items) — sinon
+    // le titre/corps sont indentés davantage que les items des blocks
+    // suivants, ça crée un décrochage visuel.
+    padding: 32px 20px 28px;
   }
 
   .ed-num {

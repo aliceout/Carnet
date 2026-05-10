@@ -393,6 +393,35 @@ function CitationBlocRenderer({
   );
 }
 
+// Format human-readable d'une taille fichier (octets → ko/Mo/Go).
+// Bornée à 1 décimale, suffixe court (Ko/Mo/Go) sans espace insécable
+// pour garder le label compact dans la liste de résultats du picker.
+function formatFileSize(bytes: number | null | undefined): string {
+  if (bytes == null || bytes <= 0) return '';
+  if (bytes < 1024) return `${bytes} o`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} ko`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} Mo`;
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(1)} Go`;
+}
+
+// Métadonnées affichées sous le titre dans le picker média : dimensions
+// si dispo (« 1920 × 1080 »), sinon taille du fichier (« 245 ko »),
+// sinon mime type, sinon vide.
+function formatMediaMeta(m: MediaEntry): string {
+  if (m.width && m.height) return `${m.width} × ${m.height}`;
+  const size = formatFileSize(m.filesize);
+  if (size) return size;
+  return m.mimeType ?? '';
+}
+
+// Label primaire affiché dans le picker : title du média, sinon alt
+// (qui est obligatoire côté schema), sinon filename en fallback.
+function mediaPrimaryLabel(m: MediaEntry): string {
+  if (m.title?.trim()) return m.title.trim();
+  if (m.alt?.trim()) return m.alt.trim();
+  return m.filename ?? '—';
+}
+
 function FigureRenderer({
   nodeKey,
   fields,
@@ -447,9 +476,9 @@ function FigureRenderer({
               }}
             />
             <span className="ed-fig__selected-meta">
-              <span className="ed-fig__selected-name">{selected.filename || '—'}</span>
-              {selected.alt && (
-                <span className="ed-fig__selected-alt">{selected.alt}</span>
+              <span className="ed-fig__selected-name">{mediaPrimaryLabel(selected)}</span>
+              {formatMediaMeta(selected) && (
+                <span className="ed-fig__selected-alt">{formatMediaMeta(selected)}</span>
               )}
             </span>
             <button
@@ -468,7 +497,7 @@ function FigureRenderer({
               type="text"
               className="ed-fig__search"
               value={search}
-              placeholder="Rechercher un média (nom, alt)…"
+              placeholder="Rechercher un média (titre, alt, nom)…"
               onChange={(e) => setSearch(e.target.value)}
             />
             {search.trim() && (
@@ -492,9 +521,9 @@ function FigureRenderer({
                         }}
                       />
                       <span className="ed-fig__result-meta">
-                        <span className="ed-fig__result-name">{m.filename || '—'}</span>
-                        {m.alt && (
-                          <span className="ed-fig__result-alt">{m.alt}</span>
+                        <span className="ed-fig__result-name">{mediaPrimaryLabel(m)}</span>
+                        {formatMediaMeta(m) && (
+                          <span className="ed-fig__result-alt">{formatMediaMeta(m)}</span>
                         )}
                       </span>
                     </button>

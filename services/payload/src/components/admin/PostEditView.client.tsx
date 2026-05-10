@@ -82,6 +82,9 @@ type MediaEntry = {
   url?: string | null;
   thumbnailURL?: string | null;
   mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
 };
 
 type Post = {

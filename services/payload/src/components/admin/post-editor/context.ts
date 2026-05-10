@@ -43,6 +43,9 @@ export type MediaEntry = {
   url?: string | null;
   thumbnailURL?: string | null;
   mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
 };
 
 export const MediaOptionsContext = React.createContext<MediaEntry[]>([]);
