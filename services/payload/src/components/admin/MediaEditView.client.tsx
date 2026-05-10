@@ -123,6 +123,13 @@ export default function MediaEditViewClient({
     setSaving(true);
     setError(null);
     try {
+      // Validation client : titre + alt obligatoires (cf. schema).
+      // Mieux qu'une 400 Payload générique pour l'utilisatrice.
+      const title = (data.title ?? '').trim();
+      const alt = (data.alt ?? '').trim();
+      if (!title) throw new Error('Le titre est obligatoire.');
+      if (!alt) throw new Error('Le texte alternatif (alt) est obligatoire.');
+
       let res: Response;
       if (!data.id) {
         // Création : multipart obligatoire (Payload upload). Le fichier
@@ -298,6 +305,49 @@ export default function MediaEditViewClient({
             )}
           </div>
 
+          {/* En création, la section Description est posée AVANT le
+              fichier — l'autrice écrit d'abord ce que le média
+              représente, puis upload. Les deux champs sont obligatoires
+              (cf. schema collections/Media.ts).
+              En édition (data.id != null), Titre + Alt vivent dans le
+              side panel de la section Fichier (cf .carnet-media-preview
+              ci-dessous), car la prévisualisation est plus pertinente
+              en haut. */}
+          {!data.id && (
+            <section className="carnet-editview__section">
+              <h2 className="carnet-editview__section-title">Description</h2>
+
+              <label className="carnet-editview__field">
+                <span className="lbl">Titre</span>
+                <input
+                  type="text"
+                  required
+                  value={data.title ?? ''}
+                  onChange={(e) => patch('title', e.target.value)}
+                  placeholder="Titre du média…"
+                />
+                <span className="hint">
+                  Affiché en légende ou en infobulle selon le contexte.
+                </span>
+              </label>
+
+              <label className="carnet-editview__field">
+                <span className="lbl">Texte alternatif (alt)</span>
+                <input
+                  type="text"
+                  required
+                  value={data.alt ?? ''}
+                  onChange={(e) => patch('alt', e.target.value)}
+                  placeholder="Décrivez l'image pour les lecteurs d'écran et le SEO."
+                />
+                <span className="hint">
+                  Obligatoire — exigence d'accessibilité (WCAG 2.2). Décrivez
+                  <em> ce qu'on voit</em>, pas le contexte du billet.
+                </span>
+              </label>
+            </section>
+          )}
+
           <section className="carnet-editview__section">
             <h2 className="carnet-editview__section-title">Fichier</h2>
 
@@ -322,14 +372,13 @@ export default function MediaEditViewClient({
                     <span className="lbl">Titre</span>
                     <input
                       type="text"
+                      required
                       value={data.title ?? ''}
                       onChange={(e) => patch('title', e.target.value)}
-                      placeholder="Optionnel — vide = utilise le texte alternatif."
+                      placeholder="Titre du média…"
                     />
                     <span className="hint">
-                      Affiché en légende ou en infobulle selon le contexte. Si
-                      laissé vide, le texte alternatif est utilisé à la
-                      sauvegarde.
+                      Affiché en légende ou en infobulle selon le contexte.
                     </span>
                   </label>
 
@@ -337,6 +386,7 @@ export default function MediaEditViewClient({
                     <span className="lbl">Texte alternatif (alt)</span>
                     <input
                       type="text"
+                      required
                       value={data.alt ?? ''}
                       onChange={(e) => patch('alt', e.target.value)}
                       placeholder="Décrivez l'image pour les lecteurs d'écran et le SEO."
@@ -422,45 +472,6 @@ export default function MediaEditViewClient({
               </div>
             )}
           </section>
-
-          {/* En création, les champs Titre + Alt vivent ici (la zone de
-              drop n'a pas de side panel). En édition, ils sont dans le
-              side panel à droite de l'aperçu — voir .carnet-media-preview
-              ci-dessus. */}
-          {!data.id && (
-            <section className="carnet-editview__section">
-              <h2 className="carnet-editview__section-title">Description</h2>
-
-              <label className="carnet-editview__field">
-                <span className="lbl">Titre</span>
-                <input
-                  type="text"
-                  value={data.title ?? ''}
-                  onChange={(e) => patch('title', e.target.value)}
-                  placeholder="Optionnel — vide = utilise le texte alternatif."
-                />
-                <span className="hint">
-                  Affiché en légende ou en infobulle selon le contexte. Si
-                  laissé vide, le texte alternatif est utilisé à la
-                  sauvegarde.
-                </span>
-              </label>
-
-              <label className="carnet-editview__field">
-                <span className="lbl">Texte alternatif (alt)</span>
-                <input
-                  type="text"
-                  value={data.alt ?? ''}
-                  onChange={(e) => patch('alt', e.target.value)}
-                  placeholder="Décrivez l'image pour les lecteurs d'écran et le SEO."
-                />
-                <span className="hint">
-                  Obligatoire — exigence d'accessibilité (WCAG 2.2). Décrivez
-                  <em> ce qu'on voit</em>, pas le contexte du billet.
-                </span>
-              </label>
-            </section>
-          )}
         </form>
       )}
 

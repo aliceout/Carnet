@@ -32,24 +32,11 @@ export const Media: CollectionConfig = {
     {
       name: 'title',
       type: 'text',
-      required: false,
+      required: true,
       label: 'Titre',
       admin: {
         description:
-          'Optionnel. Si vide à la sauvegarde, le texte alternatif est utilisé.',
-      },
-      hooks: {
-        // Fallback : si l'autrice laisse le titre vide, on retombe sur
-        // alt à la sauvegarde. Évite d'avoir à saisir deux fois la même
-        // chose dans les cas simples (légende = description).
-        beforeChange: [
-          ({ value, data }) => {
-            const v = typeof value === 'string' ? value.trim() : '';
-            if (v) return value;
-            const alt = typeof data?.alt === 'string' ? data.alt.trim() : '';
-            return alt || value;
-          },
-        ],
+          'Affiché en légende ou en infobulle selon le contexte.',
       },
     },
     {
