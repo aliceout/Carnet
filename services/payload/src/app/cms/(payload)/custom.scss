@@ -1589,6 +1589,10 @@ button.btn--style-primary,
   // ─── Variante --media ────────────────────────────────────────
   &--media &__row {
     grid-template-columns: 60px 1fr 90px 90px 110px;
+    // Override align-items: baseline (défini sur __row par défaut)
+    // pour que la thumb 44×44 et le texte des autres cells (filename,
+    // type, size, date) soient alignés verticalement au centre du row.
+    align-items: center;
   }
   &--media &__row .thumb {
     width: 44px;
