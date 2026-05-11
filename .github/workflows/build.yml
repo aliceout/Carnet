@@ -55,8 +55,13 @@ jobs:
           node-version: 24
           cache: pnpm
 
-      - name: Install dependencies
+      # Le monorepo n'utilise pas pnpm workspaces — services/payload a
+      # son propre package.json + lockfile. On installe les deux côtés.
+      - name: Install root dependencies (Astro)
         run: pnpm install --frozen-lockfile
+
+      - name: Install backend dependencies (Payload)
+        run: pnpm --dir services/payload install --frozen-lockfile
 
       - name: Lint frontend (Astro)
         run: pnpm lint
