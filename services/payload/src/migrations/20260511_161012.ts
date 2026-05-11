@@ -87,7 +87,12 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "site_nav_footer" DISABLE ROW LEVEL SECURITY;
   DROP TABLE "site_nav_footer" CASCADE;
   ALTER TABLE "posts" ADD COLUMN "notifications_sent_at" timestamp(3) with time zone;
-  ALTER TABLE "posts" ADD COLUMN "search_vector" "tsvector";
+  -- search_vector + index posts_search_vector_idx déjà créés par
+  -- 20260510_175000_posts_search_vector (avec IF NOT EXISTS). L'auto-
+  -- generator les a re-listés ici parce qu'il scanne le schéma final,
+  -- sans connaître l'historique. On garde des no-ops idempotents pour
+  -- ne pas casser un environnement où seul l'auto-gen aurait tourné.
+  ALTER TABLE "posts" ADD COLUMN IF NOT EXISTS "search_vector" "tsvector";
   ALTER TABLE "payload_locked_documents_rels" ADD COLUMN "subscribers_id" integer;
   ALTER TABLE "navigation_blocks_nav_item" ADD CONSTRAINT "navigation_blocks_nav_item_page_id_pages_id_fk" FOREIGN KEY ("page_id") REFERENCES "public"."pages"("id") ON DELETE set null ON UPDATE no action;
   ALTER TABLE "navigation_blocks_nav_item" ADD CONSTRAINT "navigation_blocks_nav_item_parent_id_fk" FOREIGN KEY ("_parent_id") REFERENCES "public"."navigation"("id") ON DELETE cascade ON UPDATE no action;
@@ -102,7 +107,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE INDEX "navigation_nav_footer_order_idx" ON "navigation_nav_footer" USING btree ("_order");
   CREATE INDEX "navigation_nav_footer_parent_id_idx" ON "navigation_nav_footer" USING btree ("_parent_id");
   ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_subscribers_fk" FOREIGN KEY ("subscribers_id") REFERENCES "public"."subscribers"("id") ON DELETE cascade ON UPDATE no action;
-  CREATE INDEX "posts_search_vector_idx" ON "posts" USING gin ("search_vector");
+  CREATE INDEX IF NOT EXISTS "posts_search_vector_idx" ON "posts" USING gin ("search_vector");
   CREATE INDEX "payload_locked_documents_rels_subscribers_id_idx" ON "payload_locked_documents_rels" USING btree ("subscribers_id");
   ALTER TABLE "site" DROP COLUMN "identity_author_name";
   ALTER TABLE "site" DROP COLUMN "home_hero_title";
