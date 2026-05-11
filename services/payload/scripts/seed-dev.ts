@@ -470,13 +470,20 @@ const ABOUT_PAGE = {
   ] as Array<{ kind: 'prose'; titre: string; paragraphs: BodyNode[] }>,
 };
 
-const SITE_GLOBAL = {
-  identity: {
-    authorName: 'Michel Rose',
-  },
+// Globals seedés. Le global Site n'héberge plus que branding +
+// reading (cf split Identity / Navigation / Subscriptions / IndexPages
+// dans commit 8e0f417). On seede chaque global avec ses defaults
+// de démo plutôt que de chercher à reconstruire l'ancien SITE_GLOBAL.
+
+const IDENTITY_GLOBAL = {
+  siteName: 'Carnet',
+  authorName: 'Michel Rose',
   baseline:
     'Carnet de recherche de Michel Rose. Genre, géopolitique, droits LGBTQI+, humanitaire, migrations. Auto-hébergé. Sans pisteur.',
   copyrightLine: 'carnet.example.com · CC BY-NC-SA 4.0',
+};
+
+const NAVIGATION_GLOBAL = {
   navFooter: [
     { label: 'Thèmes', href: '/themes/', external: false },
     { label: 'Archives', href: '/archives/', external: false },
@@ -755,13 +762,22 @@ async function main() {
     console.log(`[seed-dev] +page ${ABOUT_PAGE.slug} (${proseSections.length} sections)`);
   }
 
-  // 5. Global Site
+  // 5. Globals Identity + Navigation (cf split commit 8e0f417). Site
+  // garde ses defaults branding + reading auto-posés à la première
+  // lecture, idem pour Subscriptions et IndexPages — pas besoin de
+  // seed explicite pour ceux-là en dev.
   await payload.updateGlobal({
-    slug: 'site',
-    data: SITE_GLOBAL,
+    slug: 'identity',
+    data: IDENTITY_GLOBAL,
     overrideAccess: true,
   });
-  console.log('[seed-dev] +global site');
+  console.log('[seed-dev] +global identity');
+  await payload.updateGlobal({
+    slug: 'navigation',
+    data: NAVIGATION_GLOBAL,
+    overrideAccess: true,
+  });
+  console.log('[seed-dev] +global navigation');
 
   console.log('[seed-dev] done.');
   process.exit(0);
