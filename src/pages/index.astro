@@ -14,7 +14,7 @@
 import Layout from '../layouts/Layout.astro';
 import Hero from '../components/Hero.astro';
 import PostCard from '../components/PostCard.astro';
-import { fetchCollection, fetchSite, filterPublished } from '../lib/payload';
+import { fetchCollection, fetchIndexPages, filterPublished } from '../lib/payload';
 import { formatHeroLede, formatHeroTitle } from '../lib/site';
 
 type Theme = { id: number | string; slug: string; name: string };
@@ -32,7 +32,7 @@ type Post = {
   draft?: boolean;
 };
 
-type SiteGlobal = {
+type IndexPagesGlobal = {
   home?: {
     heroTitle?: string;
     heroLede?: string;
@@ -45,7 +45,7 @@ const DEFAULT_HERO_LEDE =
   'Analyses longues, notes de lecture et fiches thématiques sur le genre, la géopolitique et les droits LGBTQI+ dans les rapports internationaux. Principalement en français.';
 
 let posts: Post[] = [];
-let site: SiteGlobal = {};
+let indexPages: IndexPagesGlobal = {};
 try {
   const raw = await fetchCollection<Post>('posts', {
     sort: '-publishedAt',
@@ -57,18 +57,18 @@ try {
   console.warn('[home] fetch failed, rendering empty:', (err as Error).message);
 }
 try {
-  site = await fetchSite<SiteGlobal>();
+  indexPages = await fetchIndexPages<IndexPagesGlobal>();
 } catch (err) {
-  console.warn('[home] fetchSite failed, using defaults:', (err as Error).message);
+  console.warn('[home] fetchIndexPages failed, using defaults:', (err as Error).message);
 }
 
 const total = posts.length;
 
 const heroTitleHtml = formatHeroTitle(
-  site.home?.heroTitle?.trim() || DEFAULT_HERO_TITLE,
+  indexPages.home?.heroTitle?.trim() || DEFAULT_HERO_TITLE,
 );
 const heroLedeHtml = formatHeroLede(
-  site.home?.heroLede?.trim() || DEFAULT_HERO_LEDE,
+  indexPages.home?.heroLede?.trim() || DEFAULT_HERO_LEDE,
 );
 
 // Top thèmes utilisés (pour la barre de filtres) — max 6 chips après "Tous"

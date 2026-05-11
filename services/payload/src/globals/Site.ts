@@ -1,25 +1,27 @@
 import type { GlobalConfig } from 'payload';
 
+import { isAdminOrRoot } from '../access/roles';
+
 /**
- * Réglages globaux du site — édités par l'autrice depuis l'admin.
+ * Options du carnet — branding visuel + réglages de lecture.
  *
- * Stocke les éléments éditoriaux qui changent rarement mais qui ne sont
- * pas du contenu : baseline, copyright, liens sociaux, etc. Le footer
- * Astro lit ces valeurs au SSR.
+ * L'identité (siteName, authorName, baseline, copyright) vit dans le
+ * global `Identity`, les profils sociaux dans `Social`, la nav dans
+ * `Navigation`, les hero des landings dans `IndexPages`.
+ *
+ * Le slug reste `site` pour des raisons de stabilité (URL admin, REST
+ * API, données existantes) — le label « Options » est purement
+ * cosmétique côté sidebar.
  */
 export const Site: GlobalConfig = {
   slug: 'site',
-  label: 'Paramètres du site',
+  label: 'Options',
   access: {
     read: () => true,
-    update: ({ req }) => Boolean(req.user),
+    update: isAdminOrRoot,
   },
   admin: {
     components: {
-      // Vue d'édition custom — remplace entièrement le rendu natif
-      // Payload pour /cms/admin/globals/site par le formulaire éditorial
-      // Carnet (header crumbs + sections + chips de statut). Même
-      // pattern que les list views custom (Posts/Themes/...).
       views: {
         edit: {
           root: {
@@ -30,24 +32,6 @@ export const Site: GlobalConfig = {
     },
   },
   fields: [
-    {
-      name: 'identity',
-      type: 'group',
-      label: 'Identité du carnet',
-      fields: [
-        {
-          name: 'authorName',
-          type: 'text',
-          required: false,
-          label: 'Nom complet',
-          defaultValue: '',
-          admin: {
-            description:
-              'Nom du laboratoire de recherche, de la personne, du collectif… selon l\'utilisation du carnet. Affiché en signature dans la baseline du footer et la description meta.',
-          },
-        },
-      ],
-    },
     {
       name: 'branding',
       type: 'group',
@@ -112,156 +96,6 @@ export const Site: GlobalConfig = {
               'Le mode classique empile les notes en bas du billet (style académique). Le mode en marge les place dans une colonne à droite, alignée sur le paragraphe qui les appelle (style « Tufte »). S\'applique uniformément à tous les billets du Carnet. Cf issue #6.',
           },
         },
-      ],
-    },
-    {
-      name: 'home',
-      type: 'group',
-      label: "Page d'accueil",
-      fields: [
-        {
-          name: 'heroTitle',
-          type: 'textarea',
-          required: false,
-          label: 'Titre du hero',
-          defaultValue: 'Notes de recherche',
-          admin: {
-            description:
-              'H1 de la page d\'accueil. Entourer une portion de "*" pour la mettre en italique.',
-          },
-        },
-        {
-          name: 'heroLede',
-          type: 'textarea',
-          required: false,
-          label: 'Texte de présentation (lede)',
-          defaultValue:
-            'Analyses longues, notes de lecture et fiches thématiques.',
-          admin: {
-            description: "Paragraphe sous le titre de la page d'accueil.",
-          },
-        },
-      ],
-    },
-    {
-      name: 'archives',
-      type: 'group',
-      label: 'Page Archives',
-      fields: [
-        {
-          name: 'heroTitle',
-          type: 'textarea',
-          required: false,
-          label: 'Titre du hero',
-          defaultValue: 'Tous les billets, par année.',
-          admin: {
-            description:
-              'H1 de la page /archives/. Entourer une portion de "*" pour la mettre en italique.',
-          },
-        },
-        {
-          name: 'heroLede',
-          type: 'textarea',
-          required: false,
-          label: 'Texte de présentation (lede)',
-          defaultValue:
-            'Le carnet est versionné : chaque billet a un numéro, une date de publication et, le cas échéant, une date de mise à jour. Les fiches thématiques sont régulièrement révisées.',
-          admin: {
-            description: 'Paragraphe sous le titre de /archives/.',
-          },
-        },
-      ],
-    },
-    {
-      name: 'themes',
-      type: 'group',
-      label: 'Page Thèmes',
-      fields: [
-        {
-          name: 'heroTitle',
-          type: 'textarea',
-          required: false,
-          label: 'Titre du hero',
-          defaultValue: 'Les *thèmes* du carnet.',
-          admin: {
-            description:
-              'H1 de la page /themes/. Entourer une portion de "*" pour la mettre en italique (ex. *thèmes*).',
-          },
-        },
-        {
-          name: 'heroLede',
-          type: 'textarea',
-          required: false,
-          label: 'Texte de présentation (lede)',
-          defaultValue:
-            'Chaque billet est rattaché à un ou plusieurs thèmes. La taxonomie est libre et évolue avec le carnet.',
-          admin: {
-            description: 'Paragraphe sous le titre de /themes/.',
-          },
-        },
-      ],
-    },
-    {
-      name: 'baseline',
-      type: 'textarea',
-      required: false,
-      label: 'Baseline',
-      defaultValue: 'Carnet de recherche. Auto-hébergé.',
-      admin: { description: 'Affichée dans le footer (col 1).' },
-    },
-    {
-      name: 'copyrightLine',
-      type: 'text',
-      required: false,
-      label: 'Ligne copyright',
-      defaultValue: 'CC BY-NC-SA 4.0',
-      admin: { description: 'Footer (col 1, sous la baseline, en mono).' },
-    },
-    {
-      name: 'social',
-      type: 'group',
-      label: 'Être suivi',
-      fields: [
-        {
-          name: 'mastodon',
-          type: 'text',
-          required: false,
-          admin: { description: 'URL complète du profil Mastodon.' },
-        },
-        {
-          name: 'bluesky',
-          type: 'text',
-          required: false,
-          admin: { description: 'URL complète du profil Bluesky.' },
-        },
-        {
-          name: 'orcid',
-          type: 'text',
-          required: false,
-          admin: { description: 'URL complète du profil ORCID.' },
-        },
-        {
-          name: 'hal',
-          type: 'text',
-          required: false,
-          admin: { description: 'URL complète de la page HAL.' },
-        },
-      ],
-    },
-    {
-      name: 'navFooter',
-      type: 'array',
-      label: 'Liens du footer (col 2 « Naviguer »)',
-      labels: { singular: 'Lien', plural: 'Liens' },
-      fields: [
-        { name: 'label', type: 'text', required: true },
-        { name: 'href', type: 'text', required: true },
-        { name: 'external', type: 'checkbox', defaultValue: false },
-      ],
-      defaultValue: [
-        { label: 'Tags', href: '/tags/', external: false },
-        { label: 'Archives', href: '/archives/', external: false },
-        { label: 'Admin', href: '/cms/admin', external: false },
       ],
     },
   ],

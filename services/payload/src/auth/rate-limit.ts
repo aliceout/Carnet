@@ -23,6 +23,10 @@ export const RATE_PROFILES = {
   otp: { name: 'otp', max: 5, windowMs: 10 * 60 * 1000 },
   send: { name: 'send', max: 3, windowMs: 10 * 60 * 1000 },
   invite: { name: 'invite', max: 20, windowMs: 60 * 60 * 1000 },
+  // Inscription publique aux alertes mail : 5 essais / 15 min par IP.
+  // Anti-flood du formulaire /abonnement/ sans bloquer l'utilisatrice
+  // qui ressaisit une typo dans son email.
+  subscribe: { name: 'subscribe', max: 5, windowMs: 15 * 60 * 1000 },
 } as const satisfies Record<string, RateProfile>;
 
 const buckets = new Map<string, Bucket>();

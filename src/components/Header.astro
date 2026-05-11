@@ -1,25 +1,138 @@
 ---
 /**
- * Header sticky — brand "Carnet." à gauche (point en accent),
- * nav à droite (Inter 13px, muted → ink + filet --b-accent 1.5px sur
- * l'item actif).
+ * Header sticky — wordmark à gauche (siteName depuis Site global, point
+ * en accent), nav à droite (Inter 13px, muted → ink + filet 1.5px accent
+ * sur l'item actif).
  *
- * Détection page active via Astro.url.pathname avec match préfixe.
+ * Les onglets sont pilotés depuis Payload Navigation → navHeader (blocks
+ * réordonnables). Trois types d'onglets intégrés (Archives, Thèmes,
+ * Abonnement — câblés en dur ici car ce sont des routes Astro fixes avec
+ * leur matchPaths) + pages éditoriales libres (relationship → Pages).
+ *
+ * Le wordmark (`siteName`) vient du global Identity (siteName) — deux
+ * globals donc deux fetchs.
+ *
+ * Si Payload est down ou que les globals sont vides, on retombe sur un
+ * set par défaut (Archives, Thèmes, Abonnement) — équivalent au
+ * comportement historique avant que le header soit configurable.
  *
  * Réf : design_handoff_carnet/Carnet B.html → header.site.
  */
+import { fetchIdentity, fetchIndexPages, fetchNavigation } from '../lib/payload';
 
 const pathname = Astro.url.pathname;
 
-type NavItem = { href: string; label: string; matchPaths: string[]; mono?: boolean };
+type NavItem = { href: string; label: string; matchPaths: string[] };
+type IndexTarget = 'archives' | 'themes' | 'subscribe';
 
-const items: NavItem[] = [
-  { href: '/', label: 'Billets', matchPaths: ['/', '/billets'] },
-  { href: '/archives/', label: 'Archives', matchPaths: ['/archives'] },
-  { href: '/themes/', label: 'Thèmes', matchPaths: ['/themes', '/theme'] },
-  { href: '/about/', label: 'À propos', matchPaths: ['/about'] },
-  { href: '/suivre/', label: 'Suivre', matchPaths: ['/suivre', '/rss'] },
+// ─── Pages d'index (routes Astro fixes) ────────────────────────────
+// Mappées ici plutôt que côté Payload parce que le `matchPaths` (qui
+// détermine quand l'onglet est « actif ») dépend de la structure des
+// routes Astro — donc du code, pas du contenu.
+const INDEX_TARGETS: Record<IndexTarget, NavItem> = {
+  archives: { href: '/archives/', label: 'Archives', matchPaths: ['/archives'] },
+  themes: { href: '/themes/', label: 'Thèmes', matchPaths: ['/themes', '/theme'] },
+  subscribe: { href: '/abonnement/', label: 'Abonnement', matchPaths: ['/abonnement', '/rss'] },
+};
+
+const DEFAULT_NAV_ITEMS: NavItem[] = [
+  INDEX_TARGETS.archives,
+  INDEX_TARGETS.themes,
+  INDEX_TARGETS.subscribe,
 ];
+
+// ─── Types côté globals (subset de payload-types) ──────────────────
+type PagePopulated = {
+  slug?: string;
+  title?: string;
+  eyebrow?: string | null;
+};
+type NavItemEntry = {
+  blockType: 'navItem';
+  kind?: 'index' | 'editorial';
+  indexTarget?: IndexTarget;
+  page?: PagePopulated | number | string | null;
+  label?: string | null;
+};
+type IdentityGlobal = { siteName?: string };
+type NavigationGlobal = {
+  navHeader?: Array<NavItemEntry | { blockType?: string }> | null;
+};
+type IndexPagesGlobal = {
+  archives?: { enabled?: boolean };
+  themes?: { enabled?: boolean };
+  subscribe?: { enabled?: boolean };
+};
+
+let siteName = 'Carnet';
+let items: NavItem[] = DEFAULT_NAV_ITEMS;
+let indexEnabled: Record<IndexTarget, boolean> = {
+  archives: true,
+  themes: true,
+  subscribe: true,
+};
+try {
+  const identity = await fetchIdentity<IdentityGlobal>();
+  siteName = identity.siteName?.trim() || siteName;
+} catch (err) {
+  console.warn('[header] fetchIdentity failed, using defaults:', (err as Error).message);
+}
+try {
+  const ip = await fetchIndexPages<IndexPagesGlobal>();
+  indexEnabled = {
+    archives: ip.archives?.enabled !== false,
+    themes: ip.themes?.enabled !== false,
+    subscribe: ip.subscribe?.enabled !== false,
+  };
+} catch (err) {
+  console.warn('[header] fetchIndexPages failed, using defaults:', (err as Error).message);
+}
+try {
+  const nav = await fetchNavigation<NavigationGlobal>();
+  const configured = nav.navHeader ?? [];
+  if (configured.length > 0) {
+    items = configured.flatMap((entry): NavItem[] => {
+      if (entry.blockType !== 'navItem') return [];
+      const e = entry as NavItemEntry;
+      if (e.kind === 'index') {
+        const target = e.indexTarget;
+        if (!target || !INDEX_TARGETS[target]) return [];
+        // Si la page d'index est désactivée (toggle off dans IndexPages),
+        // on saute silencieusement.
+        if (!indexEnabled[target]) return [];
+        // Override de libellé optionnel.
+        const base = INDEX_TARGETS[target];
+        const label = e.label?.trim() || base.label;
+        return [{ ...base, label }];
+      }
+      if (e.kind === 'editorial') {
+        // depth=1 → relationship populé en objet. Si la page a été
+        // supprimée mais l'entrée nav pas nettoyée, page = id orphelin :
+        // on skip silencieusement.
+        if (!e.page || typeof e.page !== 'object') return [];
+        const slug = e.page.slug;
+        if (!slug) return [];
+        const label =
+          e.label?.trim() ||
+          e.page.eyebrow?.trim() ||
+          e.page.title?.trim() ||
+          slug;
+        return [{ href: `/${slug}/`, label, matchPaths: [`/${slug}`] }];
+      }
+      return [];
+    });
+  } else {
+    // Pas de config → defaults filtrés par les enabled.
+    items = DEFAULT_NAV_ITEMS.filter((it) => {
+      const target = (Object.keys(INDEX_TARGETS) as IndexTarget[]).find(
+        (t) => INDEX_TARGETS[t] === it,
+      );
+      return target ? indexEnabled[target] : true;
+    });
+  }
+} catch (err) {
+  console.warn('[header] fetchNavigation failed, using defaults:', (err as Error).message);
+}
 
 // Recherche : rendue séparément en icône loupe à droite de la nav
 // (même placement et style que le theme-toggle), pas comme un lien
@@ -28,23 +141,29 @@ const searchActive =
   pathname === '/recherche' || pathname.startsWith('/recherche/');
 
 function isActive(item: NavItem): boolean {
-  // Path exact "/" ne doit pas matcher tout
-  if (item.href === '/') return pathname === '/' || pathname.startsWith('/billets');
   return item.matchPaths.some((p) => pathname === p || pathname.startsWith(p + '/'));
 }
+
+// L'onglet « Billets » (home) reste toujours en première position,
+// hardcodé : c'est la racine du site, on ne le pilote pas depuis l'admin.
+const homeActive = pathname === '/' || pathname.startsWith('/billets');
 ---
 
 <header class="site" id="site-header">
   <div class="row">
-    <a class="brand" href="/">Carnet<span class="dot">.</span></a>
+    <a class="brand" href="/">{siteName}<span class="dot">.</span></a>
     <nav>
+      <a
+        href="/"
+        class:list={[{ active: homeActive }]}
+        aria-current={homeActive ? 'page' : undefined}
+      >
+        Billets
+      </a>
       {items.map((item) => (
         <a
           href={item.href}
-          class:list={[
-            { active: isActive(item) },
-            { mono: item.mono },
-          ]}
+          class:list={[{ active: isActive(item) }]}
           aria-current={isActive(item) ? 'page' : undefined}
         >
           {item.label}

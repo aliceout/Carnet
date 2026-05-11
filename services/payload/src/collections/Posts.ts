@@ -8,6 +8,7 @@ import { authenticated } from '../access/authenticated';
 import { Footnote, CitationBloc, BiblioInline, Figure } from '../blocks';
 import { extractLexicalText } from '../lib/extract-lexical-text';
 import { updatePostSearchVector } from '../hooks/update-post-search-vector';
+import { notifyNewPost } from '../hooks/notify-new-post';
 
 /**
  * Collection principale du Carnet — un billet académique.
@@ -80,10 +81,16 @@ export const Posts: CollectionConfig = {
         return next;
       },
     ],
-    // Recalcule la colonne search_vector (FTS Postgres) après chaque
-    // create/update. Cf hooks/update-post-search-vector + lib/post-
-    // search-vector et la migration qui ajoute la colonne + l'index GIN.
-    afterChange: [updatePostSearchVector],
+    // Hooks afterChange exécutés en séquence (ordre = ordre du tableau) :
+    //  1. updatePostSearchVector : recalcule la colonne search_vector
+    //     (FTS Postgres) après chaque create/update. Cf hooks/update-
+    //     post-search-vector + lib/post-search-vector et la migration
+    //     qui ajoute la colonne + l'index GIN.
+    //  2. notifyNewPost : à la première publication (draft=false +
+    //     publishedAt passé + notificationsSentAt vide), envoie les
+    //     mails d'alerte aux abonné·es actif·ves. Idempotent.
+    //     Cf hooks/notify-new-post + issue #3.
+    afterChange: [updatePostSearchVector, notifyNewPost],
   },
   admin: {
     useAsTitle: 'title',
@@ -365,6 +372,22 @@ export const Posts: CollectionConfig = {
       defaultValue: false,
       label: 'Brouillon (masqué en prod)',
       admin: { position: 'sidebar' },
+    },
+    {
+      // Date à laquelle on a envoyé les mails d'alerte aux abonné·es à
+      // la première publication du billet. Sert de garde d'idempotence
+      // côté hook notify-new-post : si déjà set, on ne renvoie plus.
+      // Cf hooks/notify-new-post.ts + issue #3.
+      name: 'notificationsSentAt',
+      type: 'date',
+      required: false,
+      label: 'Mails d\'alerte envoyés le',
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        description:
+          'Date à laquelle les abonné·es aux alertes mail ont été notifié·es de ce billet. Set automatiquement à la première publication, jamais re-déclenché.',
+      },
     },
     {
       name: 'hasDraftZones',

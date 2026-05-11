@@ -527,11 +527,25 @@ textarea.field-type__input {
   // + nom + rôle muted. Cf maquette handoff sidebar footer.
   &__footer {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 24px 8px;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 24px 10px;
     border-top: 1px solid var(--b-rule);
     margin-top: 8px;
+  }
+
+  // Ligne version (tag · commit) — placée sous le bloc user, en mono
+  // discret. Sert à savoir à coup d'œil quelle version tourne sur
+  // l'environnement courant (dev / prod / staging).
+  &__version {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--b-muted);
+    letter-spacing: 0.04em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    user-select: text;
   }
 
   &__avatar {
@@ -1015,6 +1029,63 @@ button.btn--style-primary,
       font-weight: 500;
       color: var(--b-ink);
     }
+  }
+}
+
+// ─── Toggle switch (utilisé dans les vues custom) ──────────────
+// Switch carré CSS pur, cohérent avec le langage visuel du reste de
+// l'admin Carnet (bords nets, pas de radius arrondi). Bouton
+// `role="switch"` + `aria-checked`, track muted → accent quand `--on`,
+// pastille qui slide.
+
+.carnet-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--b-rule);
+  background: var(--b-paper);
+  border-radius: 0;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+
+  &__thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background: var(--b-muted);
+    border-radius: 0;
+    transition: transform 0.15s, background-color 0.15s;
+  }
+
+  &--on {
+    border-color: var(--b-accent);
+    background: var(--b-accent-tint);
+
+    .carnet-toggle__thumb {
+      background: var(--b-accent);
+      transform: translateX(18px);
+    }
+  }
+
+  &:hover {
+    border-color: var(--b-ink);
+  }
+  &--on:hover {
+    border-color: var(--b-accent);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--b-accent);
+    outline-offset: 2px;
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 }
 
@@ -3208,6 +3279,34 @@ button.btn--style-primary,
           border-color: #b63a3a;
         }
       }
+    }
+  }
+
+  // Variante d'un __field rendu avec un toggle switch CSS pur.
+  // Première ligne : label + switch côte à côte. Deuxième ligne : hint
+  // sur toute la largeur (flex-wrap pour passer à la ligne).
+  //
+  // `width: 13rem` sur le span .lbl : réserve une largeur fixe pour le
+  // label, pour que le switch ne bouge pas quand le texte passe
+  // d'« activé » à « désactivé » (les deux n'ont pas la même longueur).
+  &__field--toggle {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    max-width: 640px;
+
+    > .lbl {
+      flex: 0 0 13rem;
+      width: 13rem;
+      margin-bottom: 0;
+    }
+    > .hint {
+      flex: 0 0 100%;
+      margin: 0;
+      color: var(--b-muted);
+      font-size: 12px;
+      line-height: 1.4;
     }
   }
 

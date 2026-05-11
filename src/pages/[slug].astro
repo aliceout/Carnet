@@ -10,6 +10,7 @@
  * structurées (terrains, recherche, publications, colophon).
  */
 import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
 import PageRenderer from '../components/PageRenderer.astro';
 import { fetchBySlug } from '../lib/payload';
 
@@ -34,16 +35,16 @@ if (!page) {
 ---
 
 <Layout
-  title={page.title + ' — Carnet'}
+  title={page.title}
   description={page.description ?? page.lede ?? undefined}
   noindex={page.noindex ?? false}
 >
   <article class="page-article">
-    <header class="header narrow">
-      {page.eyebrow && <div class="eyebrow">{page.eyebrow}</div>}
-      <h1>{page.title}</h1>
-      {page.lede && <p class="lede">{page.lede}</p>}
-    </header>
+    <Hero
+      kicker={page.eyebrow ?? undefined}
+      title={page.title}
+      lede={page.lede ?? undefined}
+    />
 
     <div class="sections narrow">
       <PageRenderer sections={page.sections as never} />
@@ -52,56 +53,18 @@ if (!page) {
 </Layout>
 
 <style>
-  /* Largeur canonique des pages éditoriales : max-width 1080, padding
-     80px → contenu utile 920px (= largeur du corps des billets). */
-  .narrow {
+  /* Body inset dans le Hero : container 1080 (vs Hero 1280), centré.
+     Même convention que /abonnement/ — le body apparaît visuellement
+     « niché » à l'intérieur du band Hero. */
+  .sections {
     max-width: 1080px;
     margin: 0 auto;
-    padding: 0 80px;
-  }
-
-  .page-article {
-    padding-top: 80px;
-  }
-
-  .header .eyebrow {
-    font-family: var(--font-sans);
-    font-size: 11px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--color-accent);
-    margin-bottom: 14px;
-  }
-  .header h1 {
-    font-size: 56px;
-    line-height: 1.05;
-    font-weight: 600;
-    letter-spacing: -0.7px;
-    margin: 0 0 28px;
-  }
-  .header h1 :global(em) {
-    font-weight: 500;
-    color: var(--color-accent);
-  }
-  .header .lede {
-    font-family: var(--font-serif);
-    font-size: 22px;
-    line-height: 1.5;
-    color: var(--color-muted);
-    margin: 0 0 24px;
-    max-width: 720px;
-  }
-
-  .sections {
-    padding-top: 64px;
+    padding: 40px 80px 64px;
   }
 
   @media (max-width: 900px) {
-    .narrow {
-      padding: 0 24px;
-    }
-    .header h1 {
-      font-size: 36px;
+    .sections {
+      padding: 32px 24px 48px;
     }
   }
 </style>

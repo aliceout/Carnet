@@ -10,7 +10,7 @@
  */
 import Layout from '../../layouts/Layout.astro';
 import Hero from '../../components/Hero.astro';
-import { fetchCollection, fetchSite, filterPublished } from '../../lib/payload';
+import { fetchCollection, fetchIndexPages, filterPublished } from '../../lib/payload';
 import { formatHeroLede, formatHeroTitle } from '../../lib/site';
 
 type Theme = {
@@ -26,8 +26,8 @@ type PostLite = {
   themes?: Array<{ id: number | string; slug: string } | number | string> | null;
 };
 
-type SiteGlobal = {
-  themes?: { heroTitle?: string; heroLede?: string };
+type IndexPagesGlobal = {
+  themes?: { enabled?: boolean; heroTitle?: string; heroLede?: string };
 };
 
 const DEFAULT_TITLE = 'Les *thèmes* du carnet.';
@@ -36,7 +36,7 @@ const DEFAULT_LEDE =
 
 let themes: Theme[] = [];
 let counts: Map<string, number> = new Map();
-let site: SiteGlobal = {};
+let indexPages: IndexPagesGlobal = {};
 try {
   themes = await fetchCollection<Theme>('themes', {
     sort: 'name',
@@ -60,9 +60,16 @@ try {
   console.warn('[themes] fetch failed:', (err as Error).message);
 }
 try {
-  site = await fetchSite<SiteGlobal>();
+  indexPages = await fetchIndexPages<IndexPagesGlobal>();
 } catch (err) {
-  console.warn('[themes] fetchSite failed, using defaults:', (err as Error).message);
+  console.warn('[themes] fetchIndexPages failed, using defaults:', (err as Error).message);
+}
+
+// Si le toggle « Page Thèmes » est désactivé côté admin, on 404 aussi
+// bien /themes/ que /theme/<slug>/ (cf. pages/theme/[slug].astro qui
+// fait la même vérification).
+if (indexPages.themes?.enabled === false) {
+  return Astro.rewrite('/404');
 }
 
 // Tri : décroissant par usage, puis alpha
@@ -76,15 +83,15 @@ const sorted = themes.slice().sort((a, b) => {
 const total = sorted.length;
 
 const heroTitleHtml = formatHeroTitle(
-  site.themes?.heroTitle?.trim() || DEFAULT_TITLE,
+  indexPages.themes?.heroTitle?.trim() || DEFAULT_TITLE,
 );
 const heroLedeHtml = formatHeroLede(
-  site.themes?.heroLede?.trim() || DEFAULT_LEDE,
+  indexPages.themes?.heroLede?.trim() || DEFAULT_LEDE,
 );
 ---
 
 <Layout
-  title="Thèmes — Carnet"
+  title="Thèmes"
   description="Les sujets de recherche du Carnet — taxonomie multivaluée et libre."
 >
   <Hero

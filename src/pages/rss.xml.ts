@@ -7,7 +7,10 @@
 import rss from '@astrojs/rss';
 import type { APIRoute } from 'astro';
 
-import { fetchCollection, filterPublished } from '../lib/payload';
+import { fetchCollection, fetchIdentity, fetchSubscriptions, filterPublished } from '../lib/payload';
+
+type IdentityGlobal = { siteName?: string };
+type SubscriptionsGlobal = { rssEnabled?: boolean };
 
 type Theme = { id: number | string; slug: string; name: string };
 
@@ -23,7 +26,19 @@ type Post = {
 };
 
 export const GET: APIRoute = async (context) => {
+  // Flux RSS pilotable depuis Payload (Abonnements → Flux RSS activé).
+  // Si décoché côté admin, on renvoie 404 — même URL, plus de contenu.
+  try {
+    const subs = await fetchSubscriptions<SubscriptionsGlobal>();
+    if (subs.rssEnabled === false) {
+      return new Response('Not found', { status: 404 });
+    }
+  } catch (err) {
+    console.warn('[rss] fetchSubscriptions failed, flux servi par défaut:', (err as Error).message);
+  }
+
   let posts: Post[] = [];
+  let siteName = 'Carnet';
   try {
     const raw = await fetchCollection<Post>('posts', {
       sort: '-publishedAt',
@@ -34,6 +49,12 @@ export const GET: APIRoute = async (context) => {
   } catch (err) {
     console.warn('[rss] fetch failed:', (err as Error).message);
   }
+  try {
+    const identity = await fetchIdentity<IdentityGlobal>();
+    siteName = identity.siteName?.trim() || siteName;
+  } catch (err) {
+    console.warn('[rss] fetchIdentity failed:', (err as Error).message);
+  }
 
   if (!context.site) {
     throw new Error(
@@ -41,8 +62,8 @@ export const GET: APIRoute = async (context) => {
     );
   }
   return rss({
-    title: 'Carnet — notes de recherche',
-    description: 'Carnet de recherche. Auto-hébergé. Sans pisteur.',
+    title: `${siteName} — notes de recherche`,
+    description: `${siteName} — carnet de recherche. Auto-hébergé. Sans pisteur.`,
     site: context.site,
     items: posts.map((p) => {
       const themes = (p.themes ?? []).filter(

@@ -7,7 +7,7 @@
 //
 // Les comparaisons de tokens se font en temps constant.
 
-import { createHash, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 
 export function hashToken(token: string): string {
   return createHash('sha256').update(token, 'utf8').digest('hex');
@@ -32,4 +32,13 @@ export function generateUrlSafeToken(): string {
 export function generateNumericCode(digits = 6): string {
   const max = 10 ** digits;
   return randomInt(0, max).toString().padStart(digits, '0');
+}
+
+// HMAC-SHA256 hex pour signer un identifiant. Utilisé pour le lien de
+// désabonnement dans les mails d'alerte de nouveau billet : pas besoin
+// de stocker un token séparé en DB, on signe l'id du subscriber avec
+// PAYLOAD_SECRET et on vérifie au clic. Pas de rejouabilité (l'action
+// est idempotente — désabo flip vers `unsubscribed` quoi qu'il arrive).
+export function hmacHex(secret: string, message: string): string {
+  return createHmac('sha256', secret).update(message, 'utf8').digest('hex');
 }

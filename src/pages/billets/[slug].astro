@@ -19,7 +19,7 @@
  * IntersectionObserver pour highlight de l'item actif.
  */
 import Layout from '../../layouts/Layout.astro';
-import { fetchBySlug, fetchCollection, fetchSite } from '../../lib/payload';
+import { fetchBySlug, fetchCollection, fetchIdentity, fetchSite } from '../../lib/payload';
 import {
   extractToc,
   renderLexicalSidenotes,
@@ -105,19 +105,28 @@ const readingLabel = post.readingTime
     : `≈ ${post.readingTime} min`
   : null;
 
-// Site global — fournit l'identité (citation Chicago) et le mode
-// d'affichage des notes (classique en pied / sidenotes en marge).
+// Site global → mode d'affichage des notes (classique en pied /
+// sidenotes en marge). Identity global → wordmark utilisé dans la
+// citation + les méta Highwire.
 type SiteData = {
   reading?: { notesMode?: 'classic' | 'sidenotes' };
 };
+type IdentityGlobal = { siteName?: string };
 let site: SiteData = {};
+let identity: IdentityGlobal = {};
 try {
   site = await fetchSite<SiteData>();
 } catch (err) {
   console.warn('[article] fetchSite failed:', (err as Error).message);
 }
+try {
+  identity = await fetchIdentity<IdentityGlobal>();
+} catch (err) {
+  console.warn('[article] fetchIdentity failed:', (err as Error).message);
+}
 const notesMode: 'classic' | 'sidenotes' =
   site.reading?.notesMode === 'sidenotes' ? 'sidenotes' : 'classic';
+const siteName = identity.siteName?.trim() || 'Carnet';
 
 // Body HTML rendu côté serveur depuis Lexical. En mode classique, on
 // récupère bodyHtml + footnotesHtml (notes empilées en pied). En mode
@@ -175,7 +184,7 @@ const authorCitation = postCitation || 'Auteur·ice';
 
 // Citation bibliographique du billet (Chicago author-date façon Carnet)
 const articleUrl = new URL(Astro.url.pathname, Astro.site).toString();
-const citationText = `${authorCitation}. « ${post.title} », Carnet, ${numLabel.replace('n° ', 'n° ')}, ${publishedFr}, ${articleUrl}.`;
+const citationText = `${authorCitation}. « ${post.title} », ${siteName}, ${numLabel.replace('n° ', 'n° ')}, ${publishedFr}, ${articleUrl}.`;
 
 // Métadonnées Highwire/Google Scholar pour que l'extension Zotero
 // détecte automatiquement la citation à la visite de l'article (sans
@@ -189,12 +198,12 @@ const citationMeta = highwireMeta(
     publishedAt: post.publishedAt,
     authors: postAuthors,
   },
-  { articleUrl, accessedAt: new Date().toISOString().slice(0, 10) },
+  { articleUrl, accessedAt: new Date().toISOString().slice(0, 10), siteName },
 );
 ---
 
 <Layout
-  title={post.title + ' — Carnet'}
+  title={post.title}
   description={post.lede}
   progressBar={true}
   bodyClass={`justify notes-${notesMode}`}

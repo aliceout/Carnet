@@ -18,7 +18,7 @@ import type { Endpoint, PayloadRequest } from 'payload';
 
 import { AUTH_CONFIG } from '../config';
 import { generateUrlSafeToken, hashToken } from '../crypto';
-import { invitationEmail, welcomeEmail } from '../email-templates';
+import { getSiteName, invitationEmail, welcomeEmail } from '../email-templates';
 import {
   buildPayloadTokenCookie,
   buildTrustedDeviceCookie,
@@ -137,10 +137,12 @@ const inviteEndpoint: Endpoint = {
     }
 
     const acceptUrl = buildAcceptUrl(token);
+    const siteName = await getSiteName(req.payload);
     const tpl = invitationEmail({
       inviteeEmail: email,
       inviterName: actor.displayName || actor.email,
       acceptUrl,
+      siteName,
     });
 
     try {
@@ -299,7 +301,8 @@ const acceptInvitationEndpoint: Endpoint = {
 
     // Mail de bienvenue (best-effort)
     try {
-      const tpl = welcomeEmail({ email: u.email, loginUrl: buildLoginUrl() });
+      const siteName = await getSiteName(req.payload);
+      const tpl = welcomeEmail({ email: u.email, loginUrl: buildLoginUrl(), siteName });
       await req.payload.sendEmail({
         to: u.email,
         subject: tpl.subject,

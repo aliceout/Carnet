@@ -95,9 +95,13 @@ function imageUrl(field: Block['image']): string | null {
 })}
 
 <style>
+  /* Les blocs prose s'étendent sur toute la largeur utile de la page
+     éditoriale (920px max — même colonne que le corps des billets
+     sans sommaire). Avant : 720, créait un décalage visuel avec le
+     hero qui lui s'étend plus large. */
   .block-prose {
     margin: 0 0 32px;
-    max-width: 720px;
+    max-width: 920px;
   }
   .block-prose h2 {
     font-family: var(--font-sans);
@@ -114,9 +118,15 @@ function imageUrl(field: Block['image']): string | null {
     line-height: 1.65;
     color: var(--color-body);
   }
+  .block-prose .prose-body :global(p),
+  .block-prose .prose-body :global(li) {
+    text-align: justify;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+  }
   .block-prose .prose-body :global(p) {
     margin: 0 0 16px;
-    max-width: 720px;
+    max-width: 920px;
   }
   .block-prose .prose-body :global(a.ext) {
     border-bottom: 1px solid var(--color-accent);

@@ -72,6 +72,31 @@ async function fetchPayload<T>(path: string): Promise<T> {
 }
 
 /**
+ * POST une JSON à un endpoint Payload public. Utilisé par les pages
+ * Astro qui orchestrent les flows publics (alertes mail : subscribe,
+ * confirm, unsubscribe). Ne lève pas sur statut HTTP non-2xx : on
+ * remonte `{ status, body }` à l'appelant qui décide de l'UX.
+ */
+export async function postPayload<T = unknown>(
+  path: string,
+  body: unknown,
+): Promise<{ status: number; body: T }> {
+  const url = `${API_BASE}${path}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(body),
+  });
+  let parsed: T;
+  try {
+    parsed = (await res.json()) as T;
+  } catch {
+    parsed = {} as T;
+  }
+  return { status: res.status, body: parsed };
+}
+
+/**
  * Récupère un document d'une collection par son slug. Retourne null
  * si pas trouvé. Avec `depth=2` les uploads sont populated en objets
  * (donc `media.filename` accessible).
@@ -152,6 +177,26 @@ export async function fetchCollection<T = unknown>(
 /** Récupère le global Site (paramètres). */
 export async function fetchSite<T = unknown>(depth = 1): Promise<T> {
   return fetchPayload<T>(`/globals/site?depth=${depth}`);
+}
+
+/** Récupère le global Navigation (onglets header + liens footer). */
+export async function fetchNavigation<T = unknown>(depth = 1): Promise<T> {
+  return fetchPayload<T>(`/globals/navigation?depth=${depth}`);
+}
+
+/** Récupère le global IndexPages (hero des landings home/archives/themes). */
+export async function fetchIndexPages<T = unknown>(depth = 0): Promise<T> {
+  return fetchPayload<T>(`/globals/index-pages?depth=${depth}`);
+}
+
+/** Récupère le global Identity (siteName, authorName, baseline, copyright). */
+export async function fetchIdentity<T = unknown>(depth = 0): Promise<T> {
+  return fetchPayload<T>(`/globals/identity?depth=${depth}`);
+}
+
+/** Récupère le global Subscriptions (URLs des profils sociaux + futurs toggles RSS/mail). */
+export async function fetchSubscriptions<T = unknown>(depth = 0): Promise<T> {
+  return fetchPayload<T>(`/globals/subscriptions?depth=${depth}`);
 }
 
 /**

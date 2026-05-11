@@ -5,7 +5,7 @@ import type { PayloadRequest } from 'payload';
 import { AUTH_CONFIG, COOKIE_NAMES } from './config';
 import { buildCookie, clearCookie, isSecureRequest, readCookie, signCookie, verifyCookie } from './cookies';
 import { generateNumericCode, hashToken, safeEqualHex } from './crypto';
-import { twoFactorCodeEmail } from './email-templates';
+import { getSiteName, twoFactorCodeEmail } from './email-templates';
 import { clientIpFromHeaders } from './rate-limit';
 
 export type ApiUser = {
@@ -129,7 +129,8 @@ export async function generateAndSendEmailOtp(
 
   const ip = clientIpFromHeaders(req.headers);
   const ua = req.headers.get('user-agent') ?? undefined;
-  const tpl = twoFactorCodeEmail({ code, ip, userAgent: ua });
+  const siteName = await getSiteName(req.payload);
+  const tpl = twoFactorCodeEmail({ code, ip, userAgent: ua, siteName });
 
   if (req.payload.email && typeof req.payload.sendEmail === 'function') {
     await req.payload.sendEmail({

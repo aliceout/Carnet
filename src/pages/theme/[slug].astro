@@ -12,7 +12,9 @@
 import Layout from '../../layouts/Layout.astro';
 import Hero from '../../components/Hero.astro';
 import PostCard from '../../components/PostCard.astro';
-import { fetchBySlug, fetchCollection, filterPublished } from '../../lib/payload';
+import { fetchBySlug, fetchCollection, fetchIndexPages, filterPublished } from '../../lib/payload';
+
+type IndexPagesGlobal = { themes?: { enabled?: boolean } };
 
 type Theme = {
   id: number | string;
@@ -39,6 +41,18 @@ type Post = {
 const { slug } = Astro.params;
 if (!slug) return Astro.redirect('/themes/');
 
+// Toggle « Page Thèmes » désactivé → 404 (cf. Pages d'index → Thèmes).
+// On vérifie ici aussi parce que `/theme/<slug>/` partage la même
+// section que `/themes/`.
+try {
+  const indexPages = await fetchIndexPages<IndexPagesGlobal>();
+  if (indexPages.themes?.enabled === false) {
+    return Astro.rewrite('/404');
+  }
+} catch {
+  /* Payload down — on continue, le toggle est best-effort. */
+}
+
 const theme = await fetchBySlug<Theme>('themes', slug);
 if (!theme) {
   return new Response('Thème introuvable', { status: 404 });
@@ -61,7 +75,7 @@ const total = posts.length;
 ---
 
 <Layout
-  title={`${theme.name} — Carnet`}
+  title={theme.name}
   description={theme.description ?? `Tous les billets du Carnet sur le thème ${theme.name}.`}
 >
   <Hero

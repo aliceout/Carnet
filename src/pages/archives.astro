@@ -11,7 +11,7 @@
  */
 import Layout from '../layouts/Layout.astro';
 import Hero from '../components/Hero.astro';
-import { fetchCollection, fetchSite, filterPublished } from '../lib/payload';
+import { fetchCollection, fetchIndexPages, filterPublished } from '../lib/payload';
 import { formatDateIso, formatHeroLede, formatHeroTitle } from '../lib/site';
 
 type Theme = { id: number | string; slug: string; name: string };
@@ -27,8 +27,8 @@ type Post = {
   draft?: boolean;
 };
 
-type SiteGlobal = {
-  archives?: { heroTitle?: string; heroLede?: string };
+type IndexPagesGlobal = {
+  archives?: { enabled?: boolean; heroTitle?: string; heroLede?: string };
 };
 
 const TYPE_LABEL: Record<Post['type'], string> = {
@@ -42,7 +42,7 @@ const DEFAULT_LEDE =
   'Le carnet est versionné : chaque billet a un numéro, une date de publication et, le cas échéant, une date de mise à jour. Les fiches thématiques sont régulièrement révisées.';
 
 let posts: Post[] = [];
-let site: SiteGlobal = {};
+let indexPages: IndexPagesGlobal = {};
 try {
   const raw = await fetchCollection<Post>('posts', {
     sort: '-publishedAt',
@@ -54,9 +54,13 @@ try {
   console.warn('[archives] fetch failed, rendering empty:', (err as Error).message);
 }
 try {
-  site = await fetchSite<SiteGlobal>();
+  indexPages = await fetchIndexPages<IndexPagesGlobal>();
 } catch (err) {
-  console.warn('[archives] fetchSite failed, using defaults:', (err as Error).message);
+  console.warn('[archives] fetchIndexPages failed, using defaults:', (err as Error).message);
+}
+
+if (indexPages.archives?.enabled === false) {
+  return Astro.rewrite('/404');
 }
 
 // Group by year (descending)
@@ -71,15 +75,15 @@ const years = [...byYear.keys()].sort().reverse();
 const total = posts.length;
 
 const heroTitleHtml = formatHeroTitle(
-  site.archives?.heroTitle?.trim() || DEFAULT_TITLE,
+  indexPages.archives?.heroTitle?.trim() || DEFAULT_TITLE,
 );
 const heroLedeHtml = formatHeroLede(
-  site.archives?.heroLede?.trim() || DEFAULT_LEDE,
+  indexPages.archives?.heroLede?.trim() || DEFAULT_LEDE,
 );
 ---
 
 <Layout
-  title="Archives — Carnet"
+  title="Archives"
   description="Tous les billets du Carnet, par année."
 >
   <Hero

@@ -19,9 +19,10 @@ import '@fontsource/jetbrains-mono/500.css';
 
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import { fetchSite } from '../lib/payload';
+import { fetchIdentity, fetchSite, fetchSubscriptions } from '../lib/payload';
 
 interface Props {
+  /** Titre court de la page — Layout y ajoute le suffixe « — {siteName} ». */
   title?: string;
   description?: string;
   noindex?: boolean;
@@ -32,7 +33,7 @@ interface Props {
 }
 
 const {
-  title = 'Carnet — notes de recherche en études de genre et relations internationales',
+  title,
   description = 'Carnet de recherche. Auto-hébergé.',
   noindex = false,
   progressBar = false,
@@ -49,6 +50,8 @@ const canonical = new URL(Astro.url.pathname, Astro.site).toString();
 type SiteBranding = {
   branding?: { accentColor?: string; backgroundColor?: string };
 };
+type IdentityGlobal = { siteName?: string };
+type SubscriptionsGlobal = { rssEnabled?: boolean };
 const ACCENT_HEX_TO_SLUG: Record<string, string> = {
   '#5a3a7a': 'violet',
   '#8a3a3a': 'rouge',
@@ -67,6 +70,7 @@ const BG_WHITELIST = new Set([
 let accentOverride: string | null = null;
 let accentSlug: string | null = null;
 let bgOverride: string | null = null;
+let siteName = 'Carnet';
 try {
   const site = await fetchSite<SiteBranding>();
   const a = site.branding?.accentColor;
@@ -79,6 +83,30 @@ try {
 } catch (err) {
   console.warn('[layout] fetchSite failed, using defaults:', (err as Error).message);
 }
+try {
+  const identity = await fetchIdentity<IdentityGlobal>();
+  siteName = identity.siteName?.trim() || siteName;
+} catch (err) {
+  console.warn('[layout] fetchIdentity failed, using defaults:', (err as Error).message);
+}
+
+// Flux RSS pilotable depuis Abonnements. Si désactivé, on n'expose pas
+// le lien <link rel="alternate"> que les readers utilisent pour
+// l'auto-discovery du flux.
+let rssEnabled = true;
+try {
+  const subs = await fetchSubscriptions<SubscriptionsGlobal>();
+  rssEnabled = subs.rssEnabled !== false;
+} catch (err) {
+  console.warn('[layout] fetchSubscriptions failed, using defaults:', (err as Error).message);
+}
+
+// Compose le titre final : `${pageTitle} — ${siteName}` si pageTitle
+// est fourni, sinon juste un titre racine descriptif.
+const pageTitle = title?.trim();
+const fullTitle = pageTitle
+  ? `${pageTitle} — ${siteName}`
+  : `${siteName} — notes de recherche`;
 ---
 
 <!doctype html>
@@ -86,21 +114,23 @@ try {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
+    <title>{fullTitle}</title>
     <meta name="description" content={description} />
     {noindex && <meta name="robots" content="noindex, nofollow" />}
     <link rel="canonical" href={canonical} />
-    <meta property="og:title" content={title} />
+    <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonical} />
     <meta property="og:locale" content="fr_FR" />
-    <link
-      rel="alternate"
-      type="application/rss+xml"
-      title="Carnet — flux RSS"
-      href="/rss.xml"
-    />
+    {rssEnabled && (
+      <link
+        rel="alternate"
+        type="application/rss+xml"
+        title={`${siteName} — flux RSS`}
+        href="/rss.xml"
+      />
+    )}
     {(accentOverride || bgOverride) && (
       <style
         set:html={`:root{${accentOverride ? `--color-accent:${accentOverride};` : ''}${bgOverride ? `--color-bg:${bgOverride};` : ''}}`}

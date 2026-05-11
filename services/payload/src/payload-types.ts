@@ -74,6 +74,7 @@ export interface Config {
     pages: Page;
     users: User;
     media: Media;
+    subscribers: Subscriber;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -88,6 +89,7 @@ export interface Config {
     pages: PagesSelect<false> | PagesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    subscribers: SubscribersSelect<false> | SubscribersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -99,9 +101,17 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     site: Site;
+    navigation: Navigation;
+    'index-pages': IndexPage;
+    identity: Identity;
+    subscriptions: Subscription;
   };
   globalsSelect: {
     site: SiteSelect<false> | SiteSelect<true>;
+    navigation: NavigationSelect<false> | NavigationSelect<true>;
+    'index-pages': IndexPagesSelect<false> | IndexPagesSelect<true>;
+    identity: IdentitySelect<false> | IdentitySelect<true>;
+    subscriptions: SubscriptionsSelect<false> | SubscriptionsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -209,6 +219,10 @@ export interface Post {
    */
   idCarnet?: string | null;
   draft?: boolean | null;
+  /**
+   * Date à laquelle les abonné·es aux alertes mail ont été notifié·es de ce billet. Set automatiquement à la première publication, jamais re-déclenché.
+   */
+  notificationsSentAt?: string | null;
   /**
    * Calculé automatiquement — vrai si le corps contient au moins une zone marquée brouillon. Filtrable depuis la liste des billets.
    */
@@ -500,6 +514,28 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscribers".
+ */
+export interface Subscriber {
+  id: number;
+  email: string;
+  /**
+   * « En attente » : lien de confirmation pas encore cliqué. « Actif·ve » : reçoit les mails de nouveaux billets. « Désabonné·e » : a cliqué sur le lien de désabo dans un mail, ne reçoit plus rien.
+   */
+  status: 'pending' | 'active' | 'unsubscribed';
+  /**
+   * SHA-256 du token envoyé dans le mail de confirmation. Stocké en base, jamais affiché en clair. Effacé après confirmation.
+   */
+  confirmTokenHash?: string | null;
+  confirmTokenExpiresAt?: string | null;
+  subscribedAt?: string | null;
+  confirmedAt?: string | null;
+  unsubscribedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -549,6 +585,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'media';
         value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'subscribers';
+        value: number | Subscriber;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -619,6 +659,7 @@ export interface PostsSelect<T extends boolean = true> {
   readingTime?: T;
   idCarnet?: T;
   draft?: T;
+  notificationsSentAt?: T;
   hasDraftZones?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -803,6 +844,21 @@ export interface MediaSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscribers_select".
+ */
+export interface SubscribersSelect<T extends boolean = true> {
+  email?: T;
+  status?: T;
+  confirmTokenHash?: T;
+  confirmTokenExpiresAt?: T;
+  subscribedAt?: T;
+  confirmedAt?: T;
+  unsubscribedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
@@ -847,12 +903,6 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
  */
 export interface Site {
   id: number;
-  identity?: {
-    /**
-     * Nom du laboratoire de recherche, de la personne, du collectif… selon l'utilisation du carnet. Affiché en signature dans la baseline du footer et la description meta.
-     */
-    authorName?: string | null;
-  };
   branding?: {
     /**
      * Teinte d'accent appliquée à tout le site (point de la marque, item nav actif, kickers, liens dans les billets, boutons actifs, etc.).
@@ -869,62 +919,32 @@ export interface Site {
      */
     notesMode?: ('classic' | 'sidenotes') | null;
   };
-  home?: {
-    /**
-     * H1 de la page d'accueil. Entourer une portion de "*" pour la mettre en italique.
-     */
-    heroTitle?: string | null;
-    /**
-     * Paragraphe sous le titre de la page d'accueil.
-     */
-    heroLede?: string | null;
-  };
-  archives?: {
-    /**
-     * H1 de la page /archives/. Entourer une portion de "*" pour la mettre en italique.
-     */
-    heroTitle?: string | null;
-    /**
-     * Paragraphe sous le titre de /archives/.
-     */
-    heroLede?: string | null;
-  };
-  themes?: {
-    /**
-     * H1 de la page /themes/. Entourer une portion de "*" pour la mettre en italique (ex. *thèmes*).
-     */
-    heroTitle?: string | null;
-    /**
-     * Paragraphe sous le titre de /themes/.
-     */
-    heroLede?: string | null;
-  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "navigation".
+ */
+export interface Navigation {
+  id: number;
   /**
-   * Affichée dans le footer (col 1).
+   * Onglets affichés dans le header du site, dans l'ordre. Le lien « Billets » (page d'accueil) reste toujours en première position et n'est pas listé ici. Pour cacher un onglet : on le supprime de la liste.
    */
-  baseline?: string | null;
-  /**
-   * Footer (col 1, sous la baseline, en mono).
-   */
-  copyrightLine?: string | null;
-  social?: {
-    /**
-     * URL complète du profil Mastodon.
-     */
-    mastodon?: string | null;
-    /**
-     * URL complète du profil Bluesky.
-     */
-    bluesky?: string | null;
-    /**
-     * URL complète du profil ORCID.
-     */
-    orcid?: string | null;
-    /**
-     * URL complète de la page HAL.
-     */
-    hal?: string | null;
-  };
+  navHeader?:
+    | {
+        kind: 'index' | 'editorial';
+        indexTarget?: ('archives' | 'themes' | 'subscribe') | null;
+        page?: (number | null) | Page;
+        /**
+         * Override du libellé affiché. Sinon : le libellé natif de la page (eyebrow ou title pour les pages éditoriales, libellé par défaut pour les pages d'index).
+         */
+        label?: string | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'navItem';
+      }[]
+    | null;
   navFooter?:
     | {
         label: string;
@@ -938,14 +958,128 @@ export interface Site {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "index-pages".
+ */
+export interface IndexPage {
+  id: number;
+  home?: {
+    /**
+     * H1 de la page d'accueil. Entourer une portion de "*" pour la mettre en italique.
+     */
+    heroTitle?: string | null;
+    /**
+     * Paragraphe sous le titre de la page d'accueil.
+     */
+    heroLede?: string | null;
+  };
+  archives?: {
+    /**
+     * Si décochée, /archives/ renvoie 404.
+     */
+    enabled?: boolean | null;
+    /**
+     * H1 de la page /archives/. Entourer une portion de "*" pour la mettre en italique.
+     */
+    heroTitle?: string | null;
+    /**
+     * Paragraphe sous le titre de /archives/.
+     */
+    heroLede?: string | null;
+  };
+  themes?: {
+    /**
+     * Si décochée, /themes/ et /theme/<slug>/ renvoient 404.
+     */
+    enabled?: boolean | null;
+    /**
+     * H1 de la page /themes/. Entourer une portion de "*" pour la mettre en italique (ex. *thèmes*).
+     */
+    heroTitle?: string | null;
+    /**
+     * Paragraphe sous le titre de /themes/.
+     */
+    heroLede?: string | null;
+  };
+  subscribe?: {
+    /**
+     * Si décochée, /abonnement/ renvoie 404.
+     */
+    enabled?: boolean | null;
+    /**
+     * H1 de la page /abonnement/. Entourer une portion de "*" pour la mettre en italique.
+     */
+    heroTitle?: string | null;
+    /**
+     * Paragraphe sous le titre de /abonnement/.
+     */
+    heroLede?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "identity".
+ */
+export interface Identity {
+  id: number;
+  /**
+   * Nom court qui apparaît dans le header (logo), le footer, le suffixe des onglets navigateur (« … — Nom »), les mails d'invitation et le flux RSS. Court de préférence (1 à 2 mots).
+   */
+  siteName?: string | null;
+  /**
+   * Nom du laboratoire de recherche, de la personne, du collectif… selon l'utilisation du carnet. Affiché en signature dans la baseline du footer et la description meta.
+   */
+  authorName?: string | null;
+  /**
+   * Affichée dans le footer (col 1).
+   */
+  baseline?: string | null;
+  /**
+   * Footer (col 1, sous la baseline, en mono).
+   */
+  copyrightLine?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscriptions".
+ */
+export interface Subscription {
+  id: number;
+  /**
+   * Si décoché : /rss.xml renvoie 404, le lien « Flux RSS » du footer disparaît, et la section RSS de la page /abonnement/ disparaît.
+   */
+  rssEnabled?: boolean | null;
+  /**
+   * Si décoché : le formulaire d'inscription disparaît de /abonnement/ et aucun mail n'est envoyé à la publication des nouveaux billets — même pour les abonné·es déjà actif·ves (qui ne sont pas supprimé·es pour autant : on peut réactiver plus tard).
+   */
+  emailEnabled?: boolean | null;
+  /**
+   * URL complète du profil Mastodon.
+   */
+  mastodon?: string | null;
+  /**
+   * URL complète du profil Bluesky.
+   */
+  bluesky?: string | null;
+  /**
+   * URL complète du profil ORCID.
+   */
+  orcid?: string | null;
+  /**
+   * URL complète de la page HAL.
+   */
+  hal?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site_select".
  */
 export interface SiteSelect<T extends boolean = true> {
-  identity?:
-    | T
-    | {
-        authorName?: T;
-      };
   branding?:
     | T
     | {
@@ -957,33 +1091,28 @@ export interface SiteSelect<T extends boolean = true> {
     | {
         notesMode?: T;
       };
-  home?:
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "navigation_select".
+ */
+export interface NavigationSelect<T extends boolean = true> {
+  navHeader?:
     | T
     | {
-        heroTitle?: T;
-        heroLede?: T;
-      };
-  archives?:
-    | T
-    | {
-        heroTitle?: T;
-        heroLede?: T;
-      };
-  themes?:
-    | T
-    | {
-        heroTitle?: T;
-        heroLede?: T;
-      };
-  baseline?: T;
-  copyrightLine?: T;
-  social?:
-    | T
-    | {
-        mastodon?: T;
-        bluesky?: T;
-        orcid?: T;
-        hal?: T;
+        navItem?:
+          | T
+          | {
+              kind?: T;
+              indexTarget?: T;
+              page?: T;
+              label?: T;
+              id?: T;
+              blockName?: T;
+            };
       };
   navFooter?:
     | T
@@ -993,6 +1122,70 @@ export interface SiteSelect<T extends boolean = true> {
         external?: T;
         id?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "index-pages_select".
+ */
+export interface IndexPagesSelect<T extends boolean = true> {
+  home?:
+    | T
+    | {
+        heroTitle?: T;
+        heroLede?: T;
+      };
+  archives?:
+    | T
+    | {
+        enabled?: T;
+        heroTitle?: T;
+        heroLede?: T;
+      };
+  themes?:
+    | T
+    | {
+        enabled?: T;
+        heroTitle?: T;
+        heroLede?: T;
+      };
+  subscribe?:
+    | T
+    | {
+        enabled?: T;
+        heroTitle?: T;
+        heroLede?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "identity_select".
+ */
+export interface IdentitySelect<T extends boolean = true> {
+  siteName?: T;
+  authorName?: T;
+  baseline?: T;
+  copyrightLine?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscriptions_select".
+ */
+export interface SubscriptionsSelect<T extends boolean = true> {
+  rssEnabled?: T;
+  emailEnabled?: T;
+  mastodon?: T;
+  bluesky?: T;
+  orcid?: T;
+  hal?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

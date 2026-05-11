@@ -48,11 +48,19 @@ type Counts = {
   media: number;
   users: number;
   pages: number;
+  subscribers: number;
 };
 
 export interface Props {
   activePath: string;
   counts: Counts;
+  version?: { tag: string; commit: string };
+  /**
+   * User courant résolu côté serveur (Nav.tsx via payload.auth). On
+   * évite ainsi le fetch /me en client → plus de flash sur les sections
+   * Config / Utilisateur·ices à chaque navigation.
+   */
+  initialMe?: Me['user'] | null;
 }
 
 type NavItem = {
@@ -66,7 +74,7 @@ type NavSection = {
   items: NavItem[];
 };
 
-export default function NavClient({ activePath: serverActive, counts }: Props): React.ReactElement {
+export default function NavClient({ activePath: serverActive, counts, version, initialMe }: Props): React.ReactElement {
   // Pathname côté client (mis à jour par le routeur Next quand on
   // navigue sans full reload). On préfère l'état client une fois
   // hydraté ; sinon on retombe sur la valeur serveur (header).
@@ -95,14 +103,11 @@ export default function NavClient({ activePath: serverActive, counts }: Props): 
     setNavOpen(false);
   }, [activePath]);
 
-  // User courant pour le footer (nom + rôle).
-  const [me, setMe] = useState<Me['user'] | null>(null);
-  useEffect(() => {
-    fetch('/cms/api/users/me', { credentials: 'include' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: Me | null) => setMe(data?.user ?? null))
-      .catch(() => setMe(null));
-  }, []);
+  // User courant pour le footer (nom + rôle) — résolu côté serveur
+  // dans Nav.tsx (payload.auth + cookies) et passé en prop. Plus de
+  // useState/useEffect ici : la nav rend dès le premier paint avec les
+  // sections role-gated dans le bon état, plus de flash après hydratation.
+  const me = initialMe ?? null;
 
   // URL du front public pour le lien « Voir le site ↗ ». En prod
   // l'admin et le front sont sur le même domaine (admin sur
@@ -168,7 +173,20 @@ export default function NavClient({ activePath: serverActive, counts }: Props): 
   }, []);
 
   const userName = me?.displayName?.trim() || me?.email?.split('@')[0] || '—';
-  const userRole = me?.role ?? '';
+  const rawRole = me?.role ?? '';
+  // Libellés inclusifs des rôles, affichés dans le footer de la sidebar.
+  // Source des rôles bruts : services/payload/src/access/roles.ts.
+  const ROLE_LABEL: Record<string, string> = {
+    root: 'root',
+    admin: 'administrateur·ice',
+    editor: 'éditeur·ice',
+  };
+  const userRole = ROLE_LABEL[rawRole] ?? rawRole;
+
+  // Accès aux sections Config + Utilisateur·ices : réservés aux rôles
+  // qui peuvent gérer le site (admin/root). Un editor ne voit que
+  // Contenu + Mon compte.
+  const isPrivileged = rawRole === 'admin' || rawRole === 'root';
 
   const sections: NavSection[] = [
     {
@@ -179,19 +197,40 @@ export default function NavClient({ activePath: serverActive, counts }: Props): 
         { label: 'Bibliographie', href: `${ADMIN}/collections/bibliography`, count: counts.bibliography },
         { label: 'Tags', href: `${ADMIN}/collections/tags`, count: counts.tags },
         { label: 'Médias', href: `${ADMIN}/collections/media`, count: counts.media },
-      ],
-    },
-    {
-      label: 'Pages',
-      items: [
         { label: 'Pages éditoriales', href: `${ADMIN}/collections/pages`, count: counts.pages },
-        { label: 'Site (global)', href: `${ADMIN}/globals/site` },
       ],
     },
+    ...(isPrivileged
+      ? [
+          {
+            label: 'Config',
+            items: [
+              { label: 'Identité', href: `${ADMIN}/globals/identity` },
+              { label: 'Options', href: `${ADMIN}/globals/site` },
+              { label: 'Abonnements', href: `${ADMIN}/globals/subscriptions` },
+              { label: 'Pages principales', href: `${ADMIN}/globals/index-pages` },
+              { label: 'Navigation', href: `${ADMIN}/globals/navigation` },
+            ],
+          },
+        ]
+      : []),
     {
       label: 'Réglages',
       items: [
-        { label: 'Utilisateurs', href: `${ADMIN}/collections/users`, count: counts.users },
+        ...(isPrivileged
+          ? [
+              {
+                label: 'Utilisateur·ices',
+                href: `${ADMIN}/collections/users`,
+                count: counts.users,
+              },
+              {
+                label: 'Abonné·es',
+                href: `${ADMIN}/collections/subscribers`,
+                count: counts.subscribers,
+              },
+            ]
+          : []),
         { label: 'Mon compte', href: `${ADMIN}/account` },
       ],
     },
@@ -315,8 +354,20 @@ export default function NavClient({ activePath: serverActive, counts }: Props): 
         <div className="carnet-nav__footer">
           <div className="carnet-nav__user">
             <div className="carnet-nav__user-name">{userName}</div>
-            {userRole && <div className="carnet-nav__user-role">{userRole}</div>}
+            {userRole && (
+              <div className="carnet-nav__user-role">
+                <span className="carnet-nav__user-role-prefix">Rôle :</span> {userRole}
+              </div>
+            )}
           </div>
+          {version && (
+            <div
+              className="carnet-nav__version"
+              title={`Version : ${version.tag} · commit ${version.commit}`}
+            >
+              {version.tag} · {version.commit}
+            </div>
+          )}
         </div>
       )}
       </nav>

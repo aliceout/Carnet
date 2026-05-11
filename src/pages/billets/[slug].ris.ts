@@ -13,9 +13,11 @@
 
 import type { APIRoute } from 'astro';
 
-import { fetchBySlug } from '../../lib/payload';
+import { fetchBySlug, fetchIdentity } from '../../lib/payload';
 import { toRIS, type CitationPost } from '../../lib/citations';
 import type { PostAuthorEntry } from '../../lib/site';
+
+type IdentityGlobal = { siteName?: string };
 
 type Post = CitationPost & {
   draft?: boolean;
@@ -34,7 +36,14 @@ export const GET: APIRoute = async ({ params, url }) => {
 
   const articleUrl = new URL(`/billets/${post.slug}/`, url).toString();
   const accessedAt = new Date().toISOString().slice(0, 10);
-  const body = toRIS(post, { articleUrl, accessedAt });
+  let siteName: string | undefined;
+  try {
+    const identity = await fetchIdentity<IdentityGlobal>();
+    siteName = identity.siteName?.trim() || undefined;
+  } catch {
+    /* fallback côté toRIS */
+  }
+  const body = toRIS(post, { articleUrl, accessedAt, siteName });
 
   return new Response(body, {
     status: 200,

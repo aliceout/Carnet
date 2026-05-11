@@ -12,10 +12,16 @@ import { Themes } from './collections/Themes';
 import { Tags } from './collections/Tags';
 import { Bibliography } from './collections/Bibliography';
 import { Pages } from './collections/Pages';
+import { Subscribers } from './collections/Subscribers';
 import { Site } from './globals/Site';
+import { Navigation } from './globals/Navigation';
+import { IndexPages } from './globals/IndexPages';
+import { Identity } from './globals/Identity';
+import { Subscriptions } from './globals/Subscriptions';
 import { authEndpoints } from './auth/endpoints';
 import { zoteroEndpoints } from './zotero/endpoints';
 import { postsSearchEndpoint } from './endpoints/posts-search';
+import { subscribersEndpoints } from './endpoints/subscribers';
 import { extendPostsSearchVector } from './db/extend-posts-search-vector';
 import { buildEmailAdapter } from './auth/transport';
 import { startCleanupJob } from './auth/cleanup';
@@ -56,6 +62,17 @@ const postsBaseEndpoints = Array.isArray(Posts.endpoints) ? Posts.endpoints : []
 const PostsWithEndpoints = {
   ...Posts,
   endpoints: [...postsBaseEndpoints, postsSearchEndpoint],
+};
+
+// Endpoints publics du flow d'alertes mail (subscribe, confirm,
+// unsubscribe). Exposés sous /cms/api/subscribers/<path>. Cf
+// endpoints/subscribers.ts.
+const subscribersBaseEndpoints = Array.isArray(Subscribers.endpoints)
+  ? Subscribers.endpoints
+  : [];
+const SubscribersWithEndpoints = {
+  ...Subscribers,
+  endpoints: [...subscribersBaseEndpoints, ...subscribersEndpoints],
 };
 
 export default buildConfig({
@@ -120,8 +137,9 @@ export default buildConfig({
     Pages,
     UsersWithEndpoints,
     Media,
+    SubscribersWithEndpoints,
   ],
-  globals: [Site],
+  globals: [Site, Navigation, IndexPages, Identity, Subscriptions],
   editor: lexicalEditor(),
   email: buildEmailAdapter(),
   secret: process.env.PAYLOAD_SECRET || '',

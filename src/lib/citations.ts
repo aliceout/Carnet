@@ -42,6 +42,9 @@ export type CitationContext = {
   /** Date de génération du fichier d'export (ISO court yyyy-mm-dd). Sert de
    *  date d'accès dans les formats qui le portent (BibTeX urldate, RIS Y2). */
   accessedAt?: string;
+  /** Nom du carnet (depuis Site global → identity.siteName). Sert pour les
+   *  champs « publisher »/« howpublished »/« journal_title » des exports. */
+  siteName?: string;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────
@@ -148,10 +151,11 @@ export function toBibTeX(post: CitationPost, ctx: CitationContext): string {
     if (value) lines.push(`  ${key} = {${bibTexEscape(value)}},`);
   };
 
+  const siteName = ctx.siteName?.trim() || 'Carnet';
   lines.push(`@misc{${bibKey(post)},`);
   if (authors.length > 0) push('author', bibTexAuthors(authors));
   push('title', post.title);
-  push('howpublished', 'Carnet — notes de recherche');
+  push('howpublished', `${siteName} — notes de recherche`);
   push('year', toYear(post.publishedAt));
   push('month', new Date(post.publishedAt).toLocaleString('en-US', { month: 'short' }).toLowerCase());
   push('url', ctx.articleUrl);
@@ -205,7 +209,7 @@ export function toRIS(post: CitationPost, ctx: CitationContext): string {
   push('PY', toYear(post.publishedAt));
   // RIS DA = yyyy/mm/dd
   push('DA', toIsoDate(post.publishedAt).replace(/-/g, '/'));
-  push('PB', 'Carnet');
+  push('PB', ctx.siteName?.trim() || 'Carnet');
   push('UR', ctx.articleUrl);
   if (ctx.accessedAt) push('Y2', ctx.accessedAt.replace(/-/g, '/'));
   if (post.idCarnet) push('AN', post.idCarnet);
@@ -240,7 +244,7 @@ export function highwireMeta(post: CitationPost, ctx: CitationContext): Array<{ 
     push('citation_author', a.given ? `${a.family}, ${a.given}` : a.family);
   }
   push('citation_publication_date', toIsoDate(post.publishedAt).replace(/-/g, '/'));
-  push('citation_journal_title', 'Carnet');
+  push('citation_journal_title', ctx.siteName?.trim() || 'Carnet');
   push('citation_public_url', ctx.articleUrl);
   if (post.doi) push('citation_doi', post.doi);
   return tags;
