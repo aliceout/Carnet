@@ -18,6 +18,22 @@ conversation en cours.**
 
 `git commit` local en revanche est OK quand l'utilisatrice le demande.
 
+### Proposer un numéro de version à chaque demande de push
+
+Quand l'utilisatrice demande un push (ou qu'on propose un push à
+valider), **toujours proposer un numéro de version semver** dans la
+même phrase, en suivant l'historique des tags :
+
+- Patch (`vX.Y.Z+1`) : fix CI, hotfix d'un build cassé, correction
+  cosmétique, typo. Pas de changement de fonctionnalité ni de schéma.
+- Mineur (`vX.Y+1.0`) : nouvelle feature opt-in, ajout de champs au
+  schéma sans drop, nouveau global ou collection.
+- Majeur (`vX+1.0.0`) : breaking change UX/admin, refonte d'une
+  surface publique, suppression de routes ou de fields existants.
+
+Format proposé : « tu push ? je tag `vA.B.C` (patch — fix CI) ? ».
+L'utilisatrice peut bumper différemment ou refuser le tag.
+
 ## Autres conventions de travail
 
 - **Code 100 %** : c'est Claude qui écrit, pas l'utilisatrice. Mais
