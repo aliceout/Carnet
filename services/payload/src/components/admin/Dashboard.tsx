@@ -12,6 +12,7 @@ import React from 'react';
 import { getPayload } from 'payload';
 
 import config from '@/payload.config';
+import NavBurger from './NavBurger.client';
 
 type Props = {
   // Payload v3 fournit user + permissions + initPageResult au server view.
@@ -96,7 +97,10 @@ export default async function Dashboard({ user }: Props): Promise<React.ReactEle
   return (
     <div className="carnet-dashboard">
       <header className="carnet-dashboard__header">
-        <div className="carnet-kicker">Carnet · admin</div>
+        <div className="carnet-dashboard__kicker-row">
+          <NavBurger />
+          <div className="carnet-kicker">Carnet · admin</div>
+        </div>
         <h1 className="carnet-h1 carnet-dashboard__hello">
           {userName ? (
             <>

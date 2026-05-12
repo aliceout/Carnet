@@ -843,6 +843,16 @@ button.btn--style-primary,
     margin-bottom: 48px;
   }
 
+  // Burger mobile + kicker « Carnet · admin » alignés sur la même ligne
+  // (≤1440 — sur desktop, le burger est display: none donc le kicker
+  // se retrouve seul, naturellement). gap modeste pour rapprocher
+  // visuellement les deux.
+  &__kicker-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
   &__hello {
     font-size: 48px;
     line-height: 1.1;
@@ -5866,6 +5876,14 @@ button.btn--style-primary,
   }
   .carnet-nav-burger:hover {
     border-color: var(--b-ink);
+  }
+
+  // Variante standalone — utilisée par Dashboard qui n'a pas de
+  // CarnetTopbar. Le burger est placé inline avec le kicker
+  // « Carnet · admin » (cf .carnet-dashboard__kicker-row) : pas de
+  // margin-right ni margin-bottom, le gap du flex parent gère l'espace.
+  .carnet-nav-burger--standalone {
+    margin-right: 0;
   }
 
   .carnet-nav-backdrop {
