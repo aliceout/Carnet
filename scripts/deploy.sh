@@ -30,6 +30,18 @@
 #
 # CREDS_FILE par défaut : $HOME/.config/infisical/carnet.env (écrit par
 # l'install.sh côté vps-install). Override via env si besoin.
+#
+# Depuis la migration Infisical Cloud (mai 2026), INFISICAL_API_URL dans
+# CREDS_FILE pointe sur l'instance Cloud partagée (app.infisical.com ou
+# l'instance custom du framework), et INFISICAL_PROJECT_ID est l'UUID du
+# projet *unique* qui contient tous les services. L'arborescence est
+# `/services/<nom-du-projet>/<sous-dossier>` — pour Carnet :
+#   /services/carnet           → clés communes (DOMAIN, ADDRESS, DNS_*, …)
+#   /services/carnet/payload   → PAYLOAD_SECRET, etc.
+#   /services/carnet/postgres  → POSTGRES_*
+#   /services/carnet/smtp      → SMTP_*
+#   /services/carnet/web       → ADDRESS, PORT_*
+# Les noms de vars n'ont pas changé, seuls les paths Infisical bougent.
 
 set -euo pipefail
 
@@ -63,7 +75,8 @@ if [ "$USE_INFISICAL" = "true" ]; then
   : "${INFISICAL_CLIENT_SECRET:?INFISICAL_CLIENT_SECRET manquant dans $CREDS_FILE}"
   INFISICAL_ENV="${INFISICAL_ENV:-prod}"
 
-  # 2. Login Infisical self-hosted → token éphémère.
+  # 2. Login Infisical → token éphémère. INFISICAL_API_URL pointe sur
+  #    l'instance Cloud du framework (cf. CREDS_FILE).
   TOKEN=$(infisical login --method=universal-auth \
     --domain="$INFISICAL_API_URL" \
     --client-id="$INFISICAL_CLIENT_ID" \
@@ -73,20 +86,31 @@ if [ "$USE_INFISICAL" = "true" ]; then
   # 3. Export tous les secrets app vers .env racine. Chmod AVANT d'écrire pour
   #    qu'aucun process tiers ne puisse lire le fichier en 644 même brièvement.
   #
-  #    Le projet Infisical Carnet a ses secrets organisés en 4 sous-dossiers
-  #    (payload/, postgres/, smtp/, web/) — `--path=/` ne recurse pas, on
-  #    itère explicitement. `set -euo pipefail` au top fait aborter le
-  #    script si l'un des fetch foire (.env partiel = silent broken deploy).
+  #    Avec Infisical Cloud, l'arbo est `/services/carnet/<sous-dossier>` :
+  #    on fetch d'abord la racine `/services/carnet` (clés communes au
+  #    projet — DOMAIN, ADDRESS, DNS_*, etc.), puis chaque sous-dossier.
+  #    L'ordre compte : un sous-dossier qui redéfinit une clé de la racine
+  #    DOIT gagner. En .env, c'est la dernière occurrence d'une clé qui
+  #    l'emporte (comportement docker compose + `set -a; source`), donc
+  #    racine en premier, sous-dossiers ensuite.
+  #
+  #    On n'utilise pas `--recursive` (la CLI Infisical du VPS ne le
+  #    supporte pas dans toutes les versions) → liste explicite. Quand
+  #    on ajoute un sous-dossier dans Infisical, penser à l'ajouter ici.
+  #
+  #    `set -euo pipefail` au top fait aborter le script si l'un des
+  #    fetch foire (.env partiel = silent broken deploy).
   : > "$ENV_FILE"
   chmod 600 "$ENV_FILE"
 
-  for subpath in payload postgres smtp web; do
-    echo "[deploy] fetching /$subpath"
+  for subpath in "" payload postgres smtp web; do
+    path="/services/carnet${subpath:+/$subpath}"
+    echo "[deploy] fetching $path"
     infisical export \
       --domain="$INFISICAL_API_URL" \
       --projectId="$INFISICAL_PROJECT_ID" \
       --env="$INFISICAL_ENV" \
-      --path="/$subpath" \
+      --path="$path" \
       --format=dotenv \
       --token="$TOKEN" >> "$ENV_FILE"
   done

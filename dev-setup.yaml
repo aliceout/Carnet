@@ -22,12 +22,17 @@ secrets:
   loader: dotenv
   # TODO: remplacer par le slug exact du projet sur
   # (visible dans l'URL de l'admin Infisical quand tu ouvres le projet).
-  project: carnet-ayz-p
+  project: infra-perso-x-lwh
   batches:
     # Env Infisical "dev" — valeurs locales (Postgres docker, Mailpit, etc.).
+    # Depuis la migration Infisical Cloud, tout est sous /services/carnet
+    # dans le projet partagé "infra-perso-x-lwh".
     # En prod, ce fichier est ignoré : deploy.sh fetche directement l'env
     # "prod" via les credentials VPS-level Universal Auth.
-    # Ordre = priorité sur les doublons (first wins).
-    - dev/payload
-    - dev/postgres
-    - dev/smtp
+    # Ordre = priorité sur les doublons (first wins) → sous-dossiers
+    # avant la racine, pour que les valeurs spécifiques gagnent.
+    - dev/services/carnet/payload
+    - dev/services/carnet/postgres
+    - dev/services/carnet/smtp
+    - dev/services/carnet/web
+    - dev/services/carnet

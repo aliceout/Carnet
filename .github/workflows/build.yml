@@ -140,10 +140,10 @@ jobs:
           fi
 
       # Mode Infisical — Auth Universal Auth via Machine Identity dédiée
-      # CI. ⚠ Cet Infisical est l'instance *cloud* utilisée par la CI
-      # (pas l'Infisical self-hosted qui alimente le runtime VPS via
-      # deploy.sh). Le path /services/carnet diffère donc de l'arbo
-      # /web qu'on retrouve côté self-hosted.
+      # CI. Même instance Infisical Cloud que celle qui alimente le
+      # runtime VPS via deploy.sh ; tous deux fetchent sous le path
+      # /services/carnet (la CI lit la racine pour ADDRESS, le VPS
+      # itère sur chaque sous-dossier pour reconstruire le .env).
       - name: Fetch build-time secrets from Infisical
         if: steps.detect.outputs.use_infisical == 'true'
         uses: Infisical/secrets-action@v1.0.7

@@ -16,7 +16,9 @@ Prérequis : Node 22+, pnpm 10+, Docker.
 
 ```bash
 # Secrets (Dev Setup VS Code ou infisical CLI)
-infisical export --env=dev --path=/ --format=dotenv > .env
+# Arbo Infisical Cloud : /services/carnet/{payload,postgres,smtp,web}.
+# La racine /services/carnet contient les clés communes (ADDRESS, etc.).
+infisical export --env=dev --path=/services/carnet --format=dotenv > .env
 
 # Deps
 pnpm install
@@ -74,7 +76,7 @@ Push sur `main` → GitHub Actions build les images → push GHCR → webhook VP
 nouvelles images, `docker compose up -d`.
 
 Sample nginx (TLS terminé en amont, ports pilotés par Infisical
-`prod/infra`) :
+`prod /services/carnet/web`) :
 
 ```nginx
 server {
@@ -95,9 +97,9 @@ internes / volumes.
 
 ### Forker sans Infisical
 
-Notre setup utilise Infisical (cloud côté CI, self-hosted côté VPS) pour
-les secrets, mais c'est optionnel. Si tu fork le Carnet, deux modes
-sont détectés à l'exécution :
+Notre setup utilise Infisical Cloud (même instance côté CI et côté VPS,
+arbo `/services/carnet/<sub>`) pour les secrets, mais c'est optionnel.
+Si tu fork le Carnet, deux modes sont détectés à l'exécution :
 
 **Côté CI** ([`build.yml`](.github/workflows/build.yml)) — si le GH
 secret `INFISICAL_API_URL` est posé, le workflow fetch tout depuis
